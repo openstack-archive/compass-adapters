@@ -1,0 +1,11 @@
+#!/bin/bash
+# This file is going to create a loop file as volume disk.
+#
+
+vgdisplay |grep cinder-volumes;
+if [ $? -ne 0 ]; then
+  dd if=/dev/zero of=/mnt/cinder-volumes bs=1 count=0 seek=2G
+  losetup /dev/loop0 /mnt/cinder-volumes
+  pvcreate /dev/loop0
+  vgcreate cinder-volumes /dev/loop0  
+fi

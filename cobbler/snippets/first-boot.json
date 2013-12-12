@@ -1,0 +1,7 @@
+#set run_list=$getVar('$run_list', '')
+#set cluster_databag=$getVar('$cluster_databag', None)
+#if $cluster_databag != None
+{ "run_list": [$run_list],
+  "cluster": "$cluster_databag"
+}
+#end if

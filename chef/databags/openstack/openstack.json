@@ -1,0 +1,211 @@
+{ "all_roles" : { "os-single-controller" : "openstack controller node",
+      "os-network" : "openstack network node",
+      "os-compute-worker" : "openstack nova node"
+    },
+  "credential" : { "identity" : { "roles" : { "admin" : "admin",
+              "member" : "Member"
+            },
+          "tenants" : { "admin" : "admin",
+              "service" : "service"
+            },
+          "token" : { "admin" : "01234567890abc0987654321" },
+          "users" : { "admin" : { "password" : "admin",
+                  "tenant" : "admin",
+                  "username" : "admin"
+                },
+              "compute" : { "password" : "nova",
+                  "tenant" : "service",
+                  "username" : "nova"
+                },
+              "image" : { "password" : "glance",
+                  "tenant" : "service",
+                  "username" : "glance"
+                },
+              "metering" : { "password" : "ceilometer",
+                  "tenant" : "service",
+                  "username" : "ceilometer"
+                },
+              "network" : { "password" : "quantum",
+                  "tenant" : "service",
+                  "username" : "quantum"
+                },
+              "object-store" : { "password" : "swift",
+                  "tenant" : "service",
+                  "username" : "swift"
+                },
+              "volume" : { "password" : "cinder",
+                  "tenant" : "service",
+                  "username" : "cinder"
+                }
+            }
+        },
+      "metadata" : { "password" : "Hello_Openstack" },
+      "mq" : { "rabbitmq" : { "password" : "guest",
+              "username" : "guest"
+            } },
+      "mysql" : { "compute" : { "password" : "admin",
+              "username" : "nova"
+            },
+          "dashboard" : { "password" : "admin",
+              "username" : "dashboard"
+            },
+          "identity" : { "password" : "admin",
+              "username" : "keystone"
+            },
+          "image" : { "password" : "admin",
+              "username" : "glance"
+            },
+          "metering" : { "password" : "admin",
+              "username" : "ceilometer"
+            },
+          "network" : { "password" : "admin",
+              "username" : "quantum"
+            },
+          "super" : { "password" : "test",
+              "username" : "root"
+            },
+          "volume" : { "password" : "admin",
+              "username" : "cinder"
+            }
+        },
+      "text" : true
+    },
+  "dashboard_roles" : [ "os-single-controller" ],
+  "db" : { "mysql" : { "bind_address" : "10.145.88.231",
+          "port" : "3306"
+        },
+      "service_type" : "mysql"
+    },
+  "endpoints" : { "compute" : { "metadata" : { "host" : "10.145.88.231",
+              "scheme" : "http"
+            },
+          "novnc" : { "host" : "10.145.88.231",
+              "scheme" : "http"
+            },
+          "service" : { "host" : "10.145.88.231",
+              "scheme" : "http"
+            },
+          "xvpvnc" : { "host" : "10.145.88.231",
+              "scheme" : "http"
+            }
+        },
+      "ec2" : { "admin" : { "host" : "10.145.88.231",
+              "scheme" : "http"
+            },
+          "service" : { "host" : "10.145.88.231",
+              "scheme" : "http"
+            }
+        },
+      "identity" : { "admin" : { "host" : "10.145.88.231",
+              "scheme" : "http"
+            },
+          "service" : { "host" : "10.145.88.231",
+              "scheme" : "http"
+            }
+        },
+      "image" : { "registry" : { "host" : "10.145.88.231",
+              "scheme" : "http"
+            },
+          "service" : { "host" : "10.145.88.231",
+              "scheme" : "http"
+            }
+        },
+      "metering" : { "service" : { "host" : "10.145.88.231",
+              "scheme" : "http"
+            } },
+      "network" : { "service" : { "host" : "10.145.88.231",
+              "scheme" : "http"
+            } },
+      "volume" : { "service" : { "host" : "10.145.88.231",
+              "scheme" : "http"
+            } }
+    },
+  "id" : "env_default",
+  "mq" : { "rabbitmq" : { "bind_address" : "10.145.88.231",
+          "port" : "5672"
+        },
+      "service_type" : "rabbitmq"
+    },
+  "networking" : { "control" : { "interface" : "eth0" },
+      "nova" : { "network_type" : "quantum" },
+      "plugins" : { "ovs" : { "gre" : { "bridge_mappings" : "nil",
+                  "enable_tunneling" : "True",
+                  "local_ip_interface" : "eth0",
+                  "network_vlan_ranges" : "nil",
+                  "tunnel_bridge" : "br-tun",
+                  "tunnel_id_ranges" : "1:3000"
+                },
+              "integration_bridge" : "br-int",
+              "status" : "enable",
+              "tenant_network_type" : "gre",
+              "vlan" : { "bridge_mappings" : "physnet1:br-eth1",
+                  "enable_tunneling" : "False",
+                  "local_ip_interface" : "nil",
+                  "network_vlan_ranges" : "physnet1:1000:2999",
+                  "tunnel_bridge" : "nil",
+                  "tunnel_id_ranges" : "nil"
+                }
+            } },
+      "public" : { "interface" : "eth1" },
+      "storage" : { "interface" : "eth0" },
+      "tenant" : { "interface" : "eth0" }
+    },
+  "ntp" : { "ntpserver" : "0.centos.pool.ntp.org" },
+  "release" : "grizzly",
+  "role_assign_policy" : {
+      "default" : { 
+          "bundles" : [ ],
+          "exclusives" : [ "os-single-controller", "os-network" ],
+          "roles" : [ "os-single-controller",
+              "os-compute-worker",
+              "os-network"
+            ],
+          "default_min" : 1,
+          "default_max" : 1,
+          "maxs" : { "os-compute-worker": -1 }
+        },
+      "policy_by_host_numbers" : {
+          "1" : { 
+              "bundles" : [ [ 
+                  "os-single-controller",
+                  "os-compute-worker",
+                  "os-network"
+                ] ],
+              "exclusives" : [  ]
+            },
+          "2" : { 
+              "bundles" : [ [ 
+                  "os-compute-worker",
+                  "os-network"
+                ] ],
+              "exclusives" : [ "os-single-controller" ]
+            }
+        }
+    },
+  "support_oses": [  "CentOS*" ],
+  "services" : { "compute" : { "name" : "nova",
+          "status" : "enable"
+        },
+      "dashboard" : { "name" : "horizon",
+          "status" : "enable"
+        },
+      "identity" : { "name" : "keystone",
+          "status" : "enable"
+        },
+      "image" : { "name" : "glance",
+          "status" : "enable"
+        },
+      "metering" : { "name" : "ceilometer",
+          "status" : "disable"
+        },
+      "network" : { "name" : "quantum",
+          "status" : "enable"
+        },
+      "object-store" : { "name" : "swift",
+          "status" : "disable"
+        },
+      "volume" : { "name" : "cinder",
+          "status" : "enable"
+        }
+    }
+}

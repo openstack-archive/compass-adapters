@@ -1,0 +1,14 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+# encoding: utf-8
+
+Tailor.config do |config|
+  config.formatters "text"
+  config.file_set "**/*.rb"
+
+  config.file_set "Gemfile", :config do |style|
+    style.spaces_after_comma 1, level: :off
+    style.max_line_length 120
+  end
+  config.file_sets[:config].update_file_list("Berksfile")
+end
