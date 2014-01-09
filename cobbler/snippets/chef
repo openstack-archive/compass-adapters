@@ -50,7 +50,7 @@ cat << EOF > /etc/init.d/chef
 # processname: chef-agent
 #if $getVar('ntp_server', '') != ""
 echo "old date is: \`date\`" 2>&1 > /tmp/ntp.log
-echo "path: \$PATH" 2>71 >> /tmp/ntp.log
+echo "path: \$PATH" 2>&1 >> /tmp/ntp.log
 /sbin/service ntpd stop 2>&1 >> /tmp/ntp.log
 /usr/sbin/ntpdate $server 2>&1 >> /tmp/ntp.log
 /sbin/service ntpd start 2>&1 >> /tmp/ntp.log
@@ -65,7 +65,7 @@ echo "*/1 * * * *  /etc/chef/rerun.sh" >> mycron
 crontab mycron
 rm mycron
 chkconfig chef off
-rm -rf /etc/init.d/chef
+mv /etc/init.d/chef /tmp/chef
 EOF
 
 

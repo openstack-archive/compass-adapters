@@ -10,6 +10,9 @@ https_proxy      '$proxy'
 #if $getVar('ignore_proxy', '') != ""
 no_proxy         '$ignore_proxy'
 #end if
+#if $getVar('chef_node_name', '') != ""
+node_name        '$chef_node_name'
+#end if
 validation_client_name 'chef-validator'
 # Using default node name (fqdn) 
 
