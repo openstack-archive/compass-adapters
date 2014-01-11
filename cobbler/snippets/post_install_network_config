@@ -207,7 +207,7 @@ echo "TYPE=Ethernet" >> $devfile
 #          the kernel gives an interface a different name
 #          following a reboot/hardware changes.
             #end if
-echo "BOOTPROTO=none" >> $devfile
+echo "BOOTPROTO=static" >> $devfile
             #if $ip != "" and $iface_type not in ("slave","bond_slave","bridge_slave","bonded_bridge_slave")
                 ## Only configure static networking if an IP-address is configured
                 ## and if the interface isn't slaved to another interface (bridging or bonding)
