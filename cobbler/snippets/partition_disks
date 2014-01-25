@@ -10,18 +10,36 @@
 set \$(list-harddrives)
 let disk_nums=\$#/2
 let disk_offset=0
+let found_disk_offset=0
 while [ \$disk_offset -lt \$disk_nums ];
 do
-disks[disk_offset]=\$1
+#if $getVar('partitions_only','') != ""
+let found_disk=0
+    #for $partition_only in $partitions_only.split(',')
+if [[ "\$1" =~ "$partition_only" ]]; then
+    disks[found_disk_offset]=\$1
+    let found_disk=1
+fi
+    #end for
+if [ \$found_disk -gt 0 ]; then
+    let found_disk_offset=\$found_disk_offset+1
+fi
+#else
+    disks[found_disk_offset]=\$1
+    let found_disk_offset=\$found_disk_offset+1
+#end if
 let disk_offset=\$disk_offset+1
 shift 2
 done
+let disk_nums=\$found_disk_offset
 
-echo "" > /tmp/part-include
-#if $getVar('partitions_only','') != ""
+echo "clearpart --all --initlabel" > /tmp/part-include
+
+#if $getVar('keep_old_partitions', '0') != "0"
+    #if $getVar('partitions_only','') != ""
 echo "ignoredisk --only-use=$partitions_only" >> /tmp/part-include
+    #end if
 #end if
-echo "clearpart --all --initlabel" >> /tmp/part-include
 
 echo "part /boot --fstype ext3 --size=100 --ondisk=\${disks[0]}  --asprimary" >> /tmp/part-include
 echo "part swap --recommended --ondisk=\${disks[0]}" >> /tmp/part-include
@@ -30,23 +48,10 @@ vggroup=''
 let disk_offset=0
 while [ \$disk_offset -lt \$disk_nums ];
 do
-let found_partition=0
-#if $getVar('partitions_only','') != ""
-    #for $partition_only in $partitions_only.split(',')
-if [[ "\${disks[\$disk_offset]}" =~ "$partition_only" ]]; then
-    let found_partition=1
-fi
-    #end for
-#else
-let found_partition=1
-#end if
-
-if [ \$found_partition -gt 0 ]; then
-    let pv_id=\$disk_offset+1
-    partname="pv.0\$pv_id"
-    echo "part \$partname --size=1 --grow --ondisk=\${disks[\$disk_offset]}" >> /tmp/part-include
-    vggroup="\$vggroup \$partname"
-fi
+let pv_id=\$disk_offset+1
+partname="pv.0\$pv_id"
+echo "part \$partname --size=1 --grow --ondisk=\${disks[\$disk_offset]}" >> /tmp/part-include
+vggroup="\$vggroup \$partname"
 let disk_offset=\$disk_offset+1;
 done
 
