@@ -34,9 +34,16 @@ cat << EOF > /etc/chef/rerun.sh
 #raw
 #!/bin/bash
 pgrep chef-client
-if [ "\$?" != "0" ]; then
+while [ "\$?" != "0" ]; do
 chef-client -p /var/run/chef-client.pid -j /etc/chef/first-boot.json &> /tmp/chef.log
+if [ "\$?" == "0" ]; then
+sed -i "/log_location/c\log_location     '/dev/null'" /etc/chef/client.rb
+break
+else
+sleep 1m
+pgrep chef-client
 fi
+done
 #end raw
 EOF
 
