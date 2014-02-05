@@ -15,4 +15,4 @@ node_name        '$chef_node_name'
 #end if
 validation_client_name 'chef-validator'
 # Using default node name (fqdn) 
-
+no_lazy_load true
