@@ -42,7 +42,7 @@ echo "ignoredisk --only-use=$partitions_only" >> /tmp/part-include
 #end if
 
 echo "part /boot --fstype ext3 --size=100 --ondisk=\${disks[0]}  --asprimary" >> /tmp/part-include
-echo "part swap --recommended --ondisk=\${disks[0]}" >> /tmp/part-include
+echo "part swap --recommended --maxsize=128000 --ondisk=\${disks[0]}" >> /tmp/part-include
 
 vggroup=''
 let disk_offset=0
