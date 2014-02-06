@@ -1,0 +1,8 @@
+Verified+2: Jenkins
+Approved+1: Weidong Shao <weidong.shao@huawei.com>
+Code-Review+2: Weidong Shao <weidong.shao@huawei.com>
+Submitted-by: Jenkins
+Submitted-at: Thu, 06 Feb 2014 19:43:43 +0000
+Reviewed-on: https://review.openstack.org/71195
+Project: stackforge/compass-adapters
+Branch: refs/heads/master
