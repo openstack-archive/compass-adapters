@@ -1,0 +1,8 @@
+Verified+2: Jenkins
+Approved+1: Shuo Yang <shuo.yang@huawei.com>
+Code-Review+2: Shuo Yang <shuo.yang@huawei.com>
+Submitted-by: Jenkins
+Submitted-at: Fri, 07 Feb 2014 01:20:32 +0000
+Reviewed-on: https://review.openstack.org/71669
+Project: stackforge/compass-adapters
+Branch: refs/heads/master
