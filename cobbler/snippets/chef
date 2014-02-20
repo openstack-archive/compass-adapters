@@ -65,7 +65,7 @@ echo "new date is: \`date\`" 2>&1 >> /tmp/ntp.log
 #end if
 
 chmod +x /etc/chef/rerun.sh
-/etc/chef/rerun.sh
+/etc/chef/rerun.sh &
 
 crontab -l  > mycron
 echo "*/30 * * * *  /etc/chef/rerun.sh" >> mycron

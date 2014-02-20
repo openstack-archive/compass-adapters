@@ -67,7 +67,7 @@ reboot
 
 %pre
 $SNIPPET('log_ks_pre')
-$kickstart_start
+$SNIPPET('kickstart_start')
 $SNIPPET('pre_install_network_config')
 # Enable installation monitoring
 $SNIPPET('pre_anamon')
@@ -108,6 +108,10 @@ chkconfig ip6tables off
 
 cat << EOF > /etc/ntp.conf
 $SNIPPET('ntp.conf')
+EOF
+
+cat << EOF > /etc/security/limits.conf
+$SNIPPET('limits.conf')
 EOF
 
 ## $yum_repo_stanza

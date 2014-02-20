@@ -70,7 +70,7 @@
         },
       "text" : true
     },
-  "dashboard_roles" : [ "os-single-controller" ],
+  "dashboard_roles" : [ "os-single-controller", "os-dashboard" ],
   "db" : { "mysql" : { "bind_address" : "10.145.88.231",
           "port" : "3306"
         },
