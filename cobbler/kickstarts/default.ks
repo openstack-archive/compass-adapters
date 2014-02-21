@@ -114,6 +114,12 @@ cat << EOF > /etc/security/limits.conf
 $SNIPPET('limits.conf')
 EOF
 
+cat << EOF > /etc/sysctl.conf
+$SNIPPET('sysctl.conf')
+EOF
+
+sysctl -p
+
 ## $yum_repo_stanza
 ## $yum_config_stanza
 
