@@ -297,9 +297,9 @@ when "ubuntu"
   default["openstack"]["compute"]["platform"] = {
     "api_ec2_packages" => ["nova-api-ec2"],
     "api_ec2_service" => "nova-api-ec2",
-    "api_os_compute_packages" => ["nova-api-os-compute"],
-    "api_os_compute_process_name" => "nova-api-os-compute",
-    "api_os_compute_service" => "nova-api-os-compute",
+    "api_os_compute_packages" => ["nova-api"],
+    "api_os_compute_process_name" => "nova-api",
+    "api_os_compute_service" => "nova-api",
     "memcache_python_packages" => ["python-memcache"],
     "neutron_python_packages" => ["python-quantumclient", "python-pyparsing"],
     "compute_api_metadata_packages" => ["nova-api-metadata"],

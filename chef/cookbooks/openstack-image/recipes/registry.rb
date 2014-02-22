@@ -33,8 +33,10 @@ package "python-keystone" do
   action :install
 end
 
-db_user = node['openstack']['db']['image']['username']
-db_pass = db_password node['openstack']['db']['image']['password']
+#db_user = node['openstack']['db']['image']['username']
+#db_pass = db_password node['openstack']['db']['image']['password']
+db_user = node["openstack"]["db"]["image"]["username"]
+db_pass = node["openstack"]["db"]["image"]["password"]
 
 sql_connection = db_uri("image", db_user, db_pass)
 
@@ -91,6 +93,18 @@ directory "/etc/glance" do
   mode  00700
 end
 
+directory "/var/log/glance" do
+  owner node["openstack"]["image"]["user"]
+  group node["openstack"]["image"]["group"]
+  mode  00700
+end
+
+directory "/var/cache/glance/" do
+  owner node["openstack"]["image"]["user"]
+  group node["openstack"]["image"]["group"]
+  mode  00700
+end
+
 if node["openstack"]["image"]["registry"]["bind_interface"].nil?
   bind_address = registry_endpoint.host
 else
@@ -99,8 +113,8 @@ end
 
 template "/etc/glance/glance-registry.conf" do
   source "glance-registry.conf.erb"
-  owner  "root"
-  group  "root"
+  owner  node["openstack"]["image"]["user"]
+  group  node["openstack"]["image"]["group"]
   mode   00644
   variables(
     :registry_bind_address => bind_address,
@@ -121,32 +135,12 @@ end
 
 template "/etc/glance/glance-registry-paste.ini" do
   source "glance-registry-paste.ini.erb"
-  owner  "root"
-  group  "root"
+  owner  node["openstack"]["image"]["user"]
+  group  node["openstack"]["image"]["group"]
   mode   00644
 
   notifies :restart, "service[image-registry]", :immediately
 end
 
-execute "tinyimage" do
-  command "sh /tmp/tinyimage.sh"
-  action :nothing
-end
-
 identity_endpoint = endpoint "identity-api"
 auth_uri = ::URI.decode identity_endpoint.to_s
-
-template "/tmp/tinyimage.sh" do
-    source "tinyimage.sh.erb"
-    owner "root"
-    group "root"
-    mode  00755
-    variables( 
-      :os_username => node['openstack']['identity']['admin_user'], 
-      :os_password => node['openstack']['identity']['admin_password'],
-      :os_tenant_name => node['openstack']['identity']['admin_tenant_name'],
-      :os_auth_url => auth_uri
-    )
-
-    notifies :run, "execute[tinyimage]", :delayed
-end

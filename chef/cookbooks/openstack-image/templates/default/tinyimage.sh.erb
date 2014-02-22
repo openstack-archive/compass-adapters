@@ -5,33 +5,34 @@ OS_PASSWORD=<%= @os_password %>
 OS_TENANT_NAME=<%= @os_tenant_name %>
 OS_AUTH_URL=<%= @os_auth_url %>
 
+IMAGEDIR=/tmp/images
+
 glance --os-username=<%= @os_username %> \
        --os-password=<%= @os_password %> \
        --os-tenant-name=<%= @os_tenant_name %> \
        --os-auth-url=<%= @os_auth_url %> \
      image-list |grep "cirros-0.3.1"
-if [ $? -ne 0 ]; then
-  mkdir -p /tmp/images
-  cd /tmp/images/
-  yum install -y wget
-  wget http://download.cirros-cloud.net/0.3.1/cirros-0.3.1-x86_64-disk.img
-  glance --os-username=<%= @os_username %> \
-    --os-password=<%= @os_password %> \
-    --os-tenant-name=<%= @os_tenant_name %> \
-    --os-auth-url=<%= @os_auth_url %> \
-    image-create \
-    --name="cirros-0.3.1-x86_64" \
-    --disk-format=qcow2 \
-    --container-format bare < /tmp/images/cirros-0.3.1-x86_64-disk.img
 
-  wget http://download.cirros-cloud.net/0.3.1/cirros-0.3.1-i386-disk.img
-  glance --os-username=<%= @os_username %> \
-    --os-password=<%= @os_password %> \
-    --os-tenant-name=<%= @os_tenant_name %> \
-    --os-auth-url=<%= @os_auth_url %> \
-    image-create \
-    --name="cirros-0.3.1-i386" \
-    --disk-format=qcow2 \
-    --container-format bare < /tmp/images/cirros-0.3.1-i386-disk.img
+if [ $? -ne 0 ]; then
+  if [ -d "$IMAGEDIR" ]; then
+    cd $IMAGEDIR
+    glance --os-username=<%= @os_username %> \
+           --os-password=<%= @os_password %> \
+           --os-tenant-name=<%= @os_tenant_name %> \
+           --os-auth-url=<%= @os_auth_url %> \
+           image-create \
+           --name="cirros-0.3.1-x86_64" \
+           --disk-format=qcow2 \
+           --container-format bare < $IMAGEDIR/cirros-0.3.1-x86_64-disk.img
+
+    glance --os-username=<%= @os_username %> \
+           --os-password=<%= @os_password %> \
+           --os-tenant-name=<%= @os_tenant_name %> \
+           --os-auth-url=<%= @os_auth_url %> \
+           image-create \
+           --name="cirros-0.3.1-i386" \
+           --disk-format=qcow2 \
+           --container-format bare < $IMAGEDIR/cirros-0.3.1-i386-disk.img
+  fi
 fi
 
