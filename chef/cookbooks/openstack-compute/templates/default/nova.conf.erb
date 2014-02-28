@@ -100,6 +100,7 @@ sql_connection=<%= @sql_connection %>
 sql_max_pool_size=30
 sql_max_overflow=30
 connection_type=libvirt
+libvirt_inject_password=True
 libvirt_type=<%= node["openstack"]["compute"]["libvirt"]["virt_type"] %>
 # Command prefix to use for running commands as root (default: sudo)
 rootwrap_config=/etc/nova/rootwrap.conf
