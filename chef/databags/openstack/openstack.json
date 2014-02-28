@@ -2,6 +2,29 @@
       "os-network" : "openstack network node",
       "os-compute-worker" : "openstack nova node"
     },
+  "role_mapping": {
+      "os-single-controller": {
+          "/db/mysql/bind_address": "/networking/interfaces/management/ip",
+          "/mq/rabbitmq/bind_address": "/networking/interfaces/management/ip",
+          "/endpoints/compute/metadata/host": "/networking/interfaces/management/ip",
+          "/endpoints/compute/novnc/host": "/networking/interfaces/management/ip",
+          "/endpoints/compute/service/host": "/networking/interfaces/management/ip",
+          "/endpoints/compute/xvpvnc/host": "/networking/interfaces/management/ip",
+          "/endpoints/ec2/admin/host": "/networking/interfaces/management/ip",
+          "/endpoints/ec2/service/host": "/networking/interfaces/management/ip",
+          "/endpoints/identity/admin/host": "/networking/interfaces/management/ip",
+          "/endpoints/identity/service/host": "/networking/interfaces/management/ip",
+          "/endpoints/image/registry/host": "/networking/interfaces/management/ip",
+          "/endpoints/image/service/host": "/networking/interfaces/management/ip",
+          "/endpoints/metering/service/host": "/networking/interfaces/management/ip",
+          "/endpoints/network/service/host": "/networking/interfaces/management/ip",
+          "/endpoints/volume/service/host": "/networking/interfaces/management/ip"
+        },
+      "os-network": {
+      },
+      "os-compute-worker": {
+      }
+    },
   "credential" : { "identity" : { "roles" : { "admin" : "admin",
               "member" : "Member"
             },
