@@ -42,6 +42,10 @@ bind_host = <%= node['openstack']['endpoints']['network-api']['host'] %>
 # Port the bind the API server to
 bind_port = <%= @bind_port %>
 
+sql_max_pool_size=50
+
+agent_down_time=10
+
 # Path to the extensions.  Note that this can be a colon-separated list of
 # paths.  For example:
 # api_extensions_path = extensions:/path/to/more/extensions:/even/more/extensions
