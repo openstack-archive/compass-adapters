@@ -1,12 +1,30 @@
 #!/bin/bash
 # This file is going to create a loop file as volume disk.
 #
+ERRTRAP()
+{
+    echo "[FILE: "$PWD/$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")", LINE: $1] Error: Command or function exited with status $?"
+}
+
+trap 'ERRTRAP $LINENO' ERR
 
 vgdisplay |grep cinder-volumes
+
 if [ $? -ne 0 ]; then
-  dd if=/dev/zero of=/mnt/cinder-volumes bs=1 count=0 seek=<%=@volumesize %>
-  losetup /dev/loop0 /mnt/cinder-volumes
-  pvcreate /dev/loop0
-  vgcreate cinder-volumes /dev/loop0  
+  SPACESIZE=$(df -P |grep -vE "^tmpfs|cdrom|tmp" | sed '1d' | awk '{print $4}' | sort -nr | sed -n -e '1{p;q}')
+  MOUNTPOINT=$(df -P |grep -vE "^tmpfs|cdrom|tmp" | sed '1d' | awk '{print $6}' | sort -nr | sed -n -e '1{p;q}')
+  G_SPACESIZE=$(echo "$SPACESIZE/1000/1000/2" | bc -l)
+  echo $G_SPACESIZE
+  VOLSIZE=${G_SPACESIZE/.*}
+  echo $VOLSIZE
+  if [ $VOLSIZE -ge "1" ]; then
+    dd if=/dev/zero of=$MOUNTPOINT/cinder-volumes bs=1 count=0 seek="$VOLSIZE"G
+    losetup /dev/loop0 $MOUNTPOINT/cinder-volumes
+    pvcreate /dev/loop0
+    vgcreate cinder-volumes /dev/loop0  
+  else
+    echo "The current spare disk space only $SPACESIZE < 1G, no enough disk space is available for the cinder-volume"
+    exit 0
+  fi
 fi
 

@@ -49,6 +49,12 @@ directory ::File.dirname(node["openstack"]["block-storage"]["api"]["auth"]["cach
   mode 00700
 end
 
+directory "/var/lock/cinder" do
+  owner node["openstack"]["block-storage"]["user"]
+  group node["openstack"]["block-storage"]["group"]
+  mode 00700
+end
+
 service "cinder-api" do
   service_name platform_options["cinder_api_service"]
   supports :status => true, :restart => true

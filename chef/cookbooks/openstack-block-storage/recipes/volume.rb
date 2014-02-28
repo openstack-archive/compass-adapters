@@ -28,6 +28,10 @@ include_recipe "openstack-block-storage::cinder-common"
 
 platform_options = node["openstack"]["block-storage"]["platform"]
 
+package "parted" do
+  action :upgrade
+end
+
 platform_options["cinder_volume_packages"].each do |pkg|
   package pkg do
     options platform_options["package_overrides"]
@@ -51,9 +55,10 @@ platform_options["cinder_iscsitarget_packages"].each do |pkg|
   end
 end
 
-execute "create_cinder_volumes" do
-  command "sh /tmp/cinder_volumes.sh"
-  action :nothing
+directory "/var/lock/cinder" do
+  owner node["openstack"]["block-storage"]["user"]
+  group node["openstack"]["block-storage"]["group"]
+  mode 00700
 end
 
 case node["openstack"]["block-storage"]["volume"]["driver"]
@@ -93,17 +98,35 @@ case node["openstack"]["block-storage"]["volume"]["driver"]
     end
    
   when "cinder.volume.drivers.lvm.LVMISCSIDriver"
-    template "/tmp/cinder_volumes.sh" do
-      source "cinder_volumes.sh.erb"
-      owner "root"
-      group "root"
-      mode  00755
-      variables( 
-        :volumesize => node["openstack"]["volume"]["size"]
-      )
-      notifies :run, "execute[create_cinder_volumes]", :delayed
-      only_if { node["openstack"]["volume"]["mode"] == "loopfile" }
+    package "bc" do
+      action :install
     end
+
+    openstack_block_storage_volume node["openstack"]["volume"]["disk"] do
+      action :create_partition
+    end
+
+    openstack_block_storage_volume node["openstack"]["volume"]["disk"] do
+      action :mk_cinder_vol
+    end
+
+#    template "/tmp/cinder_volumes.sh" do
+#      source "cinder_volumes.sh.erb"
+#      owner "root"
+#      group "root"
+#      mode  00755
+#      variables( 
+#        :volumesize => node["openstack"]["volume"]["size"]
+#      )
+#      notifies :run, "execute[create_cinder_volumes]", :immediately
+#      only_if { node["openstack"]["volume"]["mode"] == "loopfile" }
+#    end
+
+#    execute "create_cinder_volumes" do
+#      command "sh /tmp/cinder_volumes.sh"
+#      action :run
+#      only_if { node["openstack"]["volume"]["mode"] == "loopfile" }
+#    end
 end
 
 service "cinder-volume" do

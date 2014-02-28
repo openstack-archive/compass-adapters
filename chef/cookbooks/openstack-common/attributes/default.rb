@@ -26,10 +26,6 @@
 # pass = secret "passwords", "nova"
 #
 # The value of pass will be "nova"
-ENV['http_proxy']=Chef::Config.http_proxy
-ENV['https_proxy']=Chef::Config.https_proxy
-ENV['no_proxy']=Chef::Config.no_proxy
-
 default["openstack"]["developer_mode"] = true
 
 # The type of token signing to use (uuid or pki)
@@ -282,8 +278,8 @@ default['openstack']['identity']['admin_token'] = "openstack_identity_bootstrap_
 default['openstack']['identity']['admin_tenant_name'] = "admin"
 default['openstack']['identity']['admin_user'] = "admin"
 default['openstack']['identity']['admin_password'] = "admin"
-#default['openstack']['identity']['roles']['admin'] = "admin"
-#default['openstack']['identity']['roles']['member'] = "Member"
+default['openstack']['identity']['roles']['admin'] = "admin"
+default['openstack']['identity']['roles']['member'] = "Member"
 
 # define enable services
 default['openstack']['services'] = {

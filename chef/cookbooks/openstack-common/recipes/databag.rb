@@ -332,7 +332,8 @@ node.override["openstack"]["network"]["openvswitch"]["tunnel_bridge"] = mydata['
 # this hypervisor or set the local_ip_interface parameter to use the IP
 # address of the specified interface.  If local_ip_interface is set
 # it will take precedence.
-local_ip_interface = mydata['networking']['plugins']['ovs']["#{tenant_network_type}"]['local_ip_interface']
+#local_ip_interface = mydata['networking']['plugins']['ovs']["#{tenant_network_type}"]['local_ip_interface']
+local_ip_interface = mydata['networking']['tenant']['interface']
 if local_ip_interface != ("nil")
      local_ip= address_for(local_ip_interface)
 else

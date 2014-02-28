@@ -123,8 +123,8 @@ default["openstack"]["network"]["dhcp_driver"] = 'quantum.agent.linux.dhcp.Dnsma
 # must enable namespaces to use overlapping ips.  Also,
 # you must have kernel build with CONFIG_NET_NS=y and
 # iproute2 package that supports namespaces.
-default["openstack"]["network"]["use_namespaces"] = "False"
-default["openstack"]["network"]["allow_overlapping_ips"] = "False"
+default["openstack"]["network"]["use_namespaces"] = "True"
+default["openstack"]["network"]["allow_overlapping_ips"] = "True"
 
 # use quantum root wrap
 default["openstack"]["network"]["use_rootwrap"] = true

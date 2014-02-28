@@ -31,7 +31,6 @@ main_plugin = node["openstack"]["network"]["interface_driver_map"][driver_name]
 core_plugin = node["openstack"]["network"]["core_plugin"]
 
 if platform?("ubuntu", "debian")
-
   # obtain kernel version for kernel header
   # installation on ubuntu and debian
   kernel_ver = node["kernel"]["release"]
@@ -59,22 +58,23 @@ end
 
 # The current openvswitch package of centos 6.4 cannot create GRE tunnel successfully
 # The centos 6.4 kernel version is 2.6.32-358.18.1.el6.x86_64
-if platform?(%w(fedora redhat centos))
-  remote_directory "/tmp/openvswitch" do
-    source "openvswitch"
-    files_owner "root"
-    files_group "root"
-    mode "0644"
-    recursive true
-    action :create
-  end
+# This code block was deperated because the ovs package was updated.
+#if platform?(%w(fedora redhat centos))
+#  remote_directory "/tmp/openvswitch" do
+#    source "openvswitch"
+#    files_owner "root"
+#    files_group "root"
+#    mode "0644"
+#    recursive true
+#    action :create
+#  end
   
-  execute "update openvswitch package" do
-    ignore_failure true
-    command "chmod +x /tmp/openvswitch/install.sh; sh /tmp/openvswitch/install.sh"
-    action :run
-  end  
-end
+#  execute "update openvswitch package" do
+#    ignore_failure true
+#    command "chmod +x /tmp/openvswitch/install.sh; sh /tmp/openvswitch/install.sh"
+#    action :run
+#  end  
+#end
 
 service "quantum-server" do
   service_name node["openstack"]["network"]["platform"]["quantum_server_service"]

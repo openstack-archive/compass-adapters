@@ -52,7 +52,6 @@ end
 compute_compute_packages.each do |pkg|
   package pkg do
     options platform_options["package_overrides"]
-
     action :upgrade
   end
 end

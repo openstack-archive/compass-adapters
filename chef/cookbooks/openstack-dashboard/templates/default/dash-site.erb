@@ -9,7 +9,11 @@
   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R]
 </VirtualHost>
 
-WSGISocketPrefix run/wsgi
+<% if %w{debian ubuntu}.include?(node["platform"]) -%>
+  WSGISocketPrefix /var/run/apache2/wsgi
+<% else -%>
+  WSGISocketPrefix run/wsgi
+<% end -%>
 
 <VirtualHost *:443>
 <%   if node["openstack"]["dashboard"]["server_hostname"] -%>
