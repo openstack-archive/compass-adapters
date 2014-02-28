@@ -43,6 +43,7 @@ bind_host = <%= node['openstack']['endpoints']['network-api']['host'] %>
 bind_port = <%= @bind_port %>
 
 sql_max_pool_size=50
+sqlalchemy_pool_size = 40
 
 agent_down_time=10
 
@@ -104,15 +105,15 @@ api_paste_config = api-paste.ini
 
 # RPC configuration options. Defined in rpc __init__
 # The messaging module to use, defaults to kombu.
-# rpc_backend = quantum.openstack.common.rpc.impl_kombu
+rpc_backend = quantum.openstack.common.rpc.impl_kombu
 # Size of RPC thread pool
-# rpc_thread_pool_size = 64,
+rpc_thread_pool_size = 64
 # Size of RPC connection pool
-# rpc_conn_pool_size = 30
+rpc_conn_pool_size = 30
 # Seconds to wait for a response from call or multicall
-# rpc_response_timeout = 60
+rpc_response_timeout = 60
 # Seconds to wait before a cast expires (TTL). Only supported by impl_zmq.
-# rpc_cast_timeout = 30
+rpc_cast_timeout = 30
 # Modules of exceptions that are permitted to be recreated
 # upon receiving exception data from an rpc call.
 # allowed_rpc_exception_modules = quantum.openstack.common.exception, nova.exception

@@ -155,6 +155,13 @@ if not ["nicira", "plumgrid", "bigswitch"].include?(main_plugin)
    end        
 end
 
+
+execute "force-start-openvswitch-agent" do
+  command "service #{platform_options['quantum_openvswitch_agent_service']} start"
+  action :run
+end
+
+
 if node['openstack']['network']['disable_offload']
 
   package "ethtool" do
