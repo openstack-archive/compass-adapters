@@ -101,7 +101,7 @@ end
 #                  rpc_backend quantum.openstack.common.rpc.impl_qpid"
 # It should be a bug of redhat OS
 execute "delete_auto_qpid" do
-  command  %Q|sed -i "s/^rpc_backend = quantum.openstack.common.rpc.impl_qpid//g" /etc/quantum/quantum.conf; sed -i "s/^qpid_hostname =//g" /etc/quantum/quantum.conf|
+  command  %Q|sed -i "s/^rpc_backend = quantum.openstack.common.rpc.impl_qpid/rpc_backend = quantum.openstack.common.rpc.impl_kombu/g" /etc/quantum/quantum.conf; sed -i "s/^qpid_hostname =//g" /etc/quantum/quantum.conf|
   only_if {
     (node['openstack']['mq']['service_type'] == "rabbitmq") and 
     platform?(%w{fedora centos redhat}) 

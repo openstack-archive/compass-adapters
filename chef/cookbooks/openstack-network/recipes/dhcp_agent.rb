@@ -46,10 +46,10 @@ package platform_options["quantum_plugin_package"].gsub("%plugin%", main_plugin)
   not_if { platform_family? "suse" }
 end
 
-execute "quantum-dhcp-setup --plugin #{main_plugin}" do
-  notifies :run, "execute[delete_auto_qpid]", :immediately
-  only_if { platform?(%w(fedora redhat centos)) } # :pragma-foodcritic: ~FC024 - won't fix this
-end
+#execute "quantum-dhcp-setup --plugin #{main_plugin}" do
+#  notifies :run, "execute[delete_auto_qpid]", :immediately
+#  only_if { platform?(%w(fedora redhat centos)) } # :pragma-foodcritic: ~FC024 - won't fix this
+#end
 
 template "/etc/quantum/dnsmasq.conf" do
   source "dnsmasq.conf.erb"

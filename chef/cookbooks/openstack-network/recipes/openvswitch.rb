@@ -113,10 +113,11 @@ execute "chkconfig openvswitch on" do
   only_if { platform?(%w(fedora redhat centos)) } 
 end
 
-execute "quantum-node-setup --plugin openvswitch" do
-  only_if { platform?(%w(fedora redhat centos)) } # :pragma-foodcritic: ~FC024 - won't fix this
-  notifies :run, "execute[delete_auto_qpid]", :immediately
-end
+#execute "quantum-node-setup --plugin openvswitch" do
+  # :pragma-foodcritic: ~FC024 - won't fix this
+#  only_if { platform?(%w(fedora redhat centos))}
+#  notifies :run, "execute[delete_auto_qpid]", :immediately
+#end
 
 if not ["nicira", "plumgrid", "bigswitch"].include?(main_plugin)
   int_bridge = node["openstack"]["network"]["openvswitch"]["integration_bridge"]

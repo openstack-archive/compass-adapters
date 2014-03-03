@@ -40,13 +40,13 @@ service "quantum-l3-agent" do
   action :enable
 end
 
-execute "quantum-l3-setup --plugin #{main_plugin}" do
-  notifies :run, "execute[delete_auto_qpid]", :immediately
-  only_if {
-    platform?(%w(fedora redhat centos)) and not # :pragma-foodcritic: ~FC024 - won't fix this
-    ["nicira", "plumgrid", "bigswitch"].include?(main_plugin)
-  }
-end
+#execute "quantum-l3-setup --plugin #{main_plugin}" do
+#  notifies :run, "execute[delete_auto_qpid]", :immediately
+#  only_if {
+#    platform?(%w(fedora redhat centos)) and not # :pragma-foodcritic: ~FC024 - won't fix this
+#    ["nicira", "plumgrid", "bigswitch"].include?(main_plugin)
+#  }
+#end
 
 template "/etc/quantum/l3_agent.ini" do
   source "l3_agent.ini.erb"

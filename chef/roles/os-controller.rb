@@ -1,4 +1,4 @@
-name "os-single-controller"
+name "os-controller"
 description "Roll-up role for all of the OpenStack Compute services on a single, non-HA controller."
 run_list(
     'role[os-dashboard]', 
