@@ -1,9 +1,9 @@
 #
-# Cookbook Name:: openssl
-# Library:: secure_password
-# Author:: Joshua Timberman <joshua@opscode.com>
+# Cookbook Name:: yum
+# Provider:: repository
 #
-# Copyright 2009, Opscode, Inc.
+# Author:: Sean OMeara <someara@getchef.com>
+# Copyright 2013, Chef
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,20 +18,20 @@
 # limitations under the License.
 #
 
-require 'openssl'
+# Allow for Chef 10 support
+use_inline_resources if defined?(use_inline_resources)
 
-module Opscode
-  module OpenSSL
-    module Password
-      def secure_password(length = 20)
-        pw = String.new
+action :create  do
+  template new_resource.path do
+    source 'main.erb'
+    cookbook 'yum'
+    mode '0644'
+    variables(:config => new_resource)
+  end
+end
 
-        while pw.length < length
-          pw << ::OpenSSL::Random.random_bytes(1).gsub(/\W/, '')
-        end
-
-        pw
-      end
-    end
+action :delete do
+  file new_resource.path do
+    action :delete
   end
 end

@@ -85,7 +85,7 @@ end
 service "quantum-openvswitch-switch" do
   service_name platform_options["quantum_openvswitch_service"]
   supports :status => true, :restart => true
-  action :restart
+  action :enable
 end
 
 
@@ -106,7 +106,7 @@ end
 service "quantum-plugin-openvswitch-agent" do
   service_name platform_options["quantum_openvswitch_agent_service"]
   supports :status => true, :restart => true
-  action [ :enable, :restart ]
+  action :nothing
 end
 
 execute "chkconfig openvswitch on" do

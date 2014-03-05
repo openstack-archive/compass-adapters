@@ -42,11 +42,6 @@ bind_host = <%= node['openstack']['endpoints']['network-api']['host'] %>
 # Port the bind the API server to
 bind_port = <%= @bind_port %>
 
-sql_max_pool_size=50
-sqlalchemy_pool_size = 40
-
-agent_down_time=10
-
 # Path to the extensions.  Note that this can be a colon-separated list of
 # paths.  For example:
 # api_extensions_path = extensions:/path/to/more/extensions:/even/more/extensions
@@ -137,7 +132,7 @@ allow_overlapping_ips = <%= node["openstack"]["network"]["allow_overlapping_ips"
 ##### RABBITMQ #####
 rabbit_userid=<%= node["openstack"]["network"]["rabbit"]["username"] %>
 rabbit_password=<%= @rabbit_pass %>
-rabbit_virtual_host=<%= node["openstack"]["network"]["rabbit"]["vhost"] %>
+# rabbit_virtual_host=<%= node["openstack"]["network"]["rabbit"]["vhost"] %>
 <% if node["openstack"]["network"]["rabbit"]["ha"] -%>
 # Use HA queues in RabbitMQ (x-ha-policy: all).You need to
 # wipe RabbitMQ database when changing this option. (boolean value)
@@ -225,7 +220,8 @@ notification_topics = notifications
 
 # =========== items for agent management extension =============
 # Seconds to regard the agent as down.
-# agent_down_time = 5
+agent_down_time = 10
+
 # ===========  end of items for agent management extension =====
 
 # =========== items for agent scheduler extension =============
@@ -297,6 +293,7 @@ notification_topics = notifications
 
 # default driver to use for quota checks
 # quota_driver = quantum.quota.ConfDriver
+quota_driver = quantum.db.quota_db.DbQuotaDriver
 
 [DEFAULT_SERVICETYPE]
 # Description of the default service type (optional)
@@ -330,3 +327,8 @@ admin_password = <%= @service_pass %>
 signing_dir = <%= node["openstack"]["network"]["api"]["agent"]["signing_dir"] %>
 
 # ===========  end of items for agent management extension =====
+
+[database]
+sql_max_pool_size=30
+
+#sqlalchemy_pool_size = 30

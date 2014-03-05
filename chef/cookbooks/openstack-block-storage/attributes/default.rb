@@ -112,7 +112,7 @@ default["openstack"]["block-storage"]["volume"]["state_path"] = "/var/lib/cinder
 default["openstack"]["block-storage"]["volume"]["driver"] = "cinder.volume.drivers.lvm.LVMISCSIDriver"
 default["openstack"]["block-storage"]["volume"]["volume_group"] = "cinder-volumes"
 default["openstack"]["block-storage"]["volume"]["iscsi_helper"] = "tgtadm"
-default["openstack"]["volume"]["mode"] = "loopfile"
+#default["openstack"]["volume"]["mode"] = "loopfile"
 default["openstack"]["volume"]["disk"] = "/dev/sdb"
 
 
