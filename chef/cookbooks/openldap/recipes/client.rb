@@ -1,9 +1,8 @@
 #
-# Cookbook Name:: openssl
-# Library:: secure_password
-# Author:: Joshua Timberman <joshua@opscode.com>
+# Cookbook Name:: openldap
+# Recipe:: client
 #
-# Copyright 2009, Opscode, Inc.
+# Copyright 2008-2009, Opscode, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,20 +17,16 @@
 # limitations under the License.
 #
 
-require 'openssl'
+package "openldap" do
+  action :upgrade
+end
 
-module Opscode
-  module OpenSSL
-    module Password
-      def secure_password(length = 20)
-        pw = String.new
+package "openldap-clients" do
+  action :upgrade
+end
 
-        while pw.length < length
-          pw << ::OpenSSL::Random.random_bytes(1).gsub(/\W/, '')
-        end
-
-        pw
-      end
-    end
-  end
+directory node['openldap']['ssl_dir'] do
+  mode 00755
+  owner "root"
+  group "root"
 end

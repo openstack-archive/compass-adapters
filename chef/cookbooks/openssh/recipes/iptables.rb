@@ -1,9 +1,8 @@
 #
-# Cookbook Name:: openssl
-# Library:: secure_password
-# Author:: Joshua Timberman <joshua@opscode.com>
+# Cookbook Name:: openssh
+# Recipe:: iptables
 #
-# Copyright 2009, Opscode, Inc.
+# Copyright 2013, Opscode, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,20 +17,6 @@
 # limitations under the License.
 #
 
-require 'openssl'
+include_recipe 'iptables::default'
 
-module Opscode
-  module OpenSSL
-    module Password
-      def secure_password(length = 20)
-        pw = String.new
-
-        while pw.length < length
-          pw << ::OpenSSL::Random.random_bytes(1).gsub(/\W/, '')
-        end
-
-        pw
-      end
-    end
-  end
-end
+iptables_rule 'port_ssh'

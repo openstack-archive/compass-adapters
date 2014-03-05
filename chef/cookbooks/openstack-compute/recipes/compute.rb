@@ -67,6 +67,13 @@ platform_options["nfs_packages"].each do |pkg|
   end
 end
 
+directory "/var/lock/nova" do
+  owner node["openstack"]["compute"]["user"]
+  group node["openstack"]["compute"]["group"]
+  mode  00700
+  action :create
+end
+
 cookbook_file "/etc/nova/nova-compute.conf" do
   source "nova-compute.conf"
   mode   00644

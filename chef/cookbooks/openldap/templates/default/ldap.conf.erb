@@ -1,0 +1,31 @@
+#
+# <%= node['openldap']['dir'] %>.conf generated for <%= node['hostname'] %>
+#
+# Managed by Chef
+#
+
+host <%= node['openldap']['server'] %>
+port 389
+bind_policy soft
+
+ldap_version 3
+
+# Where to find data
+base <%= node['openldap']['basedn'] %>
+scope sub
+nss_base_passwd ou=<%= node['openldap']['passwd_ou'] %>,<%= node['openldap']['basedn'] %>
+nss_base_shadow ou=<%= node['openldap']['shadow_ou'] %>,<%= node['openldap']['basedn'] %>
+nss_base_group ou=<%= node['openldap']['group_ou'] %>,<%= node['openldap']['basedn'] %>
+nss_base_automount ou=<%= node['openldap']['automount_ou'] %>,<%= node['openldap']['basedn'] %>
+
+<% if node['openldap']['tls_enabled'] -%>
+# TLS Options
+ssl start_tls
+<% if node['openldap']['tls_checkpeer'] -%>
+tls_checkpeer yes
+<% else -%>
+tls_checkpeer no
+<% end -%>
+<% end -%>
+
+pam_password <%= node['openldap']['pam_password'] %>
