@@ -1,11 +1,14 @@
-{ "all_roles" : { "os-single-controller" : "openstack controller node",
-      "os-network" : "openstack network node",
-      "os-compute-worker" : "openstack nova node"
+{ "all_roles" : {
+      "os-block-storage-worker": "openstack block storage node",
+      "os-controller": "openstack controller node",
+      "os-network": "openstack network node",
+      "os-ops-messaging": "openstack message queue node",
+      "os-image": "openstack image node",
+      "os-ops-database": "openstack database node",
+      "os-compute-worker": "openstack nova node"
     },
   "role_mapping": {
-      "os-single-controller": {
-          "/db/mysql/bind_address": "/networking/interfaces/management/ip",
-          "/mq/rabbitmq/bind_address": "/networking/interfaces/management/ip",
+      "os-controller": {
           "/endpoints/compute/metadata/host": "/networking/interfaces/management/ip",
           "/endpoints/compute/novnc/host": "/networking/interfaces/management/ip",
           "/endpoints/compute/service/host": "/networking/interfaces/management/ip",
@@ -14,16 +17,20 @@
           "/endpoints/ec2/service/host": "/networking/interfaces/management/ip",
           "/endpoints/identity/admin/host": "/networking/interfaces/management/ip",
           "/endpoints/identity/service/host": "/networking/interfaces/management/ip",
-          "/endpoints/image/registry/host": "/networking/interfaces/management/ip",
-          "/endpoints/image/service/host": "/networking/interfaces/management/ip",
           "/endpoints/metering/service/host": "/networking/interfaces/management/ip",
           "/endpoints/network/service/host": "/networking/interfaces/management/ip",
           "/endpoints/volume/service/host": "/networking/interfaces/management/ip"
         },
-      "os-network": {
-      },
-      "os-compute-worker": {
-      }
+      "os-ops-database": {
+          "/db/mysql/bind_address": "/networking/interfaces/management/ip"
+        },
+      "os-ops-messaging": {
+          "/mq/rabbitmq/bind_address": "/networking/interfaces/management/ip"
+        },
+      "os-image": {
+          "/endpoints/image/registry/host": "/networking/interfaces/management/ip",
+          "/endpoints/image/service/host": "/networking/interfaces/management/ip"
+        }
     },
   "credential" : { "identity" : { "roles" : { "admin" : "admin",
               "member" : "Member"
@@ -93,7 +100,7 @@
         },
       "text" : true
     },
-  "dashboard_roles" : [ "os-single-controller", "os-dashboard" ],
+  "dashboard_roles" : [ "os-controller", "os-dashboard" ],
   "db" : { "mysql" : { "bind_address" : "10.145.88.231",
           "port" : "3306"
         },
@@ -178,10 +185,15 @@
   "role_assign_policy" : {
       "default" : { 
           "bundles" : [ ],
-          "exclusives" : [ "os-single-controller", "os-network" ],
-          "roles" : [ "os-single-controller",
-              "os-compute-worker",
-              "os-network"
+          "exclusives" : [ "os-controller" ],
+          "roles" : [
+              "os-ops-database",
+              "os-ops-messaging",
+              "os-controller",
+              "os-image",
+              "os-block-storage-worker",
+              "os-network",
+              "os-compute-worker"
             ],
           "default_min" : 1,
           "default_max" : 1,
@@ -189,19 +201,15 @@
         },
       "policy_by_host_numbers" : {
           "1" : { 
-              "bundles" : [ [ 
-                  "os-single-controller",
-                  "os-compute-worker",
-                  "os-network"
-                ] ],
-              "exclusives" : [  ]
-            },
-          "2" : { 
-              "bundles" : [ [ 
-                  "os-compute-worker",
-                  "os-network"
-                ] ],
-              "exclusives" : [ "os-single-controller" ]
+              "bundles" : [ [
+                  "os-ops-database",
+                  "os-ops-messaging",
+                  "os-controller",
+                  "os-image",
+                  "os-block-storage-worker",
+                  "os-network",
+                  "os-compute-worker"
+                ] ]
             }
         }
     },
