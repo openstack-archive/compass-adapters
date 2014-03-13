@@ -329,6 +329,5 @@ signing_dir = <%= node["openstack"]["network"]["api"]["agent"]["signing_dir"] %>
 # ===========  end of items for agent management extension =====
 
 [database]
-sql_max_pool_size=30
-
-#sqlalchemy_pool_size = 30
+#sql_max_pool_size=100
+#sqlalchemy_pool_size = 100

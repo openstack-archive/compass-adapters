@@ -17,7 +17,7 @@ lock_path=/var/lock/nova
 ##### RABBITMQ #####
 rabbit_userid=<%= node['openstack']['mq']['user'] %>
 rabbit_password=<%= node['openstack']['mq']['password'] %>
-rabbit_virtual_host=<%= node["openstack"]["compute"]["rabbit"]["vhost"] %>
+# rabbit_virtual_host=<%= node["openstack"]["compute"]["rabbit"]["vhost"] %>
 <% if node["openstack"]["compute"]["rabbit"]["ha"] -%>
 rabbit_hosts=<%= @rabbit_hosts %>
 rabbit_ha_queues=True
