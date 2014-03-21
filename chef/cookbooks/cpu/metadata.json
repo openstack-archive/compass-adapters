@@ -1,0 +1,31 @@
+{
+  "name": "cpu",
+  "description": "Manage CPU Governor on linux",
+  "long_description": "DESCRIPTION\n===========\n\nChef cookbook to manage CPU related actions on linux.\n\nREQUIREMENTS\n============\n\nLinux 2.6+\ntested on Ubuntu.\n\nAttributes\n==========\n\n* `node['cpu']['governor']` - governator for to set for the node\n\nRecipes\n=======\n\ngovernor\n----------\n\nSet the governator for the node from attributes\n\naffinity\n--------\n\nInstall software to set cpu affinity of a process.\n\nResources and Providers\n=======================\n\n`affinity`\n----------\n\nSet the affinity for a process.\n\n# Actions\n\n* `set` - Set affinity\n\n# Attribute Parameters\n\n* `cpu` : Cpu(s) affinity - required\n* `pid` : Pid or PidFile - name\n\n# Examples\n\n```\ncpu_affinity 1234 do\n  cpu 0\nend\n```\n\n```\n# Set affinity to processor 0,1,2 for process nginx\ncpu-affinity \"set affinity for nginx\" do\n  pid \"/var/run/nginx.pid\"\n  cpu \"0-2\"\nend\n```\n\n`nice`\n----------\n\nSet the priority for a process.\n\n# Actions\n\n* `set` - Set priority\n\n# Attribute Parameters\n\n* `pid` : Pid or PidFile - name\n* `priority` : priority for process\n\n# Examples\n\n```\ncpu_nice 1234 do\n  priority 12\nend\n```\n\n```\ncpu_nice \"set affinity for nginx\" do\n  pid \"/var/run/nginx.pid\"\n  priority 19\nend\n```\n\nUSAGE\n=====\n\nin a recipe:\n\n   node.set[\"node\"][\"cpu\"][\"governor\"] = \"performance\"\n   include_recipe \"cpu::governor\"\n",
+  "maintainer": "Guilhem Lettron",
+  "maintainer_email": "guilhem.lettron@youscribe.com",
+  "license": "Apache v2.0",
+  "platforms": {
+    "ubuntu": ">= 0.0.0",
+    "debian": ">= 0.0.0"
+  },
+  "dependencies": {
+  },
+  "recommendations": {
+  },
+  "suggestions": {
+  },
+  "conflicting": {
+  },
+  "providing": {
+  },
+  "replacing": {
+  },
+  "attributes": {
+  },
+  "groupings": {
+  },
+  "recipes": {
+  },
+  "version": "0.2.0"
+}
