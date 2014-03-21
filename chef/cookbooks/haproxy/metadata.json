@@ -1,0 +1,257 @@
+{
+  "name": "haproxy",
+  "version": "1.6.2",
+  "description": "Installs and configures haproxy",
+  "long_description": "haproxy Cookbook\n================\nInstalls haproxy and prepares the configuration location.\n\n\nRequirements\n------------\n### Platforms\n- Ubuntu (10.04+ due to config option change)\n- Redhat (6.0+)\n- Debian (6.0+)\n\n\nAttributes\n----------\n- `node['haproxy']['incoming_address']` - sets the address to bind the haproxy process on, 0.0.0.0 (all addresses) by default\n- `node['haproxy']['incoming_port']` - sets the port on which haproxy listens\n- `node['haproxy']['members']` - used by the default recipe to specify the member systems to add. Default\n\n  ```ruby\n  [{\n    \"hostname\" => \"localhost\",\n    \"ipaddress\" => \"127.0.0.1\",\n    \"port\" => 4000,\n    \"ssl_port\" => 4000\n  }, {\n    \"hostname\" => \"localhost\",\n    \"ipaddress\" => \"127.0.0.1\",\n    \"port\" => 4001,\n    \"ssl_port\" => 4001\n  }]\n  ```\n\n- `node['haproxy']['member_port']` - the port that member systems will\n  be listening on if not otherwise specified in the members attribute, default 8080\n- `node['haproxy']['member_weight']` - the weight to apply to member systems if not otherwise specified in the members attribute, default 1\n- `node['haproxy']['app_server_role']` - used by the `app_lb` recipe to search for a specific role of member systems. Default `webserver`.\n- `node['haproxy']['balance_algorithm']` - sets the load balancing algorithm; defaults to roundrobin.\n- `node['haproxy']['enable_ssl']` - whether or not to create listeners for ssl, default false\n- `node['haproxy']['ssl_incoming_address']` - sets the address to bind the haproxy on for SSL, 0.0.0.0 (all addresses) by default\n- `node['haproxy']['ssl_member_port']` - the port that member systems will be listening on for ssl, default 8443\n- `node['haproxy']['ssl_incoming_port']` - sets the port on which haproxy listens for ssl, default 443\n- `node['haproxy']['httpchk']` - used by the `app_lb` recipe. If set, will configure httpchk in haproxy.conf\n- `node['haproxy']['ssl_httpchk']` - used by the `app_lb` recipe. If set and `enable_ssl` is true, will configure httpchk in haproxy.conf for the `ssl_application` section\n- `node['haproxy']['enable_admin']` - whether to enable the admin interface. default true. Listens on port 22002.\n- `node['haproxy']['admin']['address_bind']` - sets the address to bind the administrative interface on, 127.0.0.1 by default\n- `node['haproxy']['admin']['port']` - sets the port for the administrative interface, 22002 by default\n- `node['haproxy']['pid_file']` - the PID file of the haproxy process, used in the tuning recipe.\n- `node['haproxy']['defaults_options']` - an array of options to use for the config file's `defaults` stanza, default is [\"httplog\", \"dontlognull\", \"redispatch\"]\n- `node['haproxy']['defaults_timeouts']['connect']` - connect timeout in defaults stanza\n- `node['haproxy']['defaults_timeouts']['client']` - client timeout in defaults stanza\n- `node['haproxy']['defaults_timeouts']['server']` - server timeout in defaults stanza\n- `node['haproxy']['x_forwarded_for']` - if true, creates an X-Forwarded-For header containing the original client's IP address. This option disables KeepAlive.\n- `node['haproxy']['member_max_connections']` - the maxconn value to be set for each app server\n- `node['haproxy']['cookie']` - if set, use this to pin connection to the same server with a cookie.\n- `node['haproxy']['user']` - user that haproxy runs as\n- `node['haproxy']['group']` - group that haproxy runs as\n- `node['haproxy']['global_max_connections']` - in the `app_lb` config, set the global maxconn\n- `node['haproxy']['member_max_connections']` - the maxconn value to\n  be set for each app server if not otherwise specified in the members attribute\n- `node['haproxy']['frontend_max_connections']` - in the `app_lb` config, set the the maxconn per frontend member\n- `node['haproxy']['frontend_ssl_max_connections']` - in the `app_lb` config, set the maxconn per frontend member using SSL\n- `node['haproxy']['install_method']` - determines which method is used to install haproxy, must be 'source' or 'package'. defaults to 'package'\n- `node['haproxy']['conf_dir']` - the location of the haproxy config file\n- `node['haproxy']['source']['version']` - the version of haproxy to install\n- `node['haproxy']['source']['url']` - the full URL to the haproxy source package\n- `node['haproxy']['source']['checksum']` - the checksum of the haproxy source package\n- `node['haproxy']['source']['prefix']` - the prefix used to `make install` haproxy\n- `node['haproxy']['source']['target_os']` - the target used to `make` haproxy\n- `node['haproxy']['source']['target_cpu']` - the target cpu used to `make` haproxy\n- `node['haproxy']['source']['target_arch']` - the target arch used to `make` haproxy\n- `node['haproxy']['source']['use_pcre']` - whether to build with libpcre support\n\nRecipes\n-------\n### default\nSets up haproxy using statically defined configuration. To override the configuration, modify the templates/default/haproxy.cfg.erb file directly, or supply your own and override the cookbook and source by reopening the `template[/etc/haproxy/haproxy.cfg]` resource.\n\n### app_lb\nSets up haproxy using dynamically defined configuration through search. See __Usage__ below.\n\n### tuning\nUses the community `cpu` cookbook's `cpu_affinity` LWRP to set affinity for the haproxy process.\n\n### install_package\nInstalls haproxy through the package manager. Used by the `default` and `app_lb` recipes.\n\n### install_source\nInstalls haproxy from source. Used by the `default` and `app_lb` recipes.\n\n\nProviders\n---------\n### haproxy_lb\nConfigure a part of haproxy (`frontend|backend|listen`). It is used in `default` and `app_lb` recipe to configure default frontends and backends. Several common options can be set as attributes of the LWRP. Others can always be set with the `params` attribute. For instance,\n\n```ruby\nhaproxy_lb 'rabbitmq' do\n  bind '0.0.0.0:5672'\n  mode 'tcp'\n  servers (1..4).map do |i|\n    \"rmq#{i} 10.0.0.#{i}:5672 check inter 10s rise 2 fall 3\"\n  end\n  params({\n    'maxconn' => 20000,\n    'balance' => 'roundrobin'\n  })\nend\n```\n\nwhich will be translated into:\n\n```text\nlisten rabbitmq'\n  bind 0.0.0.0:5672\n  mode tcp\n  rmq1 10.0.0.1:5672 check inter 10s rise 2 fall 3\n  rmq2 10.0.0.2:5672 check inter 10s rise 2 fall 3\n  rmq3 10.0.0.3:5672 check inter 10s rise 2 fall 3\n  rmq4 10.0.0.4:5672 check inter 10s rise 2 fall 3\n  maxconn 20000\n  balance roundrobin\n```\n\nAll options can also be set in the params instead. In that case, you might want to provide an array to params attributes to avoid conflicts for options occuring several times.\n\n```ruby\nhaproxy_lb 'rabbitmq' do\n  params([\n    'bind 0.0.0.0:5672',\n    'mode tcp',\n    'rmq1 10.0.0.1:5672 check inter 10s rise 2 fall 3',\n    'rmq2 10.0.0.2:5672 check inter 10s rise 2 fall 3',\n    'rmq3 10.0.0.3:5672 check inter 10s rise 2 fall 3',\n    'rmq4 10.0.0.4:5672 check inter 10s rise 2 fall 3',\n    'maxconn' => 20000,\n    'balance' => 'roundrobin'\n  ])\nend\n```\n\nwhich will give the same result.\n\nFinally you can also configure frontends and backends by specify the type attribute of the resource. See example in the default recipe.\n\nInstead of using lwrp, you can use `node['haproxy']['listeners']` to configure all kind of listeners (`listen`, `frontend` and `backend`)\n\n\nUsage\n-----\nUse either the default recipe or the `app_lb` recipe.\n\nWhen using the default recipe, the members attribute specifies the http application servers. If you wish to use the `node['haproxy']['listeners']` attribute or `haproxy_lb` lwrp instead then set `node['haproxy']['enable_default_http']` to `false`.\n\n```ruby\n\"haproxy\" => {\n  \"members\" => [{\n    \"hostname\" => \"appserver1\",\n    \"ipaddress\" => \"123.123.123.1\",\n    \"port\" => 8000,\n    \"ssl_port\" => 8443,\n    \"weight\" => 1,\n    \"max_connections\" => 100\n  }, {\n    \"hostname\" => \"appserver2\",\n    \"ipaddress\" => \"123.123.123.2\",\n    \"port\" => 8000,\n    \"ssl_port\" => 8443,\n    \"weight\" => 1,\n    \"max_connections\" => 100\n  }, {\n    \"hostname\" => \"appserver3\",\n    \"ipaddress\" => \"123.123.123.3\",\n    \"port\" => 8000,\n    \"ssl_port\" => 8443,\n    \"weight\" => 1,\n    \"max_connections\" => 100\n  }]\n}\n```\n\nNote that the following attributes are optional\n\n- `port` will default to the value of `node['haproxy']['member_port']`\n- `ssl_port` will default to the value of `node['haproxy']['ssl_member_port']`\n- `weight` will default to the value of `node['haproxy']['member_weight']`\n- `max_connections` will default to the value of `node['haproxy']['member_max_connections']`\n\nThe `app_lb` recipe is designed to be used with the application cookbook, and provides search mechanism to find the appropriate application servers. Set this in a role that includes the haproxy::app_lb recipe. For example,\n\n```ruby\nname 'load_balancer'\ndescription 'haproxy load balancer'\nrun_list('recipe[haproxy::app_lb]')\noverride_attributes(\n  'haproxy' => {\n    'app_server_role' => 'webserver'\n  }\n)\n```\n\nThe search uses the node's `chef_environment`. For example, create `environments/production.rb`, then upload it to the server with knife\n\n\nLicense & Authors\n-----------------\n- Author:: Joshua Timberman (<joshua@opscode.com>)\n\n```text\nCopyright:: 2009-2013, Opscode, Inc\n\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n```\n",
+  "maintainer": "Opscode, Inc.",
+  "maintainer_email": "cookbooks@opscode.com",
+  "license": "Apache 2.0",
+  "platforms": {
+    "debian": ">= 0.0.0",
+    "ubuntu": ">= 0.0.0",
+    "centos": ">= 0.0.0",
+    "redhat": ">= 0.0.0"
+  },
+  "dependencies": {
+    "cpu": ">= 0.2.0",
+    "build-essential": ">= 0.0.0"
+  },
+  "recommendations": {
+  },
+  "suggestions": {
+  },
+  "conflicting": {
+  },
+  "providing": {
+  },
+  "replacing": {
+  },
+  "attributes": {
+    "haproxy/incoming_address": {
+      "display_name": "HAProxy incoming address",
+      "description": "Sets the address to bind the haproxy process on, 0.0.0.0 (all addresses) by default.",
+      "required": "optional",
+      "default": "0.0.0.0"
+    },
+    "haproxy/incoming_port": {
+      "display_name": "HAProxy incoming port",
+      "description": "Sets the port on which haproxy listens.",
+      "required": "optional",
+      "default": "80"
+    },
+    "haproxy/member_port": {
+      "display_name": "HAProxy member port",
+      "description": "The port that member systems will be listening on, default 8080.",
+      "required": "optional",
+      "default": "8080"
+    },
+    "haproxy/app_server_role": {
+      "display_name": "HAProxy app server role",
+      "description": "Used by the app_lb recipe to search for a specific role of member systems. Default webserver.",
+      "required": "optional",
+      "default": "webserver"
+    },
+    "haproxy/balance_algorithm": {
+      "display_name": "HAProxy balance algorithm",
+      "description": "Sets the load balancing algorithm; defaults to roundrobin.",
+      "required": "optional",
+      "default": "roundrobin"
+    },
+    "haproxy/enable_ssl": {
+      "display_name": "HAProxy enable ssl",
+      "description": "Whether or not to create listeners for ssl, default false.",
+      "required": "optional"
+    },
+    "haproxy/ssl_incoming_address": {
+      "display_name": "HAProxy ssl incoming address",
+      "description": "Sets the address to bind the haproxy on for SSL, 0.0.0.0 (all addresses) by default.",
+      "required": "optional",
+      "default": "0.0.0.0"
+    },
+    "haproxy/ssl_member_port": {
+      "display_name": "HAProxy member port",
+      "description": "The port that member systems will be listening on for ssl, default 8443.",
+      "required": "optional",
+      "default": "8443"
+    },
+    "haproxy/ssl_incoming_port": {
+      "display_name": "HAProxy incoming port",
+      "description": "Sets the port on which haproxy listens for ssl, default 443.",
+      "required": "optional",
+      "default": "443"
+    },
+    "haproxy/httpchk": {
+      "display_name": "HAProxy HTTP health check",
+      "description": "Used by the haproxy::app_lb recipe. If set, will configure httpchk in haproxy.conf.",
+      "required": "optional"
+    },
+    "haproxy/ssl_httpchk": {
+      "display_name": "HAProxy SSL HTTP health check",
+      "description": "Used by the app_lb recipe. If set and enable_ssl is true, will configure httpchk in haproxy.conf for the ssl_application section.",
+      "required": "optional"
+    },
+    "haproxy/enable_admin": {
+      "display_name": "HAProxy enable admin",
+      "description": "Whether to enable the admin interface. default true. Listens on port 22002.",
+      "required": "optional",
+      "default": "true"
+    },
+    "haproxy/admin/address_bind": {
+      "display_name": "HAProxy admin address bind",
+      "description": "Sets the address to bind the administrative interface on, 127.0.0.1 by default.",
+      "required": "optional",
+      "default": "127.0.0.1"
+    },
+    "haproxy/admin/port": {
+      "display_name": "HAProxy admin port",
+      "description": "Sets the port for the administrative interface, 22002 by default.",
+      "required": "optional",
+      "default": "22002"
+    },
+    "haproxy/pid_file": {
+      "display_name": "HAProxy PID file",
+      "description": "The PID file of the haproxy process, used in the tuning recipe.",
+      "required": "optional",
+      "default": "/var/run/haproxy.pid"
+    },
+    "haproxy/default options": {
+      "display_name": "HAProxy default options",
+      "description": "An array of options to use for the config file's defaults stanza, default is [\"httplog\", \"dontlognull\", \"redispatch\"].",
+      "required": "optional",
+      "type": "array",
+      "default": [
+        "httplog",
+        "dontlognull",
+        "redispatch"
+      ]
+    },
+    "haproxy/defaults_timeouts/connect": {
+      "display_name": "HAProxy connect timeout",
+      "description": "Connect timeout in defaults stanza.",
+      "required": "optional",
+      "default": "5s"
+    },
+    "haproxy/defaults_timeouts/client": {
+      "display_name": "HAProxy client timeout",
+      "description": "Client timeout in defaults stanza.",
+      "required": "optional",
+      "default": "50s"
+    },
+    "haproxy/defaults_timeouts/server": {
+      "display_name": "HAProxy server timeout",
+      "description": "Server timeout in defaults stanza.",
+      "required": "optional",
+      "default": "50s"
+    },
+    "haproxy/x_forwarded_for": {
+      "display_name": "HAProxy X-Forwarded-For",
+      "description": "If true, creates an X-Forwarded-For header containing the original client's IP address. This option disables KeepAlive.",
+      "required": "optional"
+    },
+    "haproxy/member_max_connections": {
+      "display_name": "HAProxy member max connections",
+      "description": "The maxconn value to be set for each app server.",
+      "required": "optional",
+      "default": "100"
+    },
+    "haproxy/user": {
+      "display_name": "HAProxy user",
+      "description": "User that haproxy runs as.",
+      "required": "optional",
+      "default": "haproxy"
+    },
+    "haproxy/group": {
+      "display_name": "HAProxy group",
+      "description": "Group that haproxy runs as.",
+      "required": "optional",
+      "default": "haproxy"
+    },
+    "haproxy/global_max_connections": {
+      "display_name": "HAProxy global max connections",
+      "description": "In the app_lb config, set the global maxconn.",
+      "required": "optional",
+      "default": "4096"
+    },
+    "haproxy/frontend_max_connections": {
+      "display_name": "HAProxy frontend max connections",
+      "description": "In the app_lb config, set the the maxconn per frontend member.",
+      "required": "optional",
+      "default": "2000"
+    },
+    "haproxy/frontend_ssl_max_connections": {
+      "display_name": "HAProxy frontend SSL max connections",
+      "description": "In the app_lb config, set the maxconn per frontend member using SSL.",
+      "required": "optional",
+      "default": "2000"
+    },
+    "haproxy/install_method": {
+      "display_name": "HAProxy install method",
+      "description": "Determines which method is used to install haproxy, must be 'source' or 'package'. defaults to 'package'.",
+      "required": "recommended",
+      "choice": [
+        "package",
+        "source"
+      ],
+      "default": "package"
+    },
+    "haproxy/conf_dir": {
+      "display_name": "HAProxy config directory",
+      "description": "The location of the haproxy config file.",
+      "required": "optional",
+      "default": "/etc/haproxy"
+    },
+    "haproxy/source/version": {
+      "display_name": "HAProxy source version",
+      "description": "The version of haproxy to install.",
+      "required": "optional",
+      "default": "1.4.22"
+    },
+    "haproxy/source/url": {
+      "display_name": "HAProxy source URL",
+      "description": "The full URL to the haproxy source package.",
+      "required": "optional",
+      "default": "http://haproxy.1wt.eu/download/1.4/src/haproxy-1.4.22.tar.gz"
+    },
+    "haproxy/source/checksum": {
+      "display_name": "HAProxy source checksum",
+      "description": "The checksum of the haproxy source package.",
+      "required": "optional",
+      "default": "ba221b3eaa4d71233230b156c3000f5c2bd4dace94d9266235517fe42f917fc6"
+    },
+    "haproxy/source/prefix": {
+      "display_name": "HAProxy source prefix",
+      "description": "The prefix used to make install haproxy.",
+      "required": "optional",
+      "default": "/usr/local"
+    },
+    "haproxy/source/target_os": {
+      "display_name": "HAProxy source target OS",
+      "description": "The target used to make haproxy.",
+      "required": "optional",
+      "default": "generic"
+    },
+    "haproxy/source/target_cpu": {
+      "display_name": "HAProxy source target CPU",
+      "description": "The target cpu used to make haproxy.",
+      "required": "optional",
+      "default": ""
+    },
+    "haproxy/source/target_arch": {
+      "display_name": "HAProxy source target arch",
+      "description": "The target arch used to make haproxy.",
+      "required": "optional",
+      "default": ""
+    },
+    "haproxy/source/use_pcre": {
+      "display_name": "HAProxy source use PCRE",
+      "description": "Whether to build with libpcre support.",
+      "required": "optional"
+    }
+  },
+  "groupings": {
+  },
+  "recipes": {
+    "haproxy": "Installs and configures haproxy",
+    "haproxy::app_lb": "Installs and configures haproxy by searching for nodes of a particular role"
+  }
+}
