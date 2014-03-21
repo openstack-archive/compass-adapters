@@ -100,6 +100,16 @@
         },
       "text" : true
     },
+  "ha": {
+    "status": "disable",
+    "haproxy": {
+      "vip": "10.145.88.231",
+      "roles": {
+        "os-controller": ["dashboard_http","dashboard_https","keystone_admin", "keystone_public_internal","nova_ec2_api","nova_compute_api","cinder_api","neutron_api"],
+        "os-image": ["glance_api","glance_registry_cluster"]
+      }
+    }
+  },
   "dashboard_roles" : [ "os-controller", "os-dashboard" ],
   "db" : { "mysql" : { "bind_address" : "10.145.88.231",
           "port" : "3306"
