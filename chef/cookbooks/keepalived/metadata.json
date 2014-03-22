@@ -1,0 +1,31 @@
+{
+  "name": "keepalived",
+  "version": "1.2.0",
+  "description": "Installs and configures keepalived",
+  "long_description": "keepalived Cookbook\n===================\nInstalls keepalived and generates the configuration file.\n\n\nUsage\n-----\n### Configuration settings\n\n* `node[:keepalived][:shared_address] = true`  # If keepalived is using a shared address\n\n### Global settings\n\n* `node['keepalived']['global']['notification_emails'] = 'admin@example.com'`             # notification emails\n* `node['keepalived']['global']['notification_email_from'] = \"keepalived@#{node.domain}\"` # from address\n* `node['keepalived']['global']['smtp_server'] = '127.0.0.1'`                             # smtp server address\n* `node['keepalived']['global']['smtp_connect_timeout'] = 30`                             # smtp connection timeout\n* `node['keepalived']['global']['router_id'] = 'DEFAULT_ROUT_ID'`                         # router ID\n* `node['keepalived']['global']['router_ids'] = {}`                                       # mapped router ID (see example below)\n\nThe `router_ids` allow for defining different IDs based on node name within a single role. This allows for a role structured like so:\n\n```ruby\noverride_attributes(\n  :keepalived => {\n    :global => {\n      :router_ids => {\n        'node1' => 'MASTER_NODE',\n        'node2' => 'BACKUP_NODE'\n      }\n    }\n  }\n)\n```\n### Check Scripts\n\n* `node[:keepalived][:check_scripts] = {}`    # define available check scripts\n\nMultiple check scripts can be defined. The key will provide the name of the check script within the configuration file. The value should be a hash with the keys: `script`, `interval` and `weight` defined. For example, a simple HAProxy check script:\n\n```ruby\nnode[:keepalived][:check_scripts][:chk_haproxy] = {\n  :script => 'killall -0 haproxy',\n  :interval => 2,\n  :weight => 2\n}\n```\n\n### Instance defaults\n\nThese are fallback values instance blocks can default to if non have been explicitly defined:\n\n* `node[:keepalived][:instance_defaults][:state] = 'MASTER'`                            # default state\n* `node[:keepalived][:instance_defaults][:priority] = 100`                              # default priority\n* `node[:keepalived][:instance_defaults][:virtual_router_id] = 'DEFAULT_VIRT_ROUT_ID'`  # default virtual router ID\n\n\nInstances\n---------\n* `node[:keepalived][:instances] = {}`\n\nMultiple instances can be defined. The key will be used to define the instance name. The value will be a hash used to describe the instance. Attributes used within the instance hash:\n\n* `:ip_addresses => '127.0.0.1'`  # IP address(es) used by this instance\n* `:interface => 'eth0'`          # Network interface used\n* `:states => {}`                 # Node name mapped states\n* `:virtual_router_ids => {}`     # Node name mapped virtual router IDs\n* `:priorities => {}`             # Node name mapped priorities\n* `:track_script => 'check_name'` # Name of check script in use for instance\n* `:nopreempt => false`           # Do not preempt\n* `:advert_int => 1`              # Set advert_int\n* `:auth_type => nil`             # Enable authentication (:pass or :ah)\n* `:auth_pass => 'secret'`        # Password used for authentication\n* `:unicast_peer => {}`           # IP address(es) for unicast (only for 1.2.8 and greater)\n\n### Vrrp Sync Groups\n\nSync groups can be created using a hash with the group name as the key. Individual sync group hashes accept arrays of instances and options for each group as shown below:\n\n```ruby\nnode[:keepalived][:sync_groups] = {\n  :vg_1 => {\n    :instances => [\n      'vi_1'\n    ],\n    :options => [\n      'global_tracking'\n    ]\n  }\n}\n```\n\n### Full role based example\n\n```ruby\noverride_attributes(\n  :keepalived => {\n    :shared_address => true,\n    :check_scripts => {\n      :chk_haproxy => {\n        :script => 'killall -0 haproxy',\n        :interval => 2,\n        :weight => 2\n      }\n    },\n    :instances => {\n      :vi_1 => {\n        :ip_addresses => '192.168.0.2',\n        :interface => 'eth0',\n        :state => 'MASTER',\n        :states => {\n          'master.domain' => :master,\n          'backup.domain' => :backup\n        },\n        :virtual_router_ids => {\n          'master.domain' => 'SERVICE_MASTER',\n          'backup.domain' => 'SERVICE_BACKUP'\n        },\n        :priorities => {\n          'master.domain' => 101,\n          'backup.domain' => 100\n        },\n        :track_script => 'chk_haproxy',\n        :nopreempt => false,\n        :advert_int => 1,\n        :auth_type => :pass,\n        :auth_pass => 'secret'\n      }\n    }\n  }\n)\n```\n\n### Recipe based example:\n\n```ruby\ninclude_recipe 'keepalived'\n\nnode[:keepalived][:check_scripts][:chk_init] = {\n  :script => 'killall -0 init',\n  :interval => 2,\n  :weight => 2\n}\nnode[:keepalived][:instances][:vi_1] = {\n  :ip_addresses => '10.0.2.254',\n  :interface => 'eth0',\n  :track_script => 'chk_init',\n  :nopreempt => false,\n  :advert_int => 1,\n  :auth_type => nil, # :pass or :ah\n  :auth_pass => 'secret'\n}\n```\n\n\nLicense & Authors\n-----------------\n- Author:: Joshua Timberman (<joshua@opscode.com>)\n\n```text\nCopyright:: 2009, Opscode, Inc\n\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n```\n",
+  "maintainer": "Opscode, Inc.",
+  "maintainer_email": "cookbooks@opscode.com",
+  "license": "Apache 2.0",
+  "platforms": {
+    "ubuntu": ">= 0.0.0"
+  },
+  "dependencies": {
+  },
+  "recommendations": {
+  },
+  "suggestions": {
+  },
+  "conflicting": {
+  },
+  "providing": {
+  },
+  "replacing": {
+  },
+  "attributes": {
+  },
+  "groupings": {
+  },
+  "recipes": {
+    "keepalived": "Installs and configures keepalived"
+  }
+}
