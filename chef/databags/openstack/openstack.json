@@ -108,6 +108,23 @@
         "os-controller": ["dashboard_http","dashboard_https","keystone_admin", "keystone_public_internal","nova_ec2_api","nova_compute_api","cinder_api","neutron_api"],
         "os-image": ["glance_api","glance_registry_cluster"]
       }
+    },
+    "keepalived": {
+      "router_ids": {
+        "node1.name_in_chef_server": "lsb01",
+        "node2.name_in_chef_server": "lsb02"
+      },
+      "instance_name": {
+        "vip": "10.145.88.231",
+        "priorities": {
+          "node1.name_in_chef_server": 110,
+          "node2.name_in_chef_server": 101
+        },
+        "states": {
+          "centos-10-145-88-152": "BACKUP",
+          "centos-10-145-88-153": "MASTER"
+        }
+      }
     }
   },
   "dashboard_roles" : [ "os-controller", "os-dashboard" ],
