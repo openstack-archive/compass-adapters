@@ -88,6 +88,14 @@ file "/var/lib/keystone/keystone.db" do
   action :delete
 end
 
+["/etc/keystone/keystone.conf", "/etc/keystone/logging.conf"].each do |dir|
+  file dir do
+    owner node["openstack"]["identity"]["user"]
+    group node["openstack"]["identity"]["group"]
+    mode  00700
+  end
+end
+
 execute "keystone-manage pki_setup" do
   user node["openstack"]["identity"]["user"]
 
