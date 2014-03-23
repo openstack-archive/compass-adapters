@@ -5,7 +5,8 @@
       "os-ops-messaging": "openstack message queue node",
       "os-image": "openstack image node",
       "os-ops-database": "openstack database node",
-      "os-compute-worker": "openstack nova node"
+      "os-compute-worker": "openstack nova node",
+      "os-ha": "Software load balance node"
     },
   "role_mapping": {
       "os-controller": {
@@ -103,7 +104,7 @@
   "ha": {
     "status": "disable",
     "haproxy": {
-      "vip": "10.145.88.231",
+      "vip": "",
       "roles": {
         "os-controller": ["dashboard_http","dashboard_https","keystone_admin", "keystone_public_internal","nova_ec2_api","nova_compute_api","cinder_api","neutron_api"],
         "os-image": ["glance_api","glance_registry_cluster"]
@@ -111,18 +112,12 @@
     },
     "keepalived": {
       "router_ids": {
-        "node1.name_in_chef_server": "lsb01",
-        "node2.name_in_chef_server": "lsb02"
       },
       "instance_name": {
-        "vip": "10.145.88.231",
+        "vip": "",
         "priorities": {
-          "node1.name_in_chef_server": 110,
-          "node2.name_in_chef_server": 101
         },
         "states": {
-          "centos-10-145-88-152": "BACKUP",
-          "centos-10-145-88-153": "MASTER"
         }
       }
     }
@@ -214,6 +209,7 @@
           "bundles" : [ ],
           "exclusives" : [ "os-controller" ],
           "roles" : [
+              "os-ha",
               "os-ops-database",
               "os-ops-messaging",
               "os-controller",
@@ -224,7 +220,13 @@
             ],
           "default_min" : 1,
           "default_max" : 1,
-          "maxs" : { "os-compute-worker": -1 }
+          "maxs" : { 
+              "os-compute-worker": -1,
+              "os-ha": 0
+            },
+          "mins": {
+              "os-ha": 0
+            }
         },
       "policy_by_host_numbers" : {
           "1" : { 
