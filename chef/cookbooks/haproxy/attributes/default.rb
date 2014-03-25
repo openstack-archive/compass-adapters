@@ -79,11 +79,14 @@ default['haproxy']['source']['use_pcre'] = false
 default['haproxy']['source']['use_openssl'] = false
 default['haproxy']['source']['use_zlib'] = false
 
+default['haproxy']['enable_services'] = []
+
 default['haproxy']['listeners'] = {
   'listen' => {},
   'frontend' => {},
   'backend' => {}
 }
+
 
 default['haproxy']['services'] = {
   "dashboard_http" => {
@@ -96,8 +99,9 @@ default['haproxy']['services'] = {
                    "mode  http", \
                    "option  forwardfor", \
                    "option  httpchk", \
-                   "option  httpclose", \
-                   "rspidel  ^Set-cookie:\ IP="]
+                   "option  httpclose"
+                 #  "rspidel  ^Set-cookie:\ IP="
+                 ]
   },
   "dashboard_https" => {
     "role" => "os-compute-single-controller",
