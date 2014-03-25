@@ -8,19 +8,52 @@
       "os-compute-worker": "openstack nova node",
       "os-ha": "Software load balance node"
     },
+  "read_config_mapping": {
+        "/dashboard_roles": "/dashboard_roles",
+        "/haproxy_roles": "/haproxy_roles",
+        "/haproxy/router_id_prefix": "/ha/keepalived/router_id_prefix",
+        "/haproxy/default_priority": "/ha/keepalived/default_priority",
+        "/haproxy/default_state": "/ha/keepalived/default_state",
+        "/haproxy/states_to_assign": "/ha/keepalived/states_to_assign"
+    },
+  "config_mapping": {
+	"/credential/identity/users/admin": "/security/console_credentials",
+        "/credential/identity/users/compute": "/security/service_credentials",
+        "/credential/identity/users/image": "/security/service_credentials",
+        "/credential/identity/users/metering": "/security/service_credentials",
+        "/credential/identity/users/network": "/security/service_credentials",
+        "/credential/identity/users/object-store": "/security/service_credentials",
+        "/credential/identity/users/volume": "/security/service_credentials",
+        "/credential/mysql/compute": "/security/service_credentials",
+        "/credential/mysql/dashboard": "/security/service_credentials",
+        "/credential/mysql/identity": "/security/service_credentials",
+        "/credential/mysql/image": "/security/service_credentials",
+        "/credential/mysql/metering": "/security/service_credentials",
+        "/credential/mysql/network": "/security/service_credentials",
+        "/credential/mysql/volume": "/security/service_credentials",
+        "/credential/mysql/super/password": "/security/service_credentials/password",
+        "/networking/control/interface": "/networking/interfaces/management/nic",
+        "/ntp/ntpserver": "/networking/global/ntp_server",
+        "/networking/storage/interface": "/networking/interfaces/storage/nic",
+        "/networking/public/interface": "/networking/interfaces/public/nic",
+        "/networking/tenant/interface": "/networking/interfaces/tenant/nic",
+        "/networking/plugins/ovs/gre/local_ip_interface": "/networking/interfaces/tenant/nic",
+        "/ha/haproxy/vip": "/networking/global/ha_vip",
+        "/ha/keepalived/instance_name/vip": "/networking/global/ha_vip"
+    },
   "role_mapping": {
       "os-controller": {
-          "/endpoints/compute/metadata/host": "/networking/interfaces/management/ip",
-          "/endpoints/compute/novnc/host": "/networking/interfaces/management/ip",
-          "/endpoints/compute/service/host": "/networking/interfaces/management/ip",
-          "/endpoints/compute/xvpvnc/host": "/networking/interfaces/management/ip",
-          "/endpoints/ec2/admin/host": "/networking/interfaces/management/ip",
-          "/endpoints/ec2/service/host": "/networking/interfaces/management/ip",
-          "/endpoints/identity/admin/host": "/networking/interfaces/management/ip",
-          "/endpoints/identity/service/host": "/networking/interfaces/management/ip",
-          "/endpoints/metering/service/host": "/networking/interfaces/management/ip",
-          "/endpoints/network/service/host": "/networking/interfaces/management/ip",
-          "/endpoints/volume/service/host": "/networking/interfaces/management/ip"
+          "/endpoints/compute/metadata/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
+          "/endpoints/compute/novnc/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
+          "/endpoints/compute/service/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
+          "/endpoints/compute/xvpvnc/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
+          "/endpoints/ec2/admin/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
+          "/endpoints/ec2/service/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
+          "/endpoints/identity/admin/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
+          "/endpoints/identity/service/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
+          "/endpoints/metering/service/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
+          "/endpoints/network/service/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
+          "/endpoints/volume/service/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"]
         },
       "os-ops-database": {
           "/db/mysql/bind_address": "/networking/interfaces/management/ip"
@@ -29,8 +62,8 @@
           "/mq/rabbitmq/bind_address": "/networking/interfaces/management/ip"
         },
       "os-image": {
-          "/endpoints/image/registry/host": "/networking/interfaces/management/ip",
-          "/endpoints/image/service/host": "/networking/interfaces/management/ip"
+          "/endpoints/image/registry/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
+          "/endpoints/image/service/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"]
         }
     },
   "credential" : { "identity" : { "roles" : { "admin" : "admin",
@@ -106,11 +139,15 @@
     "haproxy": {
       "vip": "",
       "roles": {
-        "os-controller": ["dashboard_http","dashboard_https","keystone_admin", "keystone_public_internal","nova_ec2_api","nova_compute_api","cinder_api","neutron_api"],
+        "os-controller": ["dashboard_http","dashboard_https","keystone_admin", "keystone_public_internal","nova_ec2_api","nova_compute_api","cinder_api","neutron_api","novnc"],
         "os-image": ["glance_api","glance_registry_cluster"]
       }
     },
     "keepalived": {
+      "router_id_prefix": "lsb",
+      "default_priority": 100,
+      "default_state": "SLAVE",
+      "states_to_assign": ["MASTER"],
       "router_ids": {
       },
       "instance_name": {
@@ -123,6 +160,7 @@
     }
   },
   "dashboard_roles" : [ "os-controller", "os-dashboard" ],
+  "haproxy_roles": [ "os-ha" ],
   "db" : { "mysql" : { "bind_address" : "10.145.88.231",
           "port" : "3306"
         },
