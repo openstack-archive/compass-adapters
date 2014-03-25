@@ -8,6 +8,39 @@
       "os-compute-worker": "openstack nova node",
       "os-ha": "Software load balance node"
     },
+  "read_config_mapping": {
+        "/dashboard_roles": "/dashboard_roles",
+        "/haproxy_roles": "/haproxy_roles",
+        "/haproxy/router_id_prefix": "/ha/keepalived/router_id_prefix",
+        "/haproxy/default_priority": "/ha/keepalived/default_priority",
+        "/haproxy/default_state": "/ha/keepalived/default_state",
+        "/haproxy/states_to_assign": "/ha/keepalived/states_to_assign"
+    },
+  "config_mapping": {
+	"/credential/identity/users/admin": "/security/console_credentials",
+        "/credential/identity/users/compute": "/security/service_credentials",
+        "/credential/identity/users/image": "/security/service_credentials",
+        "/credential/identity/users/metering": "/security/service_credentials",
+        "/credential/identity/users/network": "/security/service_credentials",
+        "/credential/identity/users/object-store": "/security/service_credentials",
+        "/credential/identity/users/volume": "/security/service_credentials",
+        "/credential/mysql/compute": "/security/service_credentials",
+        "/credential/mysql/dashboard": "/security/service_credentials",
+        "/credential/mysql/identity": "/security/service_credentials",
+        "/credential/mysql/image": "/security/service_credentials",
+        "/credential/mysql/metering": "/security/service_credentials",
+        "/credential/mysql/network": "/security/service_credentials",
+        "/credential/mysql/volume": "/security/service_credentials",
+        "/credential/mysql/super/password": "/security/service_credentials/password",
+        "/networking/control/interface": "/networking/interfaces/management/nic",
+        "/ntp/ntpserver": "/networking/global/ntp_server",
+        "/networking/storage/interface": "/networking/interfaces/storage/nic",
+        "/networking/public/interface": "/networking/interfaces/public/nic",
+        "/networking/tenant/interface": "/networking/interfaces/tenant/nic",
+        "/networking/plugins/ovs/gre/local_ip_interface": "/networking/interfaces/tenant/nic",
+        "/ha/haproxy/vip": "/networking/global/ha_vip",
+        "/ha/keepalived/instance_name/vip": "/networking/global/ha_vip"
+    },
   "role_mapping": {
       "os-controller": {
           "/endpoints/compute/metadata/host": "/networking/interfaces/management/ip",
@@ -111,6 +144,10 @@
       }
     },
     "keepalived": {
+      "router_id_prefix": "lsb",
+      "default_priority": 100,
+      "default_state": "SLAVE",
+      "states_to_assign": ["MASTER"],
       "router_ids": {
       },
       "instance_name": {
@@ -123,6 +160,7 @@
     }
   },
   "dashboard_roles" : [ "os-controller", "os-dashboard" ],
+  "haproxy_roles": [ "os-ha" ],
   "db" : { "mysql" : { "bind_address" : "10.145.88.231",
           "port" : "3306"
         },
