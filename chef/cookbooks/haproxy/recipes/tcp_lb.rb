@@ -17,7 +17,38 @@
 # limitations under the License.
 #
 
+defaultbag = "openstack"
+if !Chef::DataBag.list.key?(defaultbag)
+    Chef::Application.fatal!("databag '#{defaultbag}' doesn't exist.")
+    return
+end
+
+myitem = node.attribute?('cluster')? node['cluster']:"env_default"
+
+if !search(defaultbag, "id:#{myitem}")
+    Chef::Application.fatal!("databagitem '#{myitem}' doesn't exist.")
+    return
+end
+
+mydata = data_bag_item(defaultbag, myitem)
+
+if mydata['ha']['status'].eql?('enable')
+  node.set['haproxy']['incoming_address'] = mydata['ha']['haproxy']['vip']
+  mydata['ha']['haproxy']['roles'].each do |role, services|
+    services.each do |service|
+      node.set['haproxy']['services'][service]['role'] = role
+      unless node['haproxy']['enable_services'].include?(service)
+	node.set['haproxy']['enable_services'] << service
+      end
+    end
+  end
+end
+
 node['haproxy']['services'].each do |name, service|
+  unless node['haproxy']['enable_services'].include?(name)
+    next
+  end
+
   pool_members = search("node", "role:#{service['role']} AND chef_environment:#{node.chef_environment}") || []
 
   # load balancer may be in the pool
@@ -44,8 +75,11 @@ node['haproxy']['services'].each do |name, service|
   pool = ["options httpchk #{node['haproxy']['httpchk']}"] if node['haproxy']['httpchk']
   pool = service[:options]
   servers = pool_members.uniq.map do |s|
-    "#{s[:hostrame]} #{s[:ipaddress]}:#{service[:backend_port]} check inter 2000 rise 2 fall 5"
+    print "\n*******************\n"
+    "#{s[:hostname]} #{s[:ipaddress]}:#{service[:backend_port]} check inter 2000 rise 2 fall 5"
   end
+ 
+  print "servers = #{servers}\n"
 
   haproxy_lb name do
     bind node['haproxy']['incoming_address'] + ':' + service[:frontend_port]
@@ -72,4 +106,3 @@ service "haproxy" do
   supports :restart => true, :status => true, :reload => true
   action [:enable, :start]
 end
-
