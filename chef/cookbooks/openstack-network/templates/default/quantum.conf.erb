@@ -36,8 +36,7 @@ log_config = /etc/openstack/logging.conf
 # publish_errors = False
 
 # Address to bind the API server
-# bind_host = <%= @bind_address %>
-bind_host = <%= node['openstack']['endpoints']['network-api']['host'] %>
+bind_host = <%= @bind_address %>
 
 # Port the bind the API server to
 bind_port = <%= @bind_port %>

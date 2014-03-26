@@ -38,7 +38,7 @@ default["openstack"]["dashboard"]["keystone_default_role"] = "Member"
 default["openstack"]["dashboard"]["keystone_service_chef_role"] = "keystone"
 
 default["openstack"]["dashboard"]["server_hostname"] = nil
-default["openstack"]["dashboard"]["use_ssl"] = true
+default["openstack"]["dashboard"]["use_ssl"] = false
 default["openstack"]["dashboard"]["ssl"]["cert"] = "horizon.pem"
 default["openstack"]["dashboard"]["ssl"]["key"] = "horizon.key"
 

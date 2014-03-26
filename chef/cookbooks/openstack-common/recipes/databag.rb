@@ -77,6 +77,12 @@ node['openstack']['services'].each_key do |service|
     end
 end
 
+if mydata['ha']['status'].eql?('enable')
+    node.set["openstack"]["identity"]["bind_interface"] = mydata['networking']['control']['interface']
+    node.set["openstack"]["image"]["api"]["bind_interface"] = mydata['networking']['control']['interface']
+    node.set["openstack"]["image"]["registry"]["bind_interface"] = mydata['networking']['control']['interface']
+    node.set["openstack"]["network"]["api"]["bind_interface"] = mydata['networking']['control']['interface']
+end
 
 # network plugins
 node.override["openstack"]["network"]["plugins"] = ['openvswitch', 'openvswitch-agent'] 
