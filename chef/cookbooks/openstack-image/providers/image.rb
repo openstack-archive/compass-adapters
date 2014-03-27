@@ -59,10 +59,15 @@ def _upload_qcow(name, url)
   glance_cmd = "glance --insecure -I #{@user} -K #{@pass} -T #{@tenant} -N #{@ks_uri}"
   c_fmt = "--container-format bare"
   d_fmt = "--disk-format qcow2"
-
+  img_file_name = ::File.basename(url) 
+  remote_file "#{Chef::Config[:file_cache_path]}/#{img_file_name}" do
+    source "#{url}"
+    action :create_if_missing
+  end
+ 
   execute "Uploading QCOW2 image #{name}" do
-    cwd "/tmp"
-    command "#{glance_cmd} image-create --name #{name} --is-public true #{c_fmt} #{d_fmt} --location #{url}"
+    cwd Chef::Config[:file_cache_path]
+    command "#{glance_cmd} image-create --name #{name} --is-public true #{c_fmt} #{d_fmt} < #{img_file_name}"
     not_if "#{glance_cmd} image-list | grep #{name.to_s}"
   end
 end
