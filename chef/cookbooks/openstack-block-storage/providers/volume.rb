@@ -136,16 +136,20 @@ def create_disk_partition resource
 end
 
 action :create_partition do
-  if node['partitions'].nil? or not node['partitions'].any?{|s| s.include?(new_resource.device)}
-    disk_total_size new_resource
-    partition_start_size new_resource
-    if new_resource.start_size.eql?(new_resource.total_size)
-      create_file_partition new_resource
-    else
-      create_disk_partition new_resource
+  if ::File.exist?(new_resource.device)
+    if node['partitions'].nil? or not node['partitions'].any?{|s| s.include?(new_resource.device)}
+      disk_total_size new_resource
+      partition_start_size new_resource
+      if new_resource.start_size.eql?(new_resource.total_size)
+        create_file_partition new_resource
+      else
+        create_disk_partition new_resource
+      end
     end
-    new_resource.updated_by_last_action(true)
+  else
+    create_file_partition new_resource
   end
+  new_resource.updated_by_last_action(true)
 end
 
 action :mk_cinder_vol do
