@@ -152,6 +152,13 @@ default['haproxy']['services'] = {
     "balance" => "source",
     "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
   },
+  "novncproxy" => {
+    "role" => "os-compute-single-controller",
+    "frontend_port" => "6080",
+    "backend_port" => "6080",
+    "balance" => "source",
+    "options" => [ "option tcpka", "option  http-server-close", "option  tcplog"]
+  },
   "nova_metadata_api" => {
     "role" => "os-compute-single-controller",
     "frontend_port" => "8775",

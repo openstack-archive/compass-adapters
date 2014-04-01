@@ -139,7 +139,7 @@
     "haproxy": {
       "vip": "",
       "roles": {
-        "os-controller": ["dashboard_http","dashboard_https","keystone_admin", "keystone_public_internal","nova_ec2_api","nova_compute_api","cinder_api","neutron_api","novnc"],
+        "os-controller": ["dashboard_http","dashboard_https","keystone_admin", "keystone_public_internal","nova_ec2_api","nova_compute_api","cinder_api","neutron_api","novncproxy"],
         "os-image": ["glance_api","glance_registry_cluster"]
       }
     },
