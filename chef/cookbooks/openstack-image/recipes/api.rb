@@ -149,6 +149,12 @@ else
   bind_address = address_for node["openstack"]["image"]["api"]["bind_interface"]
 end
 
+if node["openstack"]["ha"]["status"].eql?('enable')
+  registry_ip_address = address_for node["openstack"]["image"]["registry"]["bind_interface"]
+else
+  registry_ip_address = registry_endpoint.host
+end
+
 template "/etc/glance/glance-api.conf" do
   source "glance-api.conf.erb"
   owner node["openstack"]["image"]["user"]
@@ -157,7 +163,8 @@ template "/etc/glance/glance-api.conf" do
   variables(
     :api_bind_address => bind_address,
     :api_bind_port => api_endpoint.port,
-    :registry_ip_address => registry_endpoint.host,
+#    :registry_ip_address => registry_endpoint.host,
+    :registry_ip_address => registry_ip_address,
     :registry_port => registry_endpoint.port,
     :sql_connection => sql_connection,
     :glance_flavor => glance_flavor,

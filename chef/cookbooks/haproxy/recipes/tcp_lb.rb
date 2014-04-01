@@ -76,7 +76,12 @@ node['haproxy']['services'].each do |name, service|
   pool = ["options httpchk #{node['haproxy']['httpchk']}"] if node['haproxy']['httpchk']
   pool = service[:options]
   servers = pool_members.uniq.map do |s|
-    "#{s[:hostname]} #{s[:ipaddress]}:#{service[:backend_port]} check inter 2000 rise 2 fall 5"
+    # novncproxy cannot to be checked
+    if name.eql?("novncproxy")
+      "#{s[:hostname]} #{s[:ipaddress]}:#{service[:backend_port]}"
+    else
+      "#{s[:hostname]} #{s[:ipaddress]}:#{service[:backend_port]} check inter 2000 rise 2 fall 5"
+    end
   end
 
   haproxy_lb name do
