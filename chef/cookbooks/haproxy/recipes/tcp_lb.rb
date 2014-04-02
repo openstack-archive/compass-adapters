@@ -51,26 +51,42 @@ node['haproxy']['services'].each do |name, service|
   unless node['haproxy']['enabled_services'].include?(name)
     next
   end
-  pool_members = search(:node, "run_list:role\\[#{service['role']}\\] AND chef_environment:#{node.chef_environment}") || []
-  # load balancer may be in the pool
-  pool_members << node if node.run_list.roles.include?(service[:role])
+
+  if node['haproxy']['choose_backend'].eql?("prefeed")
+    pool_members = []
+    mydata['node_mapping'].each do |nodename, nodeinfo|
+      if nodeinfo['roles'].include?(service['role'])
+          pool_members << nodename
+          break
+        end
+    end
+  else
+    pool_members = search(:node, "run_list:role\\[#{service['role']}\\] AND chef_environment:#{node.chef_environment}") || []
+    # load balancer may be in the pool
+    pool_members << node if node.run_list.roles.include?(service[:role])
+  end
 
   # we prefer connecting via local_ipv4 if
   # pool members are in the same cloud
   # TODO refactor this logic into library...see COOK-494
   pool_members.map! do |member|
-    server_ip = begin
-      if member.attribute?('cloud')
-        if node.attribute?('cloud') && (member['cloud']['provider'] == node['cloud']['provider'])
-          member['cloud']['local_ipv4']
+    if node['haproxy']['choose_backend'].eql?("prefeed")
+      server_ip = mydata['node_mapping']["#{member}"]['management_ip']
+      {:ipaddress => server_ip, :hostname => member}
+    else
+      server_ip = begin
+        if member.attribute?('cloud')
+          if node.attribute?('cloud') && (member['cloud']['provider'] == node['cloud']['provider'])
+            member['cloud']['local_ipv4']
+          else
+            member['cloud']['public_ipv4']
+          end
         else
-          member['cloud']['public_ipv4']
+          member['ipaddress']
         end
-      else
-        member['ipaddress']
       end
-  end
-    {:ipaddress => server_ip, :hostname => member['hostname']}
+      {:ipaddress => server_ip, :hostname => member['hostname']}
+    end
   end
 
   pool = ["options httpchk #{node['haproxy']['httpchk']}"] if node['haproxy']['httpchk']
