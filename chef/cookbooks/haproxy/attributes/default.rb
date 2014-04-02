@@ -17,6 +17,12 @@
 # limitations under the License.
 #
 
+# node['haproxy']['backend'] to deside where service backend sources come from
+# if 'prefeed', all services' backend info will be choosen from databag 
+# 'node_mapping'; 'prefeed' is suitable for stable and independent services
+# if 'autofeed', services' backend info will automaticly learn backend info 
+# from it's chef server.
+default['haproxy']['choose_backend'] = 'prefeed'
 default['haproxy']['enable_default_http'] = true
 default['haproxy']['incoming_address'] = "0.0.0.0"
 default['haproxy']['incoming_port'] = 80
