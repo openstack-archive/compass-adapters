@@ -88,7 +88,11 @@ chef-11.8.0-1.el6.x86_64
 ntp
 openssh-clients
 wget
-
+json-c
+libestr
+libgt
+liblogging
+rsyslog-7.6.3-1.el6.x86_64
 
 %post --log=/var/log/post_install.log
 #if $getVar('passwd', '') != ""
