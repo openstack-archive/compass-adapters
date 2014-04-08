@@ -11,11 +11,6 @@ cat << EOL > /etc/chef/client.rb
 $SNIPPET('client.rb')
 EOL
 
-## Generate first-boot.json
-cat << EOL > /etc/chef/first-boot.json
-$SNIPPET('first-boot.json')
-EOL
-
 ## Register Server in Rsyslog
 
 
