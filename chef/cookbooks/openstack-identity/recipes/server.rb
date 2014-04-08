@@ -120,7 +120,11 @@ sql_connection = db_uri("identity", db_user, db_pass)
 
 bootstrap_token = secret "secrets", "#{node['openstack']['identity']['admin_token']}"
 
-ip_address = address_for node["openstack"]["identity"]["bind_interface"]
+if node["openstack"]["ha"]["status"].eql?('enable')
+  ip_address = address_for node["openstack"]["identity"]["bind_interface"]
+else
+  ip_address = node['openstack']['endpoints']['identity-api']['host']
+end
 
 # If the search role is set, we search for memcache
 # servers via a Chef search. If not, we look at the
