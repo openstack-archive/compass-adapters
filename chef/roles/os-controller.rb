@@ -12,6 +12,6 @@ run_list(
     'role[os-compute-cert]', 
     'role[os-compute-controller]', 
     'role[os-compute-scheduler]', 
-    'role[os-compute-vncproxy]', 
+#    'role[os-compute-vncproxy]', 
     'role[os-network-server]'
   )
