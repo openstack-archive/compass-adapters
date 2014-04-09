@@ -43,6 +43,24 @@ node.override['openstack']['developer_mode'] = mydata['credential']['text']
 # The coordinated release of OpenStack codename
 node.override['openstack']['release'] = mydata['release']
 
+verbose = mydata['debugging']['verbose']
+if verbose.eql?("True")
+  node.override["openstack"]["block-storage"]["verbose"] = verbose
+  node.override["openstack"]["image"]["verbose"] = verbose
+  node.override["openstack"]["identity"]["verbose"] = verbose
+  node.override["openstack"]["compute"]["verbose"] = verbose
+  node.override["openstack"]["network"]["verbose"] = verbose
+end
+
+debug = mydata['debugging']['debug']
+if debug.eql?("True")
+  node.override["openstack"]["block-storage"]["debug"] = debug
+  node.override["openstack"]["image"]["debug"] = debug
+  node.override["openstack"]["identity"]["debug"] = debug
+  node.override["openstack"]["compute"]["debug"] = debug
+  node.override["openstack"]["network"]["debug"] = debug
+end
+
 # Openstack repo setup
 # ubuntu
 node.override['openstack']['apt']['components'] = [ "precise-updates/#{node['openstack']['release']}", "main" ]
