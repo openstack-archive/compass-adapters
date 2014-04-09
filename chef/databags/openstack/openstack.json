@@ -311,4 +311,8 @@
           "status" : "enable"
         }
     }
+  "debugging": {
+    "debug": "False",
+    "verbose": "False"
+  }
 }
