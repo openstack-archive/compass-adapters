@@ -310,5 +310,9 @@
       "volume" : { "name" : "cinder",
           "status" : "enable"
         }
-    }
+    },
+  "debugging": {
+    "debug": "False",
+    "verbose": "False"
+  }
 }
