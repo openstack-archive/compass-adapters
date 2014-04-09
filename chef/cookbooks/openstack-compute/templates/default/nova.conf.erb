@@ -25,6 +25,13 @@ rabbit_ha_queues=True
 rabbit_host=<%= node['openstack']['mq']['bind_address'] %>
 rabbit_port=<%= node['openstack']['mq']['port'] %>
 <% end -%>
+# Seconds to wait before a cast expires (TTL). Only supported
+# by impl_zmq. (integer value)
+#rpc_cast_timeout=300
+# Seconds to wait for a response from a call. (integer value)
+#rpc_response_timeout=300
+# Size of RPC connection pool. (integer value)
+#rpc_conn_pool_size=500
 
 ##### SCHEDULER #####
 # scheduler_manager=nova.scheduler.manager.SchedulerManager
