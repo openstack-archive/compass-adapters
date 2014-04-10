@@ -11,11 +11,6 @@ cat << EOL > /etc/chef/client.rb
 $SNIPPET('client.rb')
 EOL
 
-## Generate first-boot.json
-cat << EOL > /etc/chef/first-boot.json
-$SNIPPET('first-boot.json')
-EOL
-
 ## Register Server in Rsyslog
 
 
@@ -38,7 +33,7 @@ while true; do
   if [ "\$?" == "0" ]; then
     exit 1
   fi
-  chef-client -j /etc/chef/first-boot.json -L /var/log/chef-client.log &> /tmp/chef.log
+  chef-client -L /var/log/chef-client.log &> /tmp/chef.log
   if [ "\$?" != "0" ]; then
     sleep 1m
   else
