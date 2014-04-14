@@ -8,6 +8,9 @@
       "os-compute-worker": "openstack nova node",
       "os-ha": "Software load balance node"
     },
+  "test_roles": {
+      "default": ["test-synclog"]
+    },
   "read_config_mapping": {
         "/dashboard_roles": "/dashboard_roles",
         "/haproxy_roles": "/haproxy_roles",
