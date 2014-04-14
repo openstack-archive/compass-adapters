@@ -55,7 +55,11 @@ selinux --disabled
 skipx
 
 # System Timezone
+#if $getVar('timezone', '') != ""
+timezone --utc $timezone
+#else
 timezone --utc US/Pacific
+#end if
 
 # Install
 install
@@ -80,11 +84,10 @@ $SNIPPET('pre_anamon')
 $SNIPPET('partition_disks')
 
 # Packages
-# %packages --ignoremissing --nobase
 %packages --nobase
 @core 
 iproute
-chef-11.8.0-1.el6.x86_64
+chef
 ntp
 openssh-clients
 wget
@@ -92,27 +95,20 @@ json-c
 libestr
 libgt
 liblogging
-rsyslog-7.6.3-1.el6.x86_64
+rsyslog
 
 %post --log=/var/log/post_install.log
-#if $getVar('passwd', '') != ""
-    #set $passwd = $passwd.strip()
-/usr/sbin/useradd -p '$passwd' $user
-#end if
-
 $SNIPPET('post_install_network_config')
 
 cat << EOF > /etc/yum.conf
 $SNIPPET('yum.conf')
 EOF
 
-chkconfig ntpd on
+$SNIPPET('ssh')
+$SNIPPET('ntp')
+
 chkconfig iptables off
 chkconfig ip6tables off
-
-cat << EOF > /etc/ntp.conf
-$SNIPPET('ntp.conf')
-EOF
 
 cat << EOF > /etc/security/limits.conf
 $SNIPPET('limits.conf')
@@ -124,13 +120,7 @@ EOF
 
 sysctl -p
 
-## $yum_repo_stanza
-## $yum_config_stanza
-
 $SNIPPET($tool)
-
-# rm -rf /etc/yum.repos.d/CentOS-Base.repo
-
 
 $SNIPPET('post_anamon')
 $SNIPPET('kickstart_done')

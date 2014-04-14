@@ -28,16 +28,22 @@ service rsyslog restart
 cat << EOF > /etc/chef/firstrun.sh
 #raw
 #!/bin/bash
+touch /tmp/chef.log
 while true; do
-  pgrep chef-client
+  echo "firstrun chef-client on `date`" &>> /tmp/chef.log
+  clients=\$(pgrep chef-client)
   if [ "\$?" == "0" ]; then
-    exit 1
-  fi
-  chef-client -L /var/log/chef-client.log &> /tmp/chef.log
-  if [ "\$?" != "0" ]; then
-    sleep 1m
+      echo "there are chef-clients '\$clients' running" &>> /tmp/chef.log
+      sleep 1m
   else
-    break
+      chef-client -L /var/log/chef-client.log &>> /tmp/chef.log
+      if [ "\$?" != "0" ]; then
+          echo "chef-client run failed"  &>> /tmp/chef.log
+          sleep 1m
+      else
+          echo "chef-client run success" &>> /tmp/chef.log
+          break
+      fi
   fi
 done
 #end raw
@@ -46,13 +52,23 @@ EOF
 cat << EOF > /etc/chef/rerun.sh
 #raw
 #!/bin/bash
-pgrep chef-client
+echo "rerun chef-client on `date`" &>> /tmp/chef.log
+clients=\$(pgrep chef-client)
 if [ "\$?" == "0" ]; then
-  exit 1
+    echo "there are chef-clients '\$clients' running" &>> /tmp/chef.log
+    exit 1
 fi
-chef-client &> /tmp/chef.log
+chef-client &>> /tmp/chef.log
+if [ "\$?" != "0" ]; then
+    echo "chef-client run failed"  &>> /tmp/chef.log
+else
+    echo "chef-client run success" &>> /tmp/chef.log
+fi
 #end raw
 EOF
+
+chmod +x /etc/chef/firstrun.sh
+chmod +x /etc/chef/rerun.sh
 
 ## A self-destruct service to boot chef client and register cron job
 cat << EOF > /etc/init.d/chef
@@ -60,18 +76,7 @@ cat << EOF > /etc/init.d/chef
 # chkconfig: 2345 95 20
 # description: Description of the script
 # processname: chef-agent
-#if $getVar('ntp_server', '') != ""
-echo "old date is: \`date\`" 2>&1 > /tmp/ntp.log
-echo "path: \$PATH" 2>&1 >> /tmp/ntp.log
-/sbin/service ntpd stop 2>&1 >> /tmp/ntp.log
-/usr/sbin/ntpdate $server 2>&1 >> /tmp/ntp.log
-/sbin/service ntpd start 2>&1 >> /tmp/ntp.log
-echo "new date is: \`date\`" 2>&1 >> /tmp/ntp.log
-#end if
-
-chmod +x /etc/chef/firstrun.sh
-chmod +x /etc/chef/rerun.sh
-/etc/chef/firstrun.sh &
+/etc/chef/firstrun.sh
 
 crontab -l  > mycron
 echo "*/30 * * * *  /etc/chef/rerun.sh" >> mycron
@@ -80,7 +85,6 @@ rm mycron
 chkconfig chef off
 mv /etc/init.d/chef /tmp/chef
 EOF
-
 
 chmod +x /etc/init.d/chef
 chkconfig --level 2345 chef on

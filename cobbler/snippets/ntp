@@ -1,0 +1,14 @@
+chkconfig ntpd on
+
+cat << EOF > /etc/ntp.conf
+$SNIPPET('ntp.conf')
+EOF
+
+#if $getVar('ntp_server', '') != ""
+echo "old date is: \`date\`" 2>&1 > /tmp/ntp.log
+echo "path: \$PATH" 2>&1 >> /tmp/ntp.log
+/sbin/service ntpd stop 2>&1 >> /tmp/ntp.log
+/usr/sbin/ntpdate $ntp_server 2>&1 >> /tmp/ntp.log
+/sbin/service ntpd start 2>&1 >> /tmp/ntp.log
+echo "new date is: \`date\`" 2>&1 >> /tmp/ntp.log
+#end if
