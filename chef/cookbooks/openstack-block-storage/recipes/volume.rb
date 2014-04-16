@@ -61,6 +61,8 @@ directory "/var/lock/cinder" do
   mode 00700
 end
 
+execute "cinder-manage db sync"
+
 case node["openstack"]["block-storage"]["volume"]["driver"]
   when "cinder.volume.drivers.netapp.iscsi.NetAppISCSIDriver"
    node.override["openstack"]["block-storage"]["netapp"]["dfm_password"] = service_password "netapp"
