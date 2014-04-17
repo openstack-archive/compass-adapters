@@ -15,6 +15,7 @@
   "read_config_mapping": {
         "/dashboard_roles": "/dashboard_roles",
         "/haproxy_roles": "/haproxy_roles",
+        "/test_roles": "/test_roles",
         "/haproxy/router_id_prefix": "/ha/keepalived/router_id_prefix",
         "/haproxy/default_priority": "/ha/keepalived/default_priority",
         "/haproxy/default_state": "/ha/keepalived/default_state",
