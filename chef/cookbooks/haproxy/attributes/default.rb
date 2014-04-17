@@ -66,7 +66,7 @@ default['haproxy']['cookie'] = nil
 default['haproxy']['user'] = "haproxy"
 default['haproxy']['group'] = "haproxy"
 
-default['haproxy']['global_max_connections'] = 4096
+default['haproxy']['global_max_connections'] = 8192
 default['haproxy']['member_max_connections'] = 100
 default['haproxy']['frontend_max_connections'] = 2000
 default['haproxy']['frontend_ssl_max_connections'] = 2000

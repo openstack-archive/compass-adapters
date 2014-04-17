@@ -33,9 +33,9 @@ end
 mydata = data_bag_item(defaultbag, myitem)
 
 if mydata['ha']['status'].eql?('enable')
+  node.set['haproxy']['enabled_services'] = nil
   node.set['haproxy']['incoming_address'] = mydata['ha']['haproxy']['vip']
 
-  #services = node['haproxy']['enabled_services'].clone
   mydata['ha']['haproxy']['roles'].each do |role, services|
     services.each do |service|
       node.set['haproxy']['services'][service]['role'] = role
