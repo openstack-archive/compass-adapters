@@ -247,6 +247,11 @@ template "/etc/glance/glance-scrubber-paste.ini" do
   mode   00644
 end
 
+execute "delay" do
+  command "sleep 5"
+  action :run
+end
+
 if node["openstack"]["image"]["image_upload"]
   node["openstack"]["image"]["upload_images"].each do |img|
     openstack_image_image "Image setup for #{img.to_s}" do
