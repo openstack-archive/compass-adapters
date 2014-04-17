@@ -25,6 +25,13 @@ rabbit_ha_queues=True
 rabbit_host=<%= node['openstack']['mq']['bind_address'] %>
 rabbit_port=<%= node['openstack']['mq']['port'] %>
 <% end -%>
+# Seconds to wait before a cast expires (TTL). Only supported
+# by impl_zmq. (integer value)
+rpc_cast_timeout=300
+# Seconds to wait for a response from a call. (integer value)
+rpc_response_timeout=300
+# Size of RPC connection pool. (integer value)
+rpc_conn_pool_size=100
 
 ##### SCHEDULER #####
 # scheduler_manager=nova.scheduler.manager.SchedulerManager
@@ -97,8 +104,8 @@ glance_api_servers=<%= @glance_api_ipaddress %>:<%= @glance_api_port %>
 compute_driver=<%= node["openstack"]["compute"]["driver"] %>
 compute_manager=nova.compute.manager.ComputeManager
 sql_connection=<%= @sql_connection %>
-sql_max_pool_size=30
-sql_max_overflow=30
+sql_max_pool_size=100
+sql_max_overflow=100
 connection_type=libvirt
 libvirt_inject_password=True
 libvirt_type=<%= node["openstack"]["compute"]["libvirt"]["virt_type"] %>
