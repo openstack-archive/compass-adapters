@@ -5,8 +5,9 @@
       "os-ops-messaging": "openstack message queue node",
       "os-image": "openstack image node",
       "os-ops-database": "openstack database node",
-      "os-compute-worker": "openstack nova node",
-      "os-ha": "Software load balance node"
+      "os-compute-worker": "openstack compute node",
+      "os-ha": "Software load balance node",
+      "os-compute-vncproxy": "vnc proxy"
     },
   "test_roles": {
       "default": ["test-synclog"]
@@ -47,7 +48,6 @@
   "role_mapping": {
       "os-controller": {
           "/endpoints/compute/metadata/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
-          "/endpoints/compute/novnc/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
           "/endpoints/compute/service/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
           "/endpoints/compute/xvpvnc/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
           "/endpoints/ec2/admin/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
@@ -57,6 +57,9 @@
           "/endpoints/metering/service/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
           "/endpoints/network/service/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"],
           "/endpoints/volume/service/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"]
+        },
+      "os-compute-vncproxy": {
+          "/endpoints/compute/novnc/host": ["/networking/global/ha_vip", "/networking/interfaces/management/ip"]
         },
       "os-ops-database": {
           "/db/mysql/bind_address": "/networking/interfaces/management/ip"
@@ -254,6 +257,7 @@
               "os-ops-database",
               "os-ops-messaging",
               "os-controller",
+              "os-compute-vncproxy",
               "os-image",
               "os-block-storage-worker",
               "os-network",
@@ -281,6 +285,7 @@
                   "os-ops-database",
                   "os-ops-messaging",
                   "os-controller",
+                  "os-compute-vncproxy",
                   "os-image",
                   "os-block-storage-worker",
                   "os-network",
