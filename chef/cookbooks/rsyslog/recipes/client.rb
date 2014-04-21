@@ -18,15 +18,62 @@
 #
 
 include_recipe "rsyslog"
-  template "/etc/rsyslog.d/openstack.conf" do
-    source "openstack.conf.erb"
+roles="#{node[:roles]}"
+if roles.gsub("\n",",").strip =~ /os-compute/
+  template "/etc/rsyslog.d/nova.conf" do
+    source "nova.conf.erb"
     backup false
     owner "root"
     group "root"
     mode 0644
-    variables :loglist => node['rsyslog']['openstacklog']
+    variables :loglist => node['rsyslog']['novalog']
     notifies :restart, "service[rsyslog]"
   end
+end
+if roles.gsub("\n",",").strip =~ /os-identity/
+  template "/etc/rsyslog.d/keystone.conf" do
+    source "keystone.conf.erb"
+    backup false
+    owner "root"
+    group "root"
+    mode 0644
+    variables :loglist => node['rsyslog']['keystonelog']
+    notifies :restart, "service[rsyslog]"
+  end
+end
+if roles.gsub("\n",",").strip =~ /os-image/
+  template "/etc/rsyslog.d/glance.conf" do
+    source "glance.conf.erb"
+    backup false
+    owner "root"
+    group "root"
+    mode 0644
+    variables :loglist => node['rsyslog']['glancelog']
+    notifies :restart, "service[rsyslog]"
+  end
+end
+if roles.gsub("\n",",").strip =~ /os-block-storage/
+  template "/etc/rsyslog.d/cinder.conf" do
+    source "cinder.conf.erb"
+    backup false
+    owner "root"
+    group "root"
+    mode 0644
+    variables :loglist => node['rsyslog']['cinderlog']
+    notifies :restart, "service[rsyslog]"
+  end
+end
+if roles.gsub("\n",",").strip =~ /os-network/
+  template "/etc/rsyslog.d/quantum.conf" do
+    source "quantum.conf.erb"
+    backup false
+    owner "root"
+    group "root"
+    mode 0644
+    variables :loglist => node['rsyslog']['quantumlog']
+    notifies :restart, "service[rsyslog]"
+  end
+end
 
   file "/etc/rsyslog.d/server.conf" do
     action :delete
