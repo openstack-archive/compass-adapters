@@ -61,7 +61,7 @@ directory "/var/lock/cinder" do
   mode 00700
 end
 
-execute "cinder-manage db sync"
+execute "timeout 300s sh -c 'while ! cinder-manage db sync; do sleep 30; done'"
 
 case node["openstack"]["block-storage"]["volume"]["driver"]
   when "cinder.volume.drivers.netapp.iscsi.NetAppISCSIDriver"
