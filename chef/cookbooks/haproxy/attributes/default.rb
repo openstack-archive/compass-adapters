@@ -56,11 +56,11 @@ default['haproxy']['stats_socket_user'] = node['haproxy']['user']
 default['haproxy']['stats_socket_group'] = node['haproxy']['group']
 default['haproxy']['pid_file'] = "/var/run/haproxy.pid"
 
-default['haproxy']['defaults_options'] = ["tcpka", "httpchk", "tcplog"]
+default['haproxy']['defaults_options'] = ["tcpka", "httpchk", "tcplog", "httplog"]
 default['haproxy']['x_forwarded_for'] = false
 default['haproxy']['defaults_timeouts']['connect'] = "5s"
-default['haproxy']['defaults_timeouts']['client'] = "50s"
-default['haproxy']['defaults_timeouts']['server'] = "50s"
+default['haproxy']['defaults_timeouts']['client'] = "100s"
+default['haproxy']['defaults_timeouts']['server'] = "100s"
 default['haproxy']['cookie'] = nil
 
 default['haproxy']['user'] = "haproxy"
