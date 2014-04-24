@@ -83,7 +83,7 @@ mv /etc/sysconfig/network.cobbler /etc/sysconfig/network
 /bin/hostname $hostname
     #end if
 
-cat << EOL /etc/hosts
+cat << EOL > /etc/hosts
 $SNIPPET('hosts')
 EOL
 
