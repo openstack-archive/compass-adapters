@@ -1,7 +1,7 @@
 global
-  log 127.0.0.1   local0
-  log 127.0.0.1   local1 notice
-  #log loghost    local0 info
+  #log 127.0.0.1   local0
+  #log 127.0.0.1   local1 notice
+  log 127.0.0.1    local4 info
   daemon
   maxconn <%= node['haproxy']['global_max_connections'] %>
   #debug
