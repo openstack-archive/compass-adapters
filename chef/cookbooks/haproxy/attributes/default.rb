@@ -114,7 +114,7 @@ default['haproxy']['services'] = {
     "frontend_port" => "443",
     "backend_port" => "443",
     "balance" => "source",
-    "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
+    "options" => [ "option tcpka", "option  tcplog", "mode tcp", "balance source" ]
   },
   "glance_api" => {
     "role" => "os-compute-single-controller",
