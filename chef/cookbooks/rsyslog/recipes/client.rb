@@ -74,6 +74,28 @@ if roles.gsub("\n",",").strip =~ /os-network/
     notifies :restart, "service[rsyslog]"
   end
 end
+if roles.gsub("\n",",").strip =~ /os-ops-messaging/
+  template "/etc/rsyslog.d/messaging.conf" do
+    source "openstack.conf.erb"
+    backup false
+    owner "root"
+    group "root"
+    mode 0644
+    variables :loglist => node['rsyslog']['messaginglog']
+    notifies :restart, "service[rsyslog]"
+  end
+end
+if roles.gsub("\n",",").strip =~ /os-ops-database/
+  template "/etc/rsyslog.d/database.conf" do
+    source "openstack.conf.erb"
+    backup false
+    owner "root"
+    group "root"
+    mode 0644
+    variables :loglist => node['rsyslog']['mysqllog']
+    notifies :restart, "service[rsyslog]"
+  end
+end
 
   file "/etc/rsyslog.d/server.conf" do
     action :delete

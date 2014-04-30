@@ -33,5 +33,8 @@ default["rsyslog"]["cinderlog"] = {:"cinder-api"=>"/var/log/cinder/api.log",
                                    :"cinder-volume"=>"/var/log/cinder/volume.log"}
 default["rsyslog"]["quantumlog"] = {:"quantum-server"=>"/var/log/quantum/server.log",
                                  :"quantum-dhcp"=>"/var/log/quantum/dhcp-agent.log",
-                                 :"quantum-l3agent"=>"/var/log/quantum/l3-agent.log"}
+                                 :"quantum-l3agent"=>"/var/log/quantum/l3-agent.log",
+                                 :"quantum-ovsagent"=>"/var/log/quantum/openvswitch-agent.log"}
 default["rsyslog"]["keystonelog"] = {:"keystone"=>"/var/log/keystone/keystone.log"}
+default["rsyslog"]["messaginglog"] = {:"rabbitmq"=>"/var/log/rabbitmq/rabbit\@#{node['hostname']}.log"}
+default["rsyslog"]["mysqllog"] = {:"mysqld"=>"/var/log/mysqld.log"}
