@@ -10,12 +10,8 @@ bootloader --location=mbr
 # Clear MBR
 zerombr
 
-# Pre-clear Partition
-clearpart --all --initlabel
-
 # Use Text Mode
 text
-# cmdline
 
 # Disable Firewall
 firewall --disabled
@@ -36,10 +32,9 @@ logging --level=info
 url --url=$tree
 
 
-$SNIPPET('network_config')
-
-# Repository Config
-repo --name=ppa_repo --baseurl=http://$server:$http_port/cobbler/repo_mirror/ppa_repo/
+$SNIPPET('kickstart_network_config')
+$SNIPPET('kickstart_partition_disks')
+$SNIPPET('kickstart_yum_repo_config')
 
 # Root Password
 #if $getVar('password', '') != ""
@@ -67,21 +62,14 @@ install
 # Reboot After Installation
 reboot
 
-%include /tmp/part-include
-
 %pre
 $SNIPPET('log_ks_pre')
 $SNIPPET('kickstart_start')
-$SNIPPET('pre_install_network_config')
+$SNIPPET('kickstart_pre_install_network_config')
+$SNIPPET('kickstart_pre_partition_disks')
+
 # Enable installation monitoring
-$SNIPPET('pre_anamon')
-# useful to debug pre/post
-# chvt 3
-# exec < /dev/tty3 > /dev/tty3 2>/dev/tty3
-
-# get  the number of hard disks and their names
-
-$SNIPPET('partition_disks')
+$SNIPPET('kickstart_pre_anamon')
 
 # Packages
 %packages --nobase
@@ -98,29 +86,19 @@ liblogging
 rsyslog
 
 %post --log=/var/log/post_install.log
-$SNIPPET('post_install_network_config')
-
-cat << EOF > /etc/yum.conf
-$SNIPPET('yum.conf')
-EOF
-
-$SNIPPET('ssh')
-$SNIPPET('ntp')
+$SNIPPET('kickstart_post_install_network_config')
 
 chkconfig iptables off
 chkconfig ip6tables off
 
-cat << EOF > /etc/security/limits.conf
-$SNIPPET('limits.conf')
-EOF
+$SNIPPET('kickstart_yum.conf')
+$SNIPPET('kickstart_ssh')
+$SNIPPET('kickstart_ntp')
+$SNIPPET('kickstart_limits.conf')
+$SNIPPET('kickstart_sysctl.conf')
+$SNIPPET('kickstart_rsyslog.conf')
+#set $kickstart_tool = "kickstart_%s" % $tool
+$SNIPPET($kickstart_tool)
 
-cat << EOF > /etc/sysctl.conf
-$SNIPPET('sysctl.conf')
-EOF
-
-sysctl -p
-
-$SNIPPET($tool)
-
-$SNIPPET('post_anamon')
+$SNIPPET('kickstart_post_anamon')
 $SNIPPET('kickstart_done')

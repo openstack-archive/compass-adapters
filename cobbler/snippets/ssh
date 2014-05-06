@@ -1,9 +1,0 @@
-mkdir -p /root/.ssh
-chmod 700 -R /root/.ssh
-touch /root/.ssh/authorized_keys
-chmod 600 /root/.ssh/authorized_keys
-#if $getVar("push_ssh_keys", "") != ""
-cat << EOL >> /root/.ssh/authorized_keys
-$SNIPPET('id_rsa.pub')
-EOL
-#end if

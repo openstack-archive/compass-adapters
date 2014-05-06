@@ -1,0 +1,22 @@
+## A self-destruct service to boot chef client and register cron job
+cat << EOF > /etc/init.d/chef
+#raw
+#!/bin/bash
+# chkconfig: 2345 99 20
+# description: Description of the script
+# processname: chef-agent
+rm -rf /var/lib/rsyslog/firstboot_log
+service rsyslog restart
+/etc/chef/firstrun.sh
+
+crontab -l  > /tmp/mycron
+echo "*/30 * * * *  /etc/chef/rerun.sh" >> /tmp/mycron
+crontab /tmp/mycron
+rm /tmp/mycron
+chkconfig chef off
+mv /etc/init.d/chef /tmp/chef
+#end raw
+EOF
+
+chmod +x /etc/init.d/chef
+chkconfig chef on
