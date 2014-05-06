@@ -295,7 +295,7 @@
             }
         }
     },
-  "support_oses": [  "CentOS*" ],
+  "support_oses": [  "CentOS*", "Ubuntu*" ],
   "services" : { "compute" : { "name" : "nova",
           "status" : "enable"
         },

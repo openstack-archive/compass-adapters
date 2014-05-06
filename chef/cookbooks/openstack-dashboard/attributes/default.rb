@@ -83,7 +83,7 @@ when "ubuntu"
   default["openstack"]["dashboard"]["local_settings_path"] = "/etc/openstack-dashboard/local_settings.py"
   default["openstack"]["dashboard"]["static_path"] = "/usr/share/openstack-dashboard/openstack_dashboard/static"
   default["openstack"]["dashboard"]["platform"] = {
-    "horizon_packages" => ["lessc", "openstack-dashboard"],
+    "horizon_packages" => ["node-less", "openstack-dashboard"],
     "mysql_python_packages" => ["python-mysqldb"],
     "postgresql_python_packages" => ["python-psycopg2"],
     "memcache_python_packages" => ["python-memcache"],

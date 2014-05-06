@@ -37,7 +37,7 @@ describe "openstack-dashboard::server" do
     end
 
     it "installs packages" do
-      expect(@chef_run).to upgrade_package "lessc"
+      expect(@chef_run).to upgrade_package "node-less"
       expect(@chef_run).to upgrade_package "openstack-dashboard"
       expect(@chef_run).to upgrade_package "python-mysqldb"
     end

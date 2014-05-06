@@ -93,7 +93,7 @@ def select_loop_device resource
   output = %x{losetup -a|grep "/mnt/cinder-volumes"}.split(':')
   if output.empty?
     used_loop_device = %x{losetup -a |cut -f 1 -d ':'}.split
-    total_loop_device = %x{ls /dev/loop*}.split
+    total_loop_device = %x{ls /dev/loop* | egrep 'loop[0-9]+'}.split
     available_loop = total_loop_device - used_loop_device
     if available_loop.nil?
       resource.partition = nil

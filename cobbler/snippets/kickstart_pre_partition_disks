@@ -16,7 +16,7 @@ do
 #if $getVar('partitions_only','') != ""
 let found_disk=0
     #for $partition_only in $partitions_only.split(',')
-if [[ "\$1" =~ "$partition_only" ]]; then
+if expr match "\$1" "$partition_only"; then
     disks[found_disk_offset]=\$1
     let found_disk=1
 fi

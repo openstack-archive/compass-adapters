@@ -1,3 +1,8 @@
+#if $getVar('ntp_server', '') != ""
+
+chkconfig ntpd on
+
+cat << EOF > /etc/ntp.conf
 # For more information about this file, see the man pages
 # ntp.conf(5), ntp_acc(5), ntp_auth(5), ntp_clock(5), ntp_misc(5), ntp_mon(5).
 
@@ -63,4 +68,13 @@ keys /etc/ntp/keys
 
 # Enable writing of statistics records.
 # statistics clockstats cryptostats loopstats peerstats
+EOF
 
+chkconfig ntpd on
+echo "old date is: `date`" 2>&1 > /tmp/ntp.log
+echo "path: \$PATH" 2>&1 >> /tmp/ntp.log
+/sbin/service ntpd stop 2>&1 >> /tmp/ntp.log
+/usr/sbin/ntpdate $ntp_server 2>&1 >> /tmp/ntp.log
+/sbin/service ntpd start 2>&1 >> /tmp/ntp.log
+echo "new date is: `date`" 2>&1 >> /tmp/ntp.log
+#end if

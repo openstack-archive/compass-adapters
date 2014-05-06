@@ -1,9 +1,0 @@
-127.0.0.1   $system_name localhost localhost.localdomain localhost4 localhost4.localdomain4
-::1         $system_name localhost localhost.localdomain localhost6 localhost6.localdomain6
-# #for $iname, $idata in $interfaces.items()
-#     #set $ip = $idata.get("ip_address", "")
-#     #if $hostname != "" and $ip != ""
-#         $ip $hostname
-#     #end if 
-# #end for 
-# # $compass_ip $compass_hostname

@@ -37,16 +37,19 @@ get_ifname() {
         #set $idata         = $interfaces[$iname]
         #set $mac           = $idata["mac_address"]
         #set $static        = $idata["static"]
-        # #set $management    = $idata["management"]
+        #set $management    = $idata["management"]
         #set $ip            = $idata["ip_address"]
         #set $netmask       = $idata["netmask"]
         #set $iface_type    = $idata["interface_type"]
         #set $iface_master  = $idata["interface_master"]
         #set $static_routes = $idata["static_routes"]
-        #set $devfile       = "/etc/sysconfig/network-scripts/ifcfg-" + $iname
         #if not $management or $mac == ""
             #continue
         #end if
+# Configuring $iname ($mac)
+if mac_exists $mac
+then
+  get_ifname $mac
         #if $static and $ip != ""
             #if $netmask == ""
                 ## Netmask not provided, default to /24.
@@ -70,10 +73,6 @@ get_ifname() {
         #if $hostname != ""
             #set $netinfo = "%s --hostname=%s" % ($netinfo, $hostname)
         #end if
-# Configuring $iname ($mac)
-if mac_exists $mac
-then
-  get_ifname $mac
   echo "network --device=\$IFNAME $netinfo" >> /tmp/pre_install_network_config
         #for $route in $static_routes
             #if $routepattern.match($route)
