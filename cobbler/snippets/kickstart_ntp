@@ -1,5 +1,6 @@
 #if $getVar('ntp_server', '') != ""
-
+    #set $ntp_server = '0.centos.pool.ntp.org'
+#end if
 chkconfig ntpd on
 
 cat << EOF > /etc/ntp.conf
@@ -69,12 +70,3 @@ keys /etc/ntp/keys
 # Enable writing of statistics records.
 # statistics clockstats cryptostats loopstats peerstats
 EOF
-
-chkconfig ntpd on
-echo "old date is: `date`" 2>&1 > /tmp/ntp.log
-echo "path: \$PATH" 2>&1 >> /tmp/ntp.log
-/sbin/service ntpd stop 2>&1 >> /tmp/ntp.log
-/usr/sbin/ntpdate $ntp_server 2>&1 >> /tmp/ntp.log
-/sbin/service ntpd start 2>&1 >> /tmp/ntp.log
-echo "new date is: `date`" 2>&1 >> /tmp/ntp.log
-#end if

@@ -86,6 +86,8 @@ liblogging
 rsyslog
 
 %post --log=/var/log/post_install.log
+$SNIPPET('log_ks_post')
+$SNIPPET('kickstart_post_install_kernel_options')
 $SNIPPET('kickstart_post_install_network_config')
 
 chkconfig iptables off

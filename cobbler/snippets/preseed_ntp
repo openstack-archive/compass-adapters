@@ -1,4 +1,6 @@
 #if $getVar('ntp_server', '') != ""
+    #set $ntp_server = '0.centos.pool.ntp.org'
+#end if
 echo "driftfile /var/lib/ntp/ntp.drift" > /target/etc/ntp.conf; \
 echo "#statsdir /var/log/ntpstats/" >> /target/etc/ntp.conf; \
 echo "statistics loopstats peerstats clockstats" >> /target/etc/ntp.conf; \
@@ -12,7 +14,3 @@ echo "restrict 127.0.0.1" >> /target/etc/ntp.conf; \
 echo "restrict ::1" >> /target/etc/ntp.conf; \
 echo "server  127.127.1.0     # local clock" >> /target/etc/ntp.conf; \
 chroot /target update-rc.d ntp defaults 58 74; \
-chroot /target service ntp stop 2>&1 >> /tmp/ntp.log; \
-chroot /target ntpdate $ntp_server 2>&1 >> /tmp/ntp.log; \
-chroot /target service ntp start 2>&1 >> /tmp/ntp.log; \
-#end if
