@@ -1,8 +1,13 @@
-echo "deb http://archive.ubuntu.com/ubuntu/ raring main restricted universe multiverse" > /target/etc/apt/sources.list; \
-echo "deb http://archive.ubuntu.com/ubuntu/ raring-security main restricted universe multiverse" >> /target/etc/apt/sources.list; \
-echo "deb http://archive.ubuntu.com/ubuntu/ raring-updates main restricted universe multiverse" >> /target/etc/apt/sources.list; \
-echo "deb http://archive.ubuntu.com/ubuntu/ raring-proposed main restricted universe multiverse" >> /target/etc/apt/sources.list; \
-echo "deb http://archive.ubuntu.com/ubuntu/ raring-backports main restricted universe multiverse" >> /target/etc/apt/sources.list; \
+#if $getVar('proxy', '') != ''
+echo "Acquire::http::Proxy \"$proxy\";" > /target/etc/apt/apt.conf; \
+#end if
+#if $getVar('os_version', '') != ''
+echo "deb http://archive.ubuntu.com/ubuntu/ $os_version main restricted universe multiverse" > /target/etc/apt/sources.list; \
+echo "deb http://archive.ubuntu.com/ubuntu/ ${os_version}-security main restricted universe multiverse" >> /target/etc/apt/sources.list; \
+echo "deb http://archive.ubuntu.com/ubuntu/ ${os_version}-updates main restricted universe multiverse" >> /target/etc/apt/sources.list; \
+echo "deb http://archive.ubuntu.com/ubuntu/ ${os_version}-proposed main restricted universe multiverse" >> /target/etc/apt/sources.list; \
+echo "deb http://archive.ubuntu.com/ubuntu/ ${os_version}-backports main restricted universe multiverse" >> /target/etc/apt/sources.list; \
+#end if
 #set $repo_data = $getVar("repo_data",[])
 #for $repo in $repo_data
     #for $dist in $repo.apt_dists

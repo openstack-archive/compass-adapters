@@ -52,9 +52,7 @@ d-i clock-setup/ntp-server  string ntp.ubuntu.com
 d-i mirror/country string manual
 d-i mirror/http/hostname string $http_server
 d-i mirror/http/directory string $install_source_directory
-#if $getVar('proxy', '') != ""
-d-i mirror/http/proxy string $proxy
-#end if
+d-i mirror/http/proxy string
 
 #set $os_v = $getVar('os_version','')
 #if $os_v and $os_v.lower()[0] > 'p'
@@ -104,8 +102,10 @@ $SNIPPET('preseed_post_install_network_config') echo "processed preseed_post_ins
 $SNIPPET('preseed_ssh') echo "processed preseed_ssh" >> /tmp/preseed.log; \
 $SNIPPET('preseed_ntp') echo "processed preseed_ntp" >> /tmp/preseed.log; \
 $SNIPPET('preseed_post_apt_repo_config') echo "processed preseed_post_apt_repo_config" >> /tmp/preseed.log; \
-#set $preseed_tool = "preseed_%s" % $tool
+#if $getVar('tool', '') != ''
+    #set $preseed_tool = "preseed_%s" % $tool
 $SNIPPET($preseed_tool) echo "processed $preseed_tool" >> /tmp/preseed.log; \
+#end if
 $SNIPPET('preseed_limits.conf') echo "processed preseed_limits.conf" >> /tmp/preseed.log; \
 $SNIPPET('preseed_sysctl.conf') echo "processed preseed_sysctl.conf" >> /tmp/preseed.log; \
 $SNIPPET('preseed_rsyslog.conf') echo "processed preseed_rsyslog.conf" >> /tmp/preseed.log; \
