@@ -99,8 +99,9 @@ $SNIPPET('kickstart_ntp')
 $SNIPPET('kickstart_limits.conf')
 $SNIPPET('kickstart_sysctl.conf')
 $SNIPPET('kickstart_rsyslog.conf')
-#set $kickstart_tool = "kickstart_%s" % $tool
+#if $getVar('tool', '') != ''
+    #set $kickstart_tool = "kickstart_%s" % $tool
 $SNIPPET($kickstart_tool)
-
+#end if
 $SNIPPET('kickstart_post_anamon')
 $SNIPPET('kickstart_done')
