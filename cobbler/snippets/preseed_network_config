@@ -2,8 +2,10 @@
 d-i netcfg/link_detection_timeout string 0
 d-i netcfg/dhcp_timeout string 0
 d-i netcfg/dhcpv6_timeout string 0
-d-i netcfg/enable boolean true
+d-i netcfg/enable boolean false
 d-i netcfg/disable_autoconfig boolean true
+d-i netcfg/use_autoconfig boolean false
+d-i netcfg/disable_dhcp boolean true
 d-i netcfg/dhcp_failed note
 d-i netcfg/dhcp_options select Configure network manually
 d-i hw-detect/load_firmware boolean true

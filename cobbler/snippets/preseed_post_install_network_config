@@ -199,6 +199,7 @@ echo "" >> /target/etc/network/interfaces; \
         ## Done with this interface
         ## ===================================================================
     #end for
+cp /target/etc/network/interfaces /etc/network/interfaces; \
     ## =============================================================================
     ## Configure the system's primary hostname. This is also passed to anaconda, but
     ## anaconda doesn't seem to honour it in DHCP-setups.

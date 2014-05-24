@@ -17,4 +17,9 @@
 # limitations under the License.
 #
 
-apache_module "authz_default"
+unless %w{debian}.include?(node['platform_family']) && node['platform_version'].to_f >= 14 then
+  print "load authz_default module"
+  apache_module "authz_default"
+else
+  print "do not load authz_default module"
+end
