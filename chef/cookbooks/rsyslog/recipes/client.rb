@@ -26,7 +26,12 @@ if roles.gsub("\n",",").strip =~ /os-compute/
     owner "root"
     group "root"
     mode 0644
-    variables :loglist => node['rsyslog']['novalog']
+    case node["platform_family"]
+    when "debian"
+        variables :loglist => node['rsyslog']['debiannovalog']
+    when "rhel"
+        variables :loglist => node['rsyslog']['novalog']
+    end
     notifies :restart, "service[rsyslog]"
   end
 end
@@ -59,7 +64,12 @@ if roles.gsub("\n",",").strip =~ /os-block-storage/
     owner "root"
     group "root"
     mode 0644
-    variables :loglist => node['rsyslog']['cinderlog']
+    case node["platform_family"]
+    when "debian"
+        variables :loglist => node['rsyslog']['debiancinderlog']
+    when "rhel"
+        variables :loglist => node['rsyslog']['cinderlog']
+    end
     notifies :restart, "service[rsyslog]"
   end
 end
@@ -70,6 +80,7 @@ if roles.gsub("\n",",").strip =~ /os-network/
     owner "root"
     group "root"
     mode 0644
+    case node["platform_family"]
     variables :loglist => node['rsyslog']['quantumlog']
     notifies :restart, "service[rsyslog]"
   end
@@ -92,7 +103,12 @@ if roles.gsub("\n",",").strip =~ /os-ops-database/
     owner "root"
     group "root"
     mode 0644
-    variables :loglist => node['rsyslog']['mysqllog']
+    case node["platform_family"]
+    when "debian"
+        variables :loglist => node['rsyslog']['debianmysqllog']
+    when "rhel"
+        variables :loglist => node['rsyslog']['mysqllog']
+    end
     notifies :restart, "service[rsyslog]"
   end
 end
