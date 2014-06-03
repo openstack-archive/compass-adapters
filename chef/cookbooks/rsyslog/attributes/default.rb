@@ -26,11 +26,18 @@ default["rsyslog"]["novalog"] = {:"nova-api"=>"/var/log/nova/api.log",
                                  :"nova-conductor"=>"/var/log/nova/conductor.log",
                                  :"nova-compute"=>"/var/log/nova/compute.log",
                                  :"nova-scheduler"=>"/var/log/nova/scheduler.log"}
+default["rsyslog"]["debiannovalog"] = {:"nova-api"=>"/var/log/nova/nova-api.log",
+                                       :"nova-conductor"=>"/var/log/nova/nova-conductor.log",
+                                       :"nova-compute"=>"/var/log/nova/nova-compute.log",
+                                       :"nova-scheduler"=>"/var/log/nova/nova-scheduler.log"}
 default["rsyslog"]["glancelog"] = {:"glance-api"=>"/var/log/glance/api.log",
                                    :"glance-reg"=>"/var/log/glance/registry.log"}
 default["rsyslog"]["cinderlog"] = {:"cinder-api"=>"/var/log/cinder/api.log",
-                                   :"cinder-scheduler"=>"/var/log/cinder/scheduler.log",
-                                   :"cinder-volume"=>"/var/log/cinder/volume.log"}
+                                         :"cinder-scheduler"=>"/var/log/cinder/scheduler.log",
+                                         :"cinder-volume"=>"/var/log/cinder/volume.log"}
+default["rsyslog"]["debiancinderlog"] = {:"cinder-api"=>"/var/log/cinder/cinder-api.log",
+                                         :"cinder-scheduler"=>"/var/log/cinder/cinder-scheduler.log",
+                                         :"cinder-volume"=>"/var/log/cinder/cinder-volume.log"}
 default["rsyslog"]["quantumlog"] = {:"quantum-server"=>"/var/log/quantum/server.log",
                                  :"quantum-dhcp"=>"/var/log/quantum/dhcp-agent.log",
                                  :"quantum-l3agent"=>"/var/log/quantum/l3-agent.log",
@@ -38,3 +45,4 @@ default["rsyslog"]["quantumlog"] = {:"quantum-server"=>"/var/log/quantum/server.
 default["rsyslog"]["keystonelog"] = {:"keystone"=>"/var/log/keystone/keystone.log"}
 default["rsyslog"]["messaginglog"] = {:"rabbitmq"=>"/var/log/rabbitmq/rabbit\@#{node['hostname']}.log"}
 default["rsyslog"]["mysqllog"] = {:"mysqld"=>"/var/log/mysqld.log"}
+default["rsyslog"]["debianmysqllog"] = {:"mysqld"=>"/var/log/mysql.log"}
