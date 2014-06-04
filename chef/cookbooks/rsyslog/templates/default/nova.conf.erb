@@ -1,0 +1,12 @@
+$Modload imfile
+<% @loglist.each do |service, path| -%>
+  # <%= service %>
+  $InputFileName <%= path %>
+  $InputFileReadMode 0
+  $InputFileTag <%= service %>
+  $InputFileSeverity notice
+  $InputFileFacility local4
+  $InputFileStateFile <%= service %>
+  $InputRunFileMonitor
+  $InputFilePollInterval 2
+<% end -%>

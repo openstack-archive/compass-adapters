@@ -120,6 +120,17 @@ template "#{node['haproxy']['conf_dir']}/haproxy.cfg" do
   )
 end
 
+case node["platform_family"]
+when "debian"
+  cookbook_file "/etc/default/haproxy" do
+    source "haproxy-default"
+    owner "root"
+    group "root"
+    mode 00644
+    notifies :restart, "service[haproxy]"
+  end
+end
+
 service "haproxy" do
   supports :restart => true, :status => true, :reload => true
   action [:enable, :start]

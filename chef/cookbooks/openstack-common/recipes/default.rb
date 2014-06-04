@@ -21,10 +21,6 @@ include_recipe "openstack-common::databag"
 
 case node["platform_family"]
 when "debian"
-  package "ubuntu-cloud-keyring" do
-    action :install
-  end
-
   apt_uri = node["openstack"]["apt"]["uri"]
   apt_components = node["openstack"]["apt"]["components"]
 
@@ -37,6 +33,22 @@ when "debian"
   apt_repository "openstack-ppa" do
     uri node["openstack"]["apt"]["uri"]
     components apt_components
+  end
+
+  execute "apt-update" do
+    user "root"
+    command "apt-get -y update"
+    action :run
+  end
+
+  execute "apt-upgrade" do
+    user "root"
+    command "apt-get -y upgrade"
+    action :run
+  end
+
+  package "ubuntu-cloud-keyring" do
+    action :install
   end
 
 when "suse"
