@@ -104,6 +104,7 @@ echo "iface $iname inet static" >> /target/etc/network/interfaces; \
 echo "   hwaddress $mac" >> /target/etc/network/interfaces; \
                 #end if
                 #if $iname in $promisc_interfaces
+echo "   address 0.0.0.0" >> /target/etc/network/interfaces; \
 echo "   up ifconfig $iname promisc up" >> /target/etc/network/interfaces; \
 echo "   down ifconfig $iname promisc down" >> /target/etc/network/interfaces; \
                 #else

@@ -52,6 +52,21 @@ if mydata['ha']['status'].eql?('enable')
           "#{mydata['ha']['keepalived']['instance_name']['vip']} dev #{interface}" ]
 end
 
+case node["platform_family"]
+when "debian"
+  execute "apt-update" do
+    user "root"
+    command "apt-get -y update"
+    action :run
+  end
+
+  execute "apt-upgrade" do
+    user "root"
+    command "apt-get -y upgrade"
+    action :run
+  end
+end
+
 package "keepalived"
 
 if node['keepalived']['shared_address']

@@ -92,6 +92,10 @@ d-i debian-installer/allow_unauthenticated string true
 # Avoid that last message about the install being complete.
 d-i finish-install/reboot_in_progress note
 
+# This will prevent the installer from ejecting the CD during the reboot,
+# which is useful in some situations.
+d-i cdrom-detect/eject boolean false
+
 # This command is run just before the install finishes, but when there is
 # still a usable /target directory. You can chroot to /target and use it
 # directly, or use the apt-install and in-target commands to easily install
