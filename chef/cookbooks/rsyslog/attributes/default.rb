@@ -46,3 +46,6 @@ default["rsyslog"]["keystonelog"] = {:"keystone"=>"/var/log/keystone/keystone.lo
 default["rsyslog"]["messaginglog"] = {:"rabbitmq"=>"/var/log/rabbitmq/rabbit\@#{node['hostname']}.log"}
 default["rsyslog"]["mysqllog"] = {:"mysqld"=>"/var/log/mysqld.log"}
 default["rsyslog"]["debianmysqllog"] = {:"mysqld"=>"/var/log/mysql.log"}
+default["rsyslog"]["sysstatlog"] = {:"syslog"=>"/var/log/syslog",
+                                    :"message"=>"/var/log/message",
+                                    :"dstat"=>"/var/log/dstat.log"}
