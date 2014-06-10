@@ -19,6 +19,16 @@
 
 include_recipe "rsyslog"
 roles="#{node[:roles]}"
+
+package "dstat" do
+  action :install
+end
+
+execute "dstat" do
+  command "dstat -tcmndp --top-cpu --freespace >>/var/log/dstat.log &"
+  action :run
+end
+
 if roles.gsub("\n",",").strip =~ /os-compute/
   template "/etc/rsyslog.d/nova.conf" do
     source "openstack.conf.erb"
@@ -112,8 +122,18 @@ if roles.gsub("\n",",").strip =~ /os-ops-database/
   end
 end
 
-  file "/etc/rsyslog.d/server.conf" do
-    action :delete
-    notifies :reload, "service[rsyslog]"
-    only_if do ::File.exists?("/etc/rsyslog.d/server.conf") end
-  end
+template "/etc/rsyslog.d/sysstat.conf" do
+  source "openstack.conf.erb"
+  backup false
+  owner "root"
+  group "root"
+  mode 0644
+  variables :loglist => node['rsyslog']['sysstatlog']
+  notifies :restart, "service[rsyslog]"
+end
+
+file "/etc/rsyslog.d/server.conf" do
+  action :delete
+  notifies :reload, "service[rsyslog]"
+  only_if do ::File.exists?("/etc/rsyslog.d/server.conf") end
+end
