@@ -1,5 +1,5 @@
 ## A self-destruct service to boot chef client and register cron job
-#if $getVar('ntp_server', '') != ""
+#if $getVar('ntp_server', '') == ""
     #set $ntp_server = '0.centos.pool.ntp.org'
 #end if
 cat << EOF > /etc/init.d/chef
