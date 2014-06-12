@@ -1,0 +1,58 @@
+{
+  "sources": {
+    "nagios": {
+      "path": "."
+    },
+    "apt": {
+      "locked_version": "2.3.0"
+    },
+    "apache2": {
+      "locked_version": "1.7.0"
+    },
+    "build-essential": {
+      "locked_version": "1.4.2"
+    },
+    "php": {
+      "locked_version": "1.2.4"
+    },
+    "xml": {
+      "locked_version": "1.1.2"
+    },
+    "mysql": {
+      "locked_version": "3.0.4"
+    },
+    "openssl": {
+      "locked_version": "1.1.0"
+    },
+    "nginx": {
+      "locked_version": "1.8.0"
+    },
+    "yum": {
+      "locked_version": "3.0.4"
+    },
+    "runit": {
+      "locked_version": "1.2.0"
+    },
+    "ohai": {
+      "locked_version": "1.1.12"
+    },
+    "nginx_simplecgi": {
+      "locked_version": "0.1.0"
+    },
+    "perl": {
+      "locked_version": "1.2.0"
+    },
+    "bluepill": {
+      "locked_version": "2.3.1"
+    },
+    "rsyslog": {
+      "locked_version": "1.8.0"
+    },
+    "yum-epel": {
+      "locked_version": "0.2.0"
+    },
+    "nrpe": {
+      "locked_version": "1.0.0"
+    }
+  }
+}

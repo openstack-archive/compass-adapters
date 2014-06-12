@@ -1,0 +1,12 @@
+<?php
+#
+# 'readonly': No authentication is required.  All users may view all resources.  No edits are allowed.
+#  'enabled': Guest users may view public clusters.  Login is required to make changes.
+#             An administrator must configure an authentication scheme and ACL rules.
+# 'disabled': Guest users may perform any actions, including edits.  No authentication is required.
+$conf['auth_system'] = '<%= node['ganglia']['web']['auth_system'] %>';
+<% if node['ganglia']['enable_rrdcached'] %>
+$conf['rrdcached_socket'] = "<%= node['ganglia']['rrdcached']['limited_socket'] %>";
+<% end %>
+$conf['ganglia_port'] = <%= @xml_port %>;
+?>
