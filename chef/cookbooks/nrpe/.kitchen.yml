@@ -1,0 +1,34 @@
+---
+driver:
+  name: vagrant
+
+provisioner:
+  name: chef_zero
+
+platforms:
+  - name: ubuntu-13.04
+    run_list:
+    - recipe[apt::default]
+  - name: ubuntu-12.04
+    run_list:
+    - recipe[apt::default]
+  - name: ubuntu-10.04
+    run_list:
+    - recipe[apt::default]
+  - name: debian-7.2.0
+    run_list:
+    - recipe[apt::default]
+  - name: debian-6.0.8
+    run_list:
+    - recipe[apt::default]
+  - name: freebsd-9.2
+    run_list:
+    - recipe[freebsd::portsnap]
+  - name: centos-6.5
+  - name: centos-5.10
+
+suites:
+ - name: package
+   run_list:
+   - recipe[nrpe::default]
+
