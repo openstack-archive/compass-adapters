@@ -1,0 +1,12 @@
+{
+  "id": "nagios",
+  "password": "...",
+  "groups": [
+    "sysadmin"
+  ],
+  "shell": "/bin/bash",
+  "htpasswd": "ITW.GOJoSogEw",
+  "nagios": {
+    "email": "do_not_reply@huawei.com"
+  }
+}

@@ -1,0 +1,43 @@
+/* This configuration is as close to 2.5.x default behavior as possible
+   The values closely match ./gmond/metric.h definitions in 2.5.x */
+globals {
+  daemonize = yes
+  setuid = yes
+  user = ganglia
+  debug_level = 0
+  max_udp_msg_len = 1472
+  mute = yes
+  deaf = no
+  host_dmax = 600 /*secs */
+  cleanup_threshold = 300 /*secs */
+  gexec = no
+  send_metadata_interval = 30
+}
+
+/* If a cluster attribute is specified, then all gmond hosts are wrapped inside
+ * of a <CLUSTER> tag.  If you do not specify a cluster tag, then all <HOSTS> will
+ * NOT be wrapped inside of a <CLUSTER> tag. */
+cluster {
+  name = "<%= @cluster_name %>"
+  owner = "unspecified"
+  latlong = "unspecified"
+  url = "unspecified"
+}
+
+/* The host section describes attributes of the host, like the location */
+host {
+  location = "unspecified"
+}
+
+/* You can specify as many udp_recv_channels as you like as well. */
+udp_recv_channel {
+  port = <%= @port %>
+}
+
+/* You can specify as many tcp_accept_channels as you like to share
+   an xml description of the state of the cluster */
+tcp_accept_channel {
+  port = <%= @port %>
+}
+
+/* don't report metrics from the collector daemons */
