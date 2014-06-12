@@ -1,0 +1,41 @@
+{
+  "name": "nrpe",
+  "description": "Installs and configures Nagios NRPE client",
+  "long_description": "nrpe cookbook\n=============\n[![Build Status](https://travis-ci.org/tas50/chef-nrpe.svg?branch=master)](https://travis-ci.org/tas50/chef-nrpe)\n\nChef cookbook to install Nagios NRPE client (was previously part of the Nagios cookbook)\n\nRequirements\n------------\n### Chef\nChef version 0.10.10+ and Ohai 0.6.12+ are required.\n\n### Platform\n* Debian 6.X, 7.X\n* FreeBSD 9.X\n* Ubuntu 10.04, 12.04, 13.04\n* Red Hat Enterprise Linux (CentOS/Amazon/Scientific/Oracle) 5.X, 6.X\n\n**Notes**: This cookbook has been tested on the listed platforms. It may work on other platforms with or without modification.\n\n### Cookbooks\n* build-essential\n* yum-epel (note: this requires yum cookbook v3.0, which breaks compatibility with many other cookbooks)\n\nRecipes\n-------\n### default\nInstalls the NRPE client via packages or source depending on platform and attributes set\n\nAttributes\n----------\n\n### platform specific attributes (auto set based on platform)\n* `node['nrpe']['install_method']` - whether to install from package or source. Default chosen by platform based on known packages available for NRPE: debian/ubuntu 'package', Redhat/CentOS/Fedora/Scientific: source\n* `node['nrpe']['home']` - home directory of NRPE\n* `node['nrpe']['conf_dir']` - location of the nrpe configuration\n* `node['nrpe']['ssl_lib_dir']` - ssl directory used by NRPE\n* `node['nrpe']['pidfile']` - location to store the NRPE pid file\n* `node['nrpe']['conf_dir']` - location of the nrpe configuration, default /etc/nagios\n* `node['nrpe']['packages']` - nrpe / plugin packages to install. The default attribute for RHEL/Fedora platforms contains a bare minimum set of packages. The full list of available packages is available at: `http://dl.fedoraproject.org/pub/epel/6/x86_64/repoview/letter_n.group.html`\n* `node['nrpe']['log_facility']` - log facility for nrpe configuration, default nil (not set)\n* `node['nrpe']['plugin_dir']` - location where Monitoring plugins (aka Nagios plugins) go, default '/usr/lib/nagios/plugins'.\n\n### nrpe.conf attributes\n* `node['nrpe']['server_port']` - the port nrpe will listen on, default 5666\n* `node['nrpe']['server_address']` - the IP the nrpe server will listen on. This allows you to bind to particular IPs in situations where the system has more than one IP. This is particularly handy in determining if nrpe should bind to the internal or public IP in a cloud environment. Set the attribute to the node attribute for the cloud interface you wish to use. Defaults to nil (not enabled)\n* `node['nrpe']['log_facility']` - syslog facility to log to, default nil (not set)\n* `node['nrpe']['command_prefix']` - command to prefix to every nrpe command (like perhaps sudo), default nil (not set)\n* `node['nrpe']['debug']` - debug level nrpe configuration, default 0\n* `node['nrpe']['connection_timeout']` - connection timeout for nrpe configuration, default nil (not set)\n* `node['nrpe']['dont_blame_nrpe']` - allows the server to send additional values to NRPE via arguments.  this needs to be enabled for most checks to function\n* `node['nrpe']['command_timeout']` - the amount of time NRPE will wait for a command to execute before timing out\n\n### urls for source installations\n* `node['nrpe']['url']` - url to retrieve NRPE source\n* `node['nrpe']['version']` - version of NRPE source to download\n* `node['nrpe']['checksum']` - checksum of the NRPE source tarball\n* `node['nrpe']['plugins']['url']` - url to retrieve the plugins source from\n* `node['nrpe']['plugins']['version']` - version of the plugins source to download\n* `node['nrpe']['plugins']['checksum']` - checksum of the plugins source tarball\n\n### authorization and server discovery\n* `node['nrpe']['server_role']` - the role that the Nagios server will have in its run list that the clients can search for.\n* `node['nrpe']['allowed_hosts']` - additional hosts that are allowed to connect to this client. Must be an array of strings (i.e. `%w(test.host other.host)`). These hosts are added in addition to 127.0.0.1 and IPs that are found via search.\n* `node['nrpe']['using_solo_search']` - discover server information in node data_bags even with chef solo through the use of solo-search (https://github.com/edelight/chef-solo-search)\n* `node['nrpe']['multi_environment_monitoring']` - search for nagios servers in all environments not just that of the node when building the array of allowed hosts, default 'false'\n\n### user and group attributes\n* `node['nrpe']['user']` - NRPE user, default 'nagios'.\n* `node['nrpe']['group']` - NRPE group, default 'nagios'.\n\nResources/Providers\n-------------------\n### check\nThe check LWRP provides an easy way to add and remove NRPE checks from within cookbooks.\n\n#### Actions\n- `:add` creates a NRPE configuration file and reloads the NRPE process. Default action.\n- `:remove` removes the configuration file and reloads the NRPE process\n\n#### Attribute Parameters\n- `command_name`  The name of the check. This is the command that you will call from your nagios\\_service data bag check\n- `warning_condition` String that you will pass to the command with the -w flag\n- `critical_condition` String that you will pass to the command with the -c flag\n- `command` The actual command to execute (including the path). If this is not specified, this will use `#{node['nrpe']['plugin_dir']}/command_name` as the path to the command.\n- `parameters` Any additional parameters you wish to pass to the plugin.\n\n#### Examples\n```ruby\n# Use LWRP to define check_load\nnrpe_check \"check_load\" do\n  command \"#{node['nrpe']['plugin_dir']}/check_load\"\n  warning_condition '10'\n  critical_condition '15'\n  action :add\nend\n```\n\n```ruby\n# Remove the check_load definition\nnrpe_check \"check_load\" do\n  action :remove\nend\n```\n\n\nLicense & Authors\n-----------------\n- Author:: Joshua Sierles <joshua@37signals.com>\n- Author:: Nathan Haneysmith <nathan@getchef.com>\n- Author:: Joshua Timberman <joshua@getchef.com>\n- Author:: Seth Chisamore <schisamo@getchef.com>\n- Author:: Tim Smith <tsmith84@gmail.com>\n\n```text\nCopyright 2009, 37signals\nCopyright 2009-2013, Chef Software, Inc.\nCopyright 2012, Webtrends Inc.\nCopyright 2013-2014, Limelight Networks, Inc.\n\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n```\n",
+  "maintainer": "Tim Smith",
+  "maintainer_email": "tsmith84@gmail.com",
+  "license": "Apache 2.0",
+  "platforms": {
+    "debian": ">= 0.0.0",
+    "ubuntu": ">= 0.0.0",
+    "redhat": ">= 0.0.0",
+    "centos": ">= 0.0.0",
+    "fedora": ">= 0.0.0",
+    "scientific": ">= 0.0.0",
+    "amazon": ">= 0.0.0",
+    "oracle": ">= 0.0.0",
+    "freebsd": ">= 0.0.0"
+  },
+  "dependencies": {
+    "build-essential": ">= 0.0.0",
+    "yum-epel": ">= 0.0.0"
+  },
+  "recommendations": {
+  },
+  "suggestions": {
+  },
+  "conflicting": {
+  },
+  "providing": {
+  },
+  "replacing": {
+  },
+  "attributes": {
+  },
+  "groupings": {
+  },
+  "recipes": {
+    "default": "Installs and configures a nrpe client"
+  },
+  "version": "1.1.2"
+}
