@@ -1,4 +1,4 @@
-#if $getVar('ntp_server', '') != ""
+#if $getVar('ntp_server', '') == ""
     #set $ntp_server = '0.centos.pool.ntp.org'
 #end if
 chkconfig ntpd on
@@ -34,9 +34,7 @@ restrict -6 ::1
 # server 0.centos.pool.ntp.org
 # server 1.centos.pool.ntp.org
 # server 2.centos.pool.ntp.org
-#if $getVar('ntp_server', '') != ""
 server $ntp_server
-#end if
 
 # broadcast 192.168.1.255 autokey	# broadcast server
 # broadcastclient			# broadcast client
