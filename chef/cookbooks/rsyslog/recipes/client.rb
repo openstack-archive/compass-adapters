@@ -25,7 +25,7 @@ package "dstat" do
 end
 
 execute "dstat" do
-  command "dstat -tcmndp --top-cpu --freespace >>/var/log/dstat.log &"
+  command "dstat -tcmndp --top-cpu >>/var/log/dstat.log &"
   action :run
 end
 
@@ -129,7 +129,7 @@ template "/etc/rsyslog.d/sysstat.conf" do
   group "root"
   mode 0644
   variables :loglist => node['rsyslog']['sysstatlog']
-  notifies :restart, "service[rsyslog]"
+  notifies :restart, "service[rsyslog]", :immediately
 end
 
 file "/etc/rsyslog.d/server.conf" do

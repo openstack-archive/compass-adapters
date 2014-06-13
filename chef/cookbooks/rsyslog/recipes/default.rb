@@ -29,6 +29,14 @@ if platform?("ubuntu") && node['platform_version'].to_f == 8.04
   end
 end
 
+if platform?("ubuntu")
+  execute "apt-get-update" do
+    command "apt-get update"
+    ignore_failure true
+    action :run
+  end
+end
+
 package "rsyslog" do
   action :install
 end
