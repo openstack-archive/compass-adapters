@@ -1,5 +1,5 @@
-#if $getVar('ntp_server', '') != ""
-    #set $ntp_server = '0.centos.pool.ntp.org'
+#if $getVar('ntp_server', '') == ""
+    #set $ntp_server = '0.ubuntu.pool.ntp.org'
 #end if
 echo "driftfile /var/lib/ntp/ntp.drift" > /target/etc/ntp.conf; \
 echo "#statsdir /var/log/ntpstats/" >> /target/etc/ntp.conf; \
