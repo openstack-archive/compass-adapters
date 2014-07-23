@@ -6,6 +6,7 @@ global
   maxconn <%= node['haproxy']['global_max_connections'] %>
   #debug
   #quiet
+  spread-checks     5
   user <%= node['haproxy']['user'] %>
   group <%= node['haproxy']['group'] %>
 <% if node['haproxy']['enable_stats_socket'] -%>

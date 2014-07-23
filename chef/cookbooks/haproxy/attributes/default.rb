@@ -59,8 +59,11 @@ default['haproxy']['pid_file'] = "/var/run/haproxy.pid"
 default['haproxy']['defaults_options'] = ["tcpka", "httpchk", "tcplog", "httplog"]
 default['haproxy']['x_forwarded_for'] = false
 default['haproxy']['defaults_timeouts']['connect'] = "10s"
+default['haproxy']['defaults_timeouts']['check'] = "10s"
+default['haproxy']['defaults_timeouts']['queue'] = "100s"
 default['haproxy']['defaults_timeouts']['client'] = "100s"
 default['haproxy']['defaults_timeouts']['server'] = "100s"
+
 default['haproxy']['cookie'] = nil
 
 default['haproxy']['user'] = "haproxy"
