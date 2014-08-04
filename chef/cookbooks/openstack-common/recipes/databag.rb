@@ -66,7 +66,7 @@ end
 node.override['openstack']['apt']['components'] = [ "precise-updates/#{node['openstack']['release']}", "main" ]
 
 # redhat
-node.override['openstack']['yum']['openstack']['url']="http://repos.fedorapeople.org/repos/openstack/openstack-#{node['openstack']['release']}/epel-#{node['platform_version'].to_i}/"
+node.override['openstack']['yum']['openstack']['url']="http://repos.fedorapeople.org/repos/openstack/EOL/openstack-#{node['openstack']['release']}/epel-#{node['platform_version'].to_i}/"
 
 # Tenant and user
 node.override['openstack']['identity']['admin_token'] = mydata['credential']['identity']['token']['admin']

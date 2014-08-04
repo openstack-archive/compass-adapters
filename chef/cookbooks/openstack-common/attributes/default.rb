@@ -91,7 +91,7 @@ end
 default["openstack"]["yum"]["epel"]["key_url"] = "http://download.fedoraproject.org/pub/epel/#{node['openstack']['yum']['epel']['key']}"
 
 # openstack repo
-default["openstack"]["yum"]["openstack"]["url"]="http://repos.fedorapeople.org/repos/openstack/openstack-#{node['openstack']['release']}/epel-#{node['platform_version'].to_i}/"
+default["openstack"]["yum"]["openstack"]["url"]="http://repos.fedorapeople.org/repos/openstack/EOL/openstack-#{node['openstack']['release']}/epel-#{node['platform_version'].to_i}/"
 
 
 
