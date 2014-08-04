@@ -29,107 +29,23 @@ execute "dstat" do
   action :run
 end
 
-if roles.gsub("\n",",").strip =~ /os-compute/
-  template "/etc/rsyslog.d/nova.conf" do
-    source "openstack.conf.erb"
-    backup false
-    owner "root"
-    group "root"
-    mode 0644
-    case node["platform_family"]
-    when "debian"
-        variables :loglist => node['rsyslog']['debiannovalog']
-    when "rhel"
-        variables :loglist => node['rsyslog']['novalog']
-    end
-    notifies :restart, "service[rsyslog]"
-  end
-end
-if roles.gsub("\n",",").strip =~ /os-identity/
-  template "/etc/rsyslog.d/keystone.conf" do
-    source "openstack.conf.erb"
-    backup false
-    owner "root"
-    group "root"
-    mode 0644
-    variables :loglist => node['rsyslog']['keystonelog']
-    notifies :restart, "service[rsyslog]"
-  end
-end
-if roles.gsub("\n",",").strip =~ /os-image/
-  template "/etc/rsyslog.d/glance.conf" do
-    source "openstack.conf.erb"
-    backup false
-    owner "root"
-    group "root"
-    mode 0644
-    variables :loglist => node['rsyslog']['glancelog']
-    notifies :restart, "service[rsyslog]"
-  end
-end
-if roles.gsub("\n",",").strip =~ /os-block-storage/
-  template "/etc/rsyslog.d/cinder.conf" do
-    source "openstack.conf.erb"
-    backup false
-    owner "root"
-    group "root"
-    mode 0644
-    case node["platform_family"]
-    when "debian"
-        variables :loglist => node['rsyslog']['debiancinderlog']
-    when "rhel"
-        variables :loglist => node['rsyslog']['cinderlog']
-    end
-    notifies :restart, "service[rsyslog]"
-  end
-end
-if roles.gsub("\n",",").strip =~ /os-network/
-  template "/etc/rsyslog.d/quantum.conf" do
-    source "openstack.conf.erb"
-    backup false
-    owner "root"
-    group "root"
-    mode 0644
-    variables :loglist => node['rsyslog']['quantumlog']
-    notifies :restart, "service[rsyslog]"
-  end
-end
 if roles.gsub("\n",",").strip =~ /os-ops-messaging/
-  template "/etc/rsyslog.d/messaging.conf" do
-    source "openstack.conf.erb"
-    backup false
-    owner "root"
-    group "root"
-    mode 0644
-    variables :loglist => node['rsyslog']['messaginglog']
-    notifies :restart, "service[rsyslog]"
-  end
-end
-if roles.gsub("\n",",").strip =~ /os-ops-database/
-  template "/etc/rsyslog.d/database.conf" do
-    source "openstack.conf.erb"
-    backup false
-    owner "root"
-    group "root"
-    mode 0644
-    case node["platform_family"]
-    when "debian"
-        variables :loglist => node['rsyslog']['debianmysqllog']
-    when "rhel"
-        variables :loglist => node['rsyslog']['mysqllog']
-    end
-    notifies :restart, "service[rsyslog]"
-  end
+  node.force_override['rsyslog']['loglist']['rabbitmq']="/var/log/rabbitmq/rabbit\@#{node['hostname']}.log"
 end
 
-template "/etc/rsyslog.d/sysstat.conf" do
+template "/etc/rsyslog.d/openstack.conf" do
   source "openstack.conf.erb"
   backup false
   owner "root"
   group "root"
   mode 0644
-  variables :loglist => node['rsyslog']['sysstatlog']
-  notifies :restart, "service[rsyslog]", :immediately
+  case node["platform_family"]
+  when "debian"
+      variables :loglist => node['rsyslog']['debiannovalog']
+  when "rhel"
+      variables :loglist => node['rsyslog']['loglist']
+  end
+  notifies :restart, "service[rsyslog]"
 end
 
 file "/etc/rsyslog.d/server.conf" do
