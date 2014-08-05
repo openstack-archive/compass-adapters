@@ -8,6 +8,13 @@ override_attributes(
     "debianloglist" => {
       "mysqld" => "/var/log/mysql.log"
     }
+  },
+  "collectd" => {
+    "rhel" => {
+      "plugins" => {
+        "processes" => { "Process" => ["mysqld"] }
+      }
+    }
   }
 )
 run_list(

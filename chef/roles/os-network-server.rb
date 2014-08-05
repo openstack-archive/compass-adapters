@@ -8,6 +8,13 @@ override_attributes(
     "rhelloglist" => {
       "quantum-server" => "/var/log/quantum/server.log"
     }
+  },
+  "collectd" => {
+    "rhel" => {
+      "plugins" => {
+        "processes" => { "Process" => ["quantum-server"] }
+      }
+    }
   }
 )
 run_list(

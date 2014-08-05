@@ -10,6 +10,13 @@ override_attributes(
       "nova-scheduler" => "/var/log/nova/nova-scheduler.log",
       "nova-conductor" => "/var/log/nova/nova-conductor.log"
     }
+  },
+  "collectd" => {
+    "rhel" => {
+      "plugins" => {
+        "processes" => { "Process" => ["openstack-nova-scheduler", "openstack-nova-conductor"] }
+      }
+    }
   }
 )
 run_list(
