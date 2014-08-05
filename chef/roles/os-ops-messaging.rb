@@ -8,6 +8,13 @@ override_attributes(
     "debianloglist" => {
       "rabbitmq" => "/var/log/rabbitmq/rabbit\@$hostname.log"
     }
+  },
+  "collectd" => {
+    "rhel" => {
+      "plugins" => {
+        "processes" => { "Process" => ["rabbitmq-server"] }
+      }
+    }
   }
 )
 run_list(

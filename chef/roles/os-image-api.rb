@@ -8,6 +8,13 @@ override_attributes(
     "debianloglist" => {
       "glance-api" => "/var/log/glance/api.log"
     }
+  },
+  "collectd" => {
+    "rhel" => {
+      "plugins" => {
+        "processes" => { "Process" => ["openstack-glance-api"] }
+      }
+    }
   }
 )
 run_list(

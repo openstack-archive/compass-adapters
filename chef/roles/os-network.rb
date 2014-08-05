@@ -7,11 +7,18 @@ override_attributes(
       "quantum-dhcp" => "/var/log/quantum/dhcp-agent.log",
       "quantum-l3agent" => "/var/log/quantum/l3-agent.log"
     },
-    "rhelloglist" => {
+    "debianloglist" => {
       "quantum-ovsagent" => "/var/log/quantum/openvswitch-agent.log",
       "quantum-dhcp" => "/var/log/quantum/dhcp-agent.log",
       "quantum-l3agent" => "/var/log/quantum/l3-agent.log"
-    },
+    }
+  },
+  "collectd" => {
+    "rhel" => {
+      "plugins" => {
+        "processes" => { "Process" => ["quantum-dhcp-agent", "quantum-l3-agent", "quantum-openvswitch-agent", "quantum-metadata-agent"] }
+      }
+    }
   }
 )
 run_list(
