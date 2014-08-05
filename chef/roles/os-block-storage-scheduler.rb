@@ -8,6 +8,13 @@ override_attributes(
     "debianloglist" => {
       "cinder-scheduler" => "/var/log/cinder/cinder-scheduler.log"
     }
+  },
+  "collectd" => {
+    "rhel" => {
+      "plugins" => {
+        "processes" => { "Process" => ["openstack-cinder-scheduler"] }
+      }
+    }
   }
 )
 run_list(

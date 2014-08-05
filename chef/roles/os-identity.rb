@@ -8,6 +8,13 @@ override_attributes(
     "debianloglist" => {
       "keystone" => "/var/log/keystone/keystone.log"
     }
+  },
+  "collectd" => {
+    "rhel" => {
+      "plugins" => {
+        "processes" => { "Process" => ["openstack-keystone"] }
+      }
+    }
   }
 )
 run_list(

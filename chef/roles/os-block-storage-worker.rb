@@ -8,6 +8,13 @@ override_attributes(
     "debianloglist" => {
       "cinder-volume" => "/var/log/cinder/cinder-volume.log"
     }
+  },
+  "collectd" => {
+    "rhel" => {
+      "plugins" => {
+        "processes" => { "Process" => ["openstack-cinder-volume", "iscsid", "multipathd"] }
+      }
+    }
   }
 )
 run_list(
