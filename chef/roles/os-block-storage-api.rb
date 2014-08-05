@@ -8,6 +8,13 @@ override_attributes(
     "debianloglist" => {
       "cinder-api" => "/var/log/cinder/cinder-api.log"
     }
+  },
+  "collectd" => {
+    "rhel" => {
+      "plugins" => {
+        "processes" => { "Process" => ["openstack-cinder-api"] }
+      }
+    }
   }
 )
 run_list(

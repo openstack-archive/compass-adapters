@@ -8,6 +8,13 @@ override_attributes(
     "debianloglist" => {
       "nova-compute" => "/var/log/nova/nova-compute.log"
     }
+  },
+  "collectd" => {
+    "rhel" => {
+      "plugins" => {
+        "processes" => { "Process" => ["openstack-nova-compute"] }
+      }
+    }
   }
 )
 run_list(
