@@ -14,7 +14,8 @@ override_attributes(
       "plugins" => {
         "processes" => { "Process" => ["rabbitmq-server"] }
       }
-    }
+    },
+    "included_plugins" => ["rabbitmq"]
   }
 )
 run_list(
