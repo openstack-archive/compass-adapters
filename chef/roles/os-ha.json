@@ -9,7 +9,7 @@
       "rhel": {
         "plugins": {
           "processes": {
-            "Process": ["haproxy", "keepalived"]
+            "ProcessMatch": ["haproxy\" \"haproxy", "keepalived\" \"keepalived"]
           }
         }
       }

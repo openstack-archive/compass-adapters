@@ -5,6 +5,13 @@
   "default_attributes": {
   },
   "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {"ProcessMatch": ["nova-scheduler\" \"nova-scheduler", "nova-conductor\" \"nova-conductor"]}
+        }
+      }
+    }
   },
   "chef_type": "role",
   "run_list": [

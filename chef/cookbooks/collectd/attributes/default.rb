@@ -18,7 +18,31 @@
 #
 default[:collectd][:base_dir] = "/var/lib/collectd"
 if platform_family?("rhel")
-  default[:collectd][:package_name] = ["collectd"]
+  default[:collectd][:package_name] = ["collectd",
+                                        "collectd-amqp",
+                                        "collectd-apache",
+                                        "collectd-collection3",
+                                        "collectd-dbi",
+                                        "collectd-email",
+                                        "collectd-gmond",
+                                        "collectd-java",
+                                        "collectd-libnotify",
+                                        "collectd-liboping",
+                                        "collectd-libvirt",
+                                        "collectd-memcache",
+                                        "collectd-mysql",
+                                        "collectd-nginx",
+                                        "collectd-OpenIPMI",
+                                        "collectd-perl",
+                                        "collectd-php-collection",
+                                        "collectd-postgresql",
+                                        "collectd-python",
+                                        "collectd-rrdtool",
+                                        "collectd-sensors",
+                                        "collectd-snmp",
+                                        "collectd-varnish"
+  ]
+  default[:collectd][:yum][:uri] = "http://12.133.183.203/repos/collectd/epel-6"
   default[:collectd][:plugin_dir] = "/usr/lib64/collectd"
   default[:collectd][:config_file] = "/etc/collectd.conf"
 elsif platform_family?("debian")
@@ -41,6 +65,8 @@ default[:collectd][:plugins] = {"cpu"=>{},
                                 "memory"=>"",
                                 "match_regex"=>""
                                }
+default[:collectd][:included_plugins] = {"kairosdb"=>{}}
 default[:collectd][:server][:host] = "10.145.81.250"
 default[:collectd][:server][:port] = "4242"
 default[:collectd][:server][:protocol] = "tcp"
+default[:collectd][:mq][:vhost] = "/"

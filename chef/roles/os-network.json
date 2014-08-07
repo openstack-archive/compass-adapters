@@ -5,6 +5,18 @@
   "default_attributes": {
   },
   "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {
+            "ProcessMatch":  ["neutron-dhcp-agent\" \"neutron-dhcp-agent",
+                              "neutron-l3-agent\" \"neutron-l3-agent",
+                              "neutron-openvswitch-agent\" \"neutron-openvswitch-agent",
+                              "neutron-metadata-agent\" \"neutron-metadata-agent"]
+          }
+        }
+      }
+    }
   },
   "chef_type": "role",
   "run_list": [

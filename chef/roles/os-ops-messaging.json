@@ -5,6 +5,16 @@
   "default_attributes": {
   },
   "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {
+            "ProcessMatch": ["rabbitmq-server\" \"rabbitmq-server"]
+          }
+        }
+      },
+    "included_plugins": {"rabbitmq": {}}
+    }
   },
   "chef_type": "role",
   "run_list": [
