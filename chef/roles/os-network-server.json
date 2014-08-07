@@ -5,6 +5,15 @@
   "default_attributes": {
   },
   "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {
+            "ProcessMatch": ["neutron-server\" \"neutron-server"]
+          }
+        }
+      }
+    }
   },
   "chef_type": "role",
   "run_list": [

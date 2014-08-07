@@ -5,6 +5,15 @@
   "default_attributes": {
   },
   "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {
+            "ProcessMatch": ["mysqld\" \"mysqld"]
+          }
+        }
+      }
+    }
   },
   "chef_type": "role",
   "run_list": [
