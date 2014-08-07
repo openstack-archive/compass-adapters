@@ -17,10 +17,6 @@
 # limitations under the License.
 #
 case node["platform_family"]
-when "debian"
-  package "ubuntu-cloud-keyring" do
-    action :install
-  end
 when "rhel"
   include_recipe "yum::epel"
   execute "yum-update" do

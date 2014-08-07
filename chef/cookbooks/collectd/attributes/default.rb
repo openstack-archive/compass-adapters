@@ -41,6 +41,6 @@ default[:collectd][:plugins] = {"cpu"=>{},
                                 "memory"=>"",
                                 "match_regex"=>""
                                }
-default[:collectd][:server][:host] = "10.145.81.250"
+default[:collectd][:server][:host] = "10.1.0.141"
 default[:collectd][:server][:port] = "4242"
 default[:collectd][:server][:protocol] = "tcp"

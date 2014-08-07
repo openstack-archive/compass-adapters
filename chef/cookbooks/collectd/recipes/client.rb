@@ -40,11 +40,13 @@ cookbook_file "#{node['collectd']['plugin_dir']}/kairosdb_writer.py" do
   action :create_if_missing
 end
 
-case node["platform_family"]
-when "rhel"
-  node.override["collectd"]["plugins"]=node["collectd"]["rhel"]["plugins"].to_hash
-when "debian"
-  node.override["collectd"]["plugins"]=node["collectd"]["debian"]["plugins"].to_hash
+if node["collectd"].attribute?("rhel") or node["collectd"].attribute?("debian")
+  case node["platform_family"]
+  when "rhel"
+    node.override["collectd"]["plugins"]=node["collectd"]["rhel"]["plugins"].to_hash
+  when "debian"
+    node.override["collectd"]["plugins"]=node["collectd"]["debian"]["plugins"].to_hash
+  end
 end
 
 node["collectd"]["plugins"].each_pair do |plugin_key, options|
@@ -53,12 +55,15 @@ node["collectd"]["plugins"].each_pair do |plugin_key, options|
   end
 end
 
+if ! node['cluster']
+  node.set['cluster'] = "no_cluster_defined"
+end
 collectd_python_plugin "kairosdb_writer" do
   opts  =    {"KairosDBHost"=>node['collectd']['server']['host'],
               "KairosDBPort"=>node['collectd']['server']['port'],
               "KairosDBProtocol"=>node['collectd']['server']['protocol'],
               "LowercaseMetricNames"=>"true",
-              "Tags" => "host=#{node['fqdn']}\" \"role=OSROLE\" \"location=China.Beijing.TsingHua\" \"cluster=#{node['cluster']}",
+              "Tags" => "host=#{node['fqdn']}\" \"role=openstack\" \"location=China.Beijing.TsingHua\" \"cluster=#{node['cluster']}",
               "TypesDB" => node['collectd']['types_db']
              }
   options(opts)         
