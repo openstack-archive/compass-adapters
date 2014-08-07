@@ -1,3 +1,4 @@
+# Encoding: utf-8
 #
 # Cookbook Name:: openstack-network
 # Recipe:: balancer
@@ -20,29 +21,30 @@
 # This recipe should be placed in the run_list of the node that
 # runs the network server or network controller server.
 
-platform_options = node["openstack"]["network"]["platform"]
+['quantum', 'neutron'].include?(node['openstack']['compute']['network']['service_type']) || return
 
-service "quantum-server" do
-  service_name platform_options["quantum_server_service"]
-  supports :status => true, :restart => true
+include_recipe 'openstack-network::common'
 
-  action :nothing
+platform_options = node['openstack']['network']['platform']
+
+platform_options['neutron_lb_packages'].each do |pkg|
+  package pkg do
+    options platform_options['package_overrides']
+    action :upgrade
+  end
 end
 
-platform_options["quantum_lb_packages"].each do |pkg|
-   package pkg do
-     action :install
-   end
+template '/etc/neutron/lbaas_agent.ini' do
+  source 'lbaas_agent.ini.erb'
+  owner node['openstack']['network']['platform']['user']
+  group node['openstack']['network']['platform']['group']
+  mode 00640
+  notifies :restart, 'service[neutron-lb-agent]', :delayed
 end
 
-directory node["openstack"]["network"]["lbaas_config_path"] do
-  action :create
-  owner node["openstack"]["network"]["platform"]["user"]
-  group node["openstack"]["network"]["platform"]["group"]
-  recursive true
-end
-
-template "#{node["openstack"]["network"]["lbaas_config_path"]}/lbaas_agent.ini" do
-  source "lbaas_agent.ini.erb"
-  notifies :restart, "service[quantum-server]", :immediately
+service 'neutron-lb-agent' do
+  service_name platform_options['neutron_lb_agent_service']
+  supports status: true, restart: true
+  action :enable
+  subscribes :restart, 'template[/etc/neutron/neutron.conf]', :delayed
 end

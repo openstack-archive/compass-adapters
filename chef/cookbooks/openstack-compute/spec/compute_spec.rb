@@ -1,84 +1,104 @@
-require_relative "spec_helper"
+# encoding: UTF-8
 
-describe "openstack-compute::compute" do
-  before { compute_stubs }
-  describe "ubuntu" do
-    before do
-      @chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS
-      @chef_run.converge "openstack-compute::compute"
+require_relative 'spec_helper'
+
+describe 'openstack-compute::compute' do
+  describe 'ubuntu' do
+    let(:runner) { ChefSpec::Runner.new(UBUNTU_OPTS) }
+    let(:node) { runner.node }
+    let(:chef_run) { runner.converge(described_recipe) }
+
+    include_context 'compute_stubs'
+    include_examples 'expect_runs_nova_common_recipe'
+
+    it 'includes api-metadata recipe' do
+      expect(chef_run).to include_recipe 'openstack-compute::api-metadata'
     end
 
-    expect_runs_nova_common_recipe
-
-    it "runs api-metadata recipe" do
-      expect(@chef_run).to include_recipe "openstack-compute::api-metadata"
-    end
-
-    it "runs network recipe" do
-      expect(@chef_run).to include_recipe "openstack-compute::network"
-    end
-
-    it "doesn't run network recipe with openstack-network::server" do
-      chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS
+    it 'does not include api-metadata recipe' do
+      chef_run = ::ChefSpec::Runner.new ::UBUNTU_OPTS
       node = chef_run.node
-      node.run_list.stub("include?").and_return true
-      chef_run.converge "openstack-compute::compute"
+      node.set['openstack']['compute']['enabled_apis'] = 'ec2,osapi_compute'
+      chef_run.converge 'openstack-compute::compute'
 
-      expect(chef_run).not_to include_recipe "openstack-compute::network"
+      expect(chef_run).not_to include_recipe 'openstack-compute::api-metadata'
     end
 
-    it "installs nova compute packages" do
-      expect(@chef_run).to upgrade_package "nova-compute"
+    it 'runs network recipe' do
+      expect(chef_run).to include_recipe 'openstack-compute::network'
     end
 
-    it "installs nfs client packages" do
-      expect(@chef_run).to upgrade_package "nfs-common"
+    it 'upgrades nova compute package' do
+      expect(chef_run).to upgrade_package 'nova-compute'
     end
 
-    it "installs kvm when virt_type is 'kvm'" do
-      chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS
-      node = chef_run.node
-      node.set["openstack"]["compute"]["libvirt"]["virt_type"] = "kvm"
-      chef_run.converge "openstack-compute::compute"
-
-      expect(chef_run).to upgrade_package "nova-compute-kvm"
-      expect(chef_run).not_to upgrade_package "nova-compute-qemu"
+    it 'upgrades nfs client package' do
+      expect(chef_run).to upgrade_package 'nfs-common'
     end
 
-    it "installs qemu when virt_type is 'qemu'" do
-      chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS
-      node = chef_run.node
-      node.set["openstack"]["compute"]["libvirt"]["virt_type"] = "qemu"
-      chef_run.converge "openstack-compute::compute"
+    it "upgrades kvm when virt_type is 'kvm'" do
+      node.set['openstack']['compute']['libvirt']['virt_type'] = 'kvm'
 
-      expect(chef_run).to upgrade_package "nova-compute-qemu"
-      expect(chef_run).not_to upgrade_package "nova-compute-kvm"
+      expect(chef_run).to upgrade_package 'nova-compute-kvm'
+      expect(chef_run).not_to upgrade_package 'nova-compute-qemu'
     end
 
-    describe "nova-compute.conf" do
-      before do
-        @file = @chef_run.cookbook_file "/etc/nova/nova-compute.conf"
+    it 'honors the package options platform overrides for kvm' do
+      node.set['openstack']['compute']['libvirt']['virt_type'] = 'kvm'
+      node.set['openstack']['compute']['platform']['package_overrides'] = '-o Dpkg::Options::=\'--force-confold\' -o Dpkg::Options::=\'--force-confdef\' --force-yes'
+
+      expect(chef_run).to upgrade_package('nova-compute-kvm').with(options: '-o Dpkg::Options::=\'--force-confold\' -o Dpkg::Options::=\'--force-confdef\' --force-yes')
+    end
+
+    it 'upgrades qemu when virt_type is qemu' do
+      node.set['openstack']['compute']['libvirt']['virt_type'] = 'qemu'
+
+      expect(chef_run).to upgrade_package 'nova-compute-qemu'
+      expect(chef_run).not_to upgrade_package 'nova-compute-kvm'
+    end
+
+    it 'honors the package options platform overrides for qemu' do
+      node.set['openstack']['compute']['libvirt']['virt_type'] = 'qemu'
+      node.set['openstack']['compute']['platform']['package_overrides'] = '-o Dpkg::Options::=\'--force-confold\' -o Dpkg::Options::=\'--force-confdef\' --force-yes'
+
+      expect(chef_run).to upgrade_package('nova-compute-qemu').with(options: '-o Dpkg::Options::=\'--force-confold\' -o Dpkg::Options::=\'--force-confdef\' --force-yes')
+    end
+
+    %w{qemu kvm}.each do |virt_type|
+      it "honors the package name platform overrides for #{virt_type}" do
+        node.set['openstack']['compute']['libvirt']['virt_type'] = virt_type
+        node.set['openstack']['compute']['platform']["#{virt_type}_compute_packages"] = ["my-nova-#{virt_type}"]
+
+        expect(chef_run).to upgrade_package("my-nova-#{virt_type}")
       end
+    end
 
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "644"
+    describe 'nova-compute.conf' do
+      let(:file) { chef_run.cookbook_file('/etc/nova/nova-compute.conf') }
+
+      it 'has proper modes' do
+        expect(sprintf('%o', file.mode)).to eq '644'
       end
-
-      it "template contents" do
-        pending "TODO: implement"
-      end
     end
 
-    it "starts nova compute on boot" do
-      expect(@chef_run).to set_service_to_start_on_boot "nova-compute"
+    it 'starts nova compute on boot' do
+      expect(chef_run).to enable_service 'nova-compute'
     end
 
-    it "starts nova compute" do
-      expect(@chef_run).to start_service "nova-compute"
+    it 'starts nova compute' do
+      expect(chef_run).to start_service 'nova-compute'
     end
 
-    it "runs libvirt recipe" do
-      expect(@chef_run).to include_recipe "openstack-compute::libvirt"
+    it 'runs libvirt recipe' do
+      expect(chef_run).to include_recipe 'openstack-compute::libvirt'
+    end
+
+    it 'creates instances_path directory' do
+      expect(chef_run).to create_directory('/var/lib/nova/instances').with(
+        owner: 'nova',
+        group: 'nova',
+        mode: 0755
+      )
     end
   end
 end

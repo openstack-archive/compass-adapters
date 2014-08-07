@@ -1,341 +1,545 @@
-require_relative "spec_helper"
+# encoding: UTF-8
 
-describe "openstack-compute::nova-common" do
-  before { compute_stubs }
-  describe "ubuntu" do
-    before do
-      @chef_run = ::ChefSpec::ChefRunner.new(::UBUNTU_OPTS) do |n|
-        n.set["openstack"]["mq"] = {
-          "host" => "127.0.0.1"
-        }
-        n.set["openstack"]["compute"]["syslog"]["use"] = true
-      end
-      @chef_run.converge "openstack-compute::nova-common"
+require_relative 'spec_helper'
+
+describe 'openstack-compute::nova-common' do
+  describe 'ubuntu' do
+    let(:runner) { ChefSpec::Runner.new(UBUNTU_OPTS) }
+    let(:node) { runner.node }
+    let(:chef_run) do
+      node.set['openstack']['mq'] = {
+        'host' => '127.0.0.1'
+      }
+
+      runner.converge(described_recipe)
     end
 
-    it "doesn't run epel recipe" do
-      expect(@chef_run).to_not include_recipe 'yum::epel'
+    include_context 'compute_stubs'
+
+    it 'upgrades mysql python package' do
+      expect(chef_run).to upgrade_package 'python-mysqldb'
     end
 
-    it "runs logging recipe if node attributes say to" do
-      expect(@chef_run).to include_recipe "openstack-common::logging"
+    it 'upgrades nova common package' do
+      expect(chef_run).to upgrade_package 'nova-common'
     end
 
-    it "doesn't run logging recipe" do
-      chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS
-      chef_run.converge "openstack-compute::nova-common"
-      expect(chef_run).not_to include_recipe "openstack-common::logging"
+    it 'upgrades memcache python package' do
+      expect(chef_run).to upgrade_package 'python-memcache'
     end
 
-    it "can converge with quantum service type" do
-      chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS
-      node = chef_run.node
-      node.set["openstack"]["compute"]["network"]["service_type"] = "quantum"
-      chef_run.converge "openstack-compute::nova-common"
+    it 'creates the /etc/nova directory' do
+      expect(chef_run).to create_directory('/etc/nova').with(
+        owner: 'nova',
+        group: 'nova',
+        mode: 0750
+      )
     end
 
-    it "installs nova common packages" do
-      expect(@chef_run).to upgrade_package "nova-common"
-    end
-
-    it "installs memcache python packages" do
-      expect(@chef_run).to install_package "python-memcache"
-    end
-
-    describe "/etc/nova" do
+    context 'with logging enabled' do
       before do
-        @dir = @chef_run.directory "/etc/nova"
+        node.set['openstack']['compute']['syslog']['use'] = true
       end
 
-      it "has proper owner" do
-        expect(@dir).to be_owned_by "nova", "nova"
-      end
-
-      it "has proper modes" do
-        expect(sprintf("%o", @dir.mode)).to eq "700"
+      it 'runs logging recipe if node attributes say to' do
+        expect(chef_run).to include_recipe 'openstack-common::logging'
       end
     end
 
-    describe "/etc/nova/rootwrap.d" do
+    context 'with logging disabled' do
       before do
-        @dir = @chef_run.directory "/etc/nova/rootwrap.d"
+        node.set['openstack']['compute']['syslog']['use'] = false
       end
 
-      it "has proper owner" do
-        expect(@dir).to be_owned_by "root", "root"
-      end
-
-      it "has proper modes" do
-        expect(sprintf("%o", @dir.mode)).to eq "700"
+      it "doesn't run logging recipe" do
+        expect(chef_run).not_to include_recipe 'openstack-common::logging'
       end
     end
 
-    describe "nova.conf" do
-      before do
-        @file = @chef_run.template "/etc/nova/nova.conf"
-        # README(shep) need this to evaluate nova.conf.erb template
-        @chef_run.node.set['cpu'] = Hash.new()
-        @chef_run.node.set.cpu.total = "2"
+    describe 'nova.conf' do
+      let(:file) { chef_run.template('/etc/nova/nova.conf') }
+
+      it 'creates the file' do
+        expect(chef_run).to create_template(file.name).with(
+          owner: 'nova',
+          group: 'nova',
+          mode: 0644
+        )
       end
 
-      it "has proper owner" do
-        expect(@file).to be_owned_by "nova", "nova"
+      it 'has default *_path options set' do
+        [%r{^log_dir=/var/log/nova$},
+         %r{^state_path=/var/lib/nova$},
+         %r{^instances_path=/var/lib/nova/instances$},
+         %r{^lock_path=/var/lib/nova/lock$}].each do |line|
+          expect(chef_run).to render_file(file.name).with_content(line)
+        end
       end
 
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "644"
+      it 'has an instance_name_template setting' do
+        expect(chef_run).to render_file(file.name).with_content(
+          /^instance_name_template=instance-%08x$/)
       end
 
-      it "has rabbit_user" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "rabbit_userid=guest"
+      it 'has compute driver attributes defaults set' do
+        [/^compute_driver=libvirt.LibvirtDriver$/,
+         /^preallocate_images=none$/,
+         /^use_cow_images=true$/,
+         /^vif_plugging_is_fatal=true$/,
+         /^vif_plugging_timeout=300$/].each do |line|
+          expect(chef_run).to render_file(file.name).with_content(line)
+        end
       end
 
-      it "has rabbit_password" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "rabbit_password=rabbit-pass"
+      it 'does not have compute driver attribute default_ephemeral_format set by default' do
+        expect(chef_run).not_to render_file(file.name).with_content(/^default_ephemeral_format=$/)
       end
 
-      it "has rabbit_virtual_host" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "rabbit_virtual_host=/"
+      it 'allows override for compute driver attribute default_ephemeral_format' do
+        node.set['openstack']['compute']['default_ephemeral_format'] = 'someformat'
+        expect(chef_run).to render_file(file.name).with_content(/^default_ephemeral_format=someformat$/)
       end
 
-      it "has rabbit_host" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "rabbit_host=127.0.0.1"
+      it 'has default network_allocate_retries set' do
+        line = /^network_allocate_retries=0$/
+        expect(chef_run).to render_file(file.name).with_content(line)
       end
 
-      it "does not have rabbit_hosts" do
-        expect(@chef_run).not_to create_file_with_content @file.name,
-          "rabbit_hosts="
+      it 'has default RPC/AMQP options set' do
+        [/^rpc_backend=nova.openstack.common.rpc.impl_kombu$/,
+         /^rpc_thread_pool_size=64$/,
+         /^rpc_conn_pool_size=30$/,
+         /^rpc_response_timeout=60$/,
+         /^amqp_durable_queues=false$/,
+         /^amqp_auto_delete=false$/].each do |line|
+          expect(chef_run).to render_file(file.name).with_content(line)
+        end
       end
 
-      it "does not have rabbit_ha_queues" do
-        expect(@chef_run).not_to create_file_with_content @file.name,
-          "rabbit_ha_queues="
+      it 'has default compute ip and port options set' do
+        [/^osapi_compute_listen=127.0.0.1$/,
+         /^osapi_compute_listen_port=8774$/].each do |line|
+          expect(chef_run).to render_file(file.name).with_content(line)
+        end
       end
 
-      it "has rabbit_port" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "rabbit_port=5672"
+      it 'has default ec2 ip and port options set' do
+        [/^ec2_listen=127.0.0.1$/,
+         /^ec2_listen_port=8773$/].each do |line|
+          expect(chef_run).to render_file(file.name).with_content(line)
+        end
       end
 
-      describe "rabbit ha" do
-        before do
-          @chef_run = ::ChefSpec::ChefRunner.new(::UBUNTU_OPTS) do |n|
-            n.set["openstack"]["compute"]["rabbit"]["ha"] = true
-            n.set["cpu"] = {
-              "total" => "2"
-            }
+      it 'confirms default min value for workers' do
+        [/^ec2_workers=/,
+         /^osapi_compute_workers=/,
+         /^metadata_workers=/,
+         /^workers=/].each do |line|
+          expect(chef_run).to_not render_file(file.name).with_content(line)
+        end
+      end
+
+      describe 'allow overrides for workers' do
+        it 'has worker overrides' do
+          node.set['openstack']['compute']['ec2_workers'] = 123
+          node.set['openstack']['compute']['osapi_compute_workers'] = 456
+          node.set['openstack']['compute']['metadata_workers'] = 789
+          node.set['openstack']['compute']['conductor']['workers'] = 321
+          [/^ec2_workers=123$/,
+           /^osapi_compute_workers=456$/,
+           /^metadata_workers=789$/,
+           /^workers=321$/].each do |line|
+            expect(chef_run).to render_file(file.name).with_content(line)
           end
-          @chef_run.converge "openstack-compute::nova-common"
-        end
-
-        it "has rabbit_hosts" do
-          expect(@chef_run).to create_file_with_content @file.name,
-            "rabbit_hosts=1.1.1.1:5672,2.2.2.2:5672"
-        end
-
-        it "has rabbit_ha_queues" do
-          expect(@chef_run).to create_file_with_content @file.name,
-            "rabbit_ha_queues=True"
-        end
-
-        it "does not have rabbit_host" do
-          expect(@chef_run).not_to create_file_with_content @file.name,
-            "rabbit_host=127.0.0.1"
-        end
-
-        it "does not have rabbit_port" do
-          expect(@chef_run).not_to create_file_with_content @file.name,
-            "rabbit_port=5672"
         end
       end
 
-      it "has vncserver_listen" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "vncserver_listen=127.0.1.1"
+      context 'rabbit mq backend' do
+        before do
+          node.set['openstack']['mq']['compute']['service_type'] = 'rabbitmq'
+        end
+
+        describe 'ha rabbit disabled' do
+          before do
+            # README(galstrom21): There is a order of operations issue here
+            #   if you use node.set, these tests will fail.
+            node.override['openstack']['mq']['compute']['rabbit']['ha'] = false
+          end
+
+          it 'has default rabbit_* options set' do
+            [/^rabbit_userid=guest$/, /^rabbit_password=mq-pass$/,
+             /^rabbit_virtual_host=\/$/, /^rabbit_host=127.0.0.1$/,
+             /^rabbit_port=5672$/, /^rabbit_use_ssl=false$/].each do |line|
+              expect(chef_run).to render_file(file.name).with_content(line)
+            end
+          end
+
+          it 'does not have ha rabbit options set' do
+            [/^rabbit_hosts=/, /^rabbit_ha_queues=/,
+             /^ec2_private_dns_show_ip$/].each do |line|
+              expect(chef_run).not_to render_file(file.name).with_content(line)
+            end
+          end
+        end
+
+        describe 'ha rabbit enabled' do
+          before do
+            # README(galstrom21): There is a order of operations issue here
+            #   if you use node.set, these tests will fail.
+            node.override['openstack']['mq']['compute']['rabbit']['ha'] = true
+          end
+
+          it 'sets ha rabbit options correctly' do
+            [
+              /^rabbit_hosts=1.1.1.1:5672,2.2.2.2:5672$/,
+              /^rabbit_ha_queues=True$/
+            ].each do |line|
+              expect(chef_run).to render_file(file.name).with_content(line)
+            end
+          end
+
+          it 'does not have non-ha rabbit options set' do
+            [/^rabbit_host=127\.0\.0\.1$/, /^rabbit_port=5672$/].each do |line|
+              expect(chef_run).not_to render_file(file.name).with_content(line)
+            end
+          end
+        end
       end
 
-      it "has vncserver_proxyclient_address" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "vncserver_proxyclient_address=127.0.1.1"
+      context 'qpid mq backend' do
+        before do
+          # README(galstrom21): There is a order of operations issue here
+          #   if you use node.set, these tests will fail.
+          node.override['openstack']['mq']['compute']['service_type'] = 'qpid'
+          node.override['openstack']['mq']['compute']['qpid']['username'] = 'guest'
+        end
+
+        it 'has default qpid_* options set' do
+          [
+            /^qpid_hostname=127.0.0.1$/,
+            /^qpid_port=5672$/,
+            /^qpid_username=guest$/,
+            /^qpid_password=mq-pass$/,
+            /^qpid_sasl_mechanisms=$/,
+            /^qpid_reconnect_timeout=0$/,
+            /^qpid_reconnect_limit=0$/,
+            /^qpid_reconnect_interval_min=0$/,
+            /^qpid_reconnect_interval_max=0$/,
+            /^qpid_reconnect_interval=0$/,
+            /^qpid_heartbeat=60$/,
+            /^qpid_protocol=tcp$/,
+            /^qpid_tcp_nodelay=true$/,
+            /^qpid_topology_version=1$/
+          ].each do |line|
+            expect(chef_run).to render_file(file.name).with_content(line)
+          end
+        end
       end
 
-      it "has xvpvncproxy_host" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "xvpvncproxy_host=127.0.1.1"
+      it 'has default vncserver_* options set' do
+        node.set['openstack']['endpoints']['compute-vnc-bind']['bind_interface'] = 'lo'
+
+        [/^vncserver_listen=127.0.1.1$/,
+         /^vncserver_proxyclient_address=127.0.1.1$/].each do |line|
+          expect(chef_run).to render_file(file.name).with_content(line)
+        end
       end
 
-      it "has novncproxy_host" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "novncproxy_host=127.0.1.1"
+      it 'has default *vncproxy_* options set' do
+        [/^xvpvncproxy_host=127.0.0.1$/,
+         /^xvpvncproxy_port=6081$/,
+         /^novncproxy_host=127.0.0.1$/,
+         /^novncproxy_port=6080$/].each do |line|
+          expect(chef_run).to render_file(file.name).with_content(line)
+        end
       end
 
-      it "has correct force_dhcp_release value" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "force_dhcp_release=true"
+      it 'has default nova.config options set' do
+        [/^allow_resize_to_same_host=false$/,
+         /^force_dhcp_release=true$/,
+         /^mkisofs_cmd=genisoimage$/,
+         %r{^injected_network_template=\$pybasedir/nova/virt/interfaces.template$}].each do |line|
+          expect(chef_run).to render_file(file.name).with_content(line)
+        end
       end
 
-      it "has virtio enabled" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "libvirt_use_virtio_for_bridges=true"
+      it 'has a force_config_drive setting' do
+        chef_run.node.set['openstack']['compute']['config']['force_config_drive'] = 'always'
+        expect(chef_run).to render_file(file.name).with_content(
+          /^force_config_drive=always$/)
       end
 
-      it "does not have ec2_private_dns_show_ip option" do
-        expect(@chef_run).to_not create_file_with_content @file.name,
-          "ec2_private_dns_show_ip"
+      it 'has a os_region_name setting' do
+        chef_run.node.set['openstack']['node'] = 'RegionOne'
+        expect(chef_run).to render_file(file.name).with_content(
+          /^os_region_name=RegionOne$/)
+      end
+
+      it 'has a disk_cachemodes setting' do
+        chef_run.node.set['openstack']['compute']['config']['disk_cachemodes'] = 'disk:writethrough'
+        expect(chef_run).to render_file(file.name).with_content(
+          /^disk_cachemodes=disk:writethrough$/)
+      end
+
+      context 'metering' do
+        describe 'metering disabled' do
+          it 'leaves default audit options' do
+            ['instance_usage_audit=False',
+             'instance_usage_audit_period=month'].each do |line|
+              expect(chef_run).to render_file(file.name).with_content(line)
+            end
+          end
+
+          it 'does not configure metering notification' do
+            ['notification_driver',
+             'notify_on_state_change'].each do |line|
+              expect(chef_run).not_to render_file(file.name).with_content(line)
+            end
+          end
+        end
+
+        describe 'notification enabled' do
+          before do
+            node.override['openstack']['compute']['metering'] = true
+          end
+
+          it 'sets audit and notification options correctly' do
+            ['notification_driver=nova.openstack.common.notifier.rpc_notifier',
+             'notification_driver=ceilometer.compute.nova_notifier',
+             'instance_usage_audit=True',
+             'instance_usage_audit_period=hour',
+             'notify_on_state_change=vm_and_task_state'
+            ].each do |line|
+              expect(chef_run).to render_file(file.name).with_content(line)
+            end
+          end
+        end
+      end
+
+      context 'libvirt configuration' do
+        it 'has default libvirt_* options set' do
+          [/^use_virtio_for_bridges=true$/,
+           /^images_type=default$/,
+           /^inject_key=true$/,
+           /^inject_password=false$/].each do |line|
+             expect(chef_run).to render_file(file.name).with_content(line)
+           end
+        end
+
+        it "the libvirt cpu_mode is none when virt_type is 'qemu'" do
+          node.set['openstack']['compute']['libvirt']['virt_type'] = 'qemu'
+
+          expect(chef_run).to render_file(file.name).with_content(
+            'cpu_mode=none')
+        end
+
+        it 'has a configurable inject_key setting' do
+          node.set['openstack']['compute']['libvirt']['libvirt_inject_key'] = false
+
+          expect(chef_run).to render_file(file.name).with_content(
+            /^inject_key=false$/)
+        end
+
+        it 'has a configurable inject_password setting' do
+          node.set['openstack']['compute']['libvirt']['libvirt_inject_password'] = true
+
+          expect(chef_run).to render_file(file.name).with_content(
+            /^inject_password=true$/)
+        end
+      end
+
+      context 'vmware' do
+        before do
+          # README(galstrom21): There is a order of operations issue here
+          #   if you use node.set, these tests will fail.
+          node.override['openstack']['compute']['driver'] = 'vmwareapi.VMwareVCDriver'
+        end
+
+        it 'has default vmware config options set' do
+          [
+            /^host_ip = $/,
+            /^host_username = $/,
+            /^host_password = vmware_secret_name$/,
+            /^task_poll_interval = 0.5$/,
+            /^api_retry_count = 10$/,
+            /^vnc_port = 5900$/,
+            /^vnc_port_total = 10000$/,
+            /^use_linked_clone = true$/,
+            /^vlan_interface = vmnic0$/,
+            /^maximum_objects = 100$/,
+            /^integration_bridge = br-int$/
+          ].each do |line|
+            expect(chef_run).to render_file(file.name).with_content(line)
+          end
+        end
+
+        it 'has no datastore_regex line' do
+          expect(chef_run).not_to render_file(file.name).with_content('datastore_regex = ')
+        end
+
+        it 'has no wsdl_location line' do
+          expect(chef_run).not_to render_file(file.name).with_content('wsdl_location = ')
+        end
+      end
+
+      context 'vmware cluster name' do
+        before do
+          # README(galstrom21): There is a order of operations issue here
+          #   if you use node.set, these tests will fail.
+          node.override['openstack']['compute']['driver'] = 'vmwareapi.VMwareVCDriver'
+          node.override['openstack']['compute']['vmware']['cluster_name'] = ['cluster1', 'cluster2']
+          node.override['openstack']['compute']['vmware']['datastore_regex'] = '*.'
+          node.override['openstack']['compute']['vmware']['wsdl_location'] = 'http://127.0.0.1/'
+        end
+
+        it 'has multiple cluster name lines' do
+          expect(chef_run).to render_file(file.name).with_content('cluster_name = cluster1')
+          expect(chef_run).to render_file(file.name).with_content('cluster_name = cluster2')
+        end
+
+        it 'has datastore_regex line' do
+          expect(chef_run).to render_file(file.name).with_content('datastore_regex = *.')
+        end
+
+        it 'has wsdl_location line' do
+          expect(chef_run).to render_file(file.name).with_content('wsdl_location = http://127.0.0.1/')
+        end
+      end
+
+      it 'has disk_allocation_ratio when the right filter is set' do
+        node.set['openstack']['compute']['scheduler']['default_filters'] = %w(
+          AvailabilityZoneFilter
+          DiskFilter
+          RamFilter
+          ComputeFilter
+          CoreFilter
+          SameHostFilter
+          DifferentHostFilter
+        )
+        expect(chef_run).to render_file(file.name).with_content(
+          'disk_allocation_ratio=1.0')
+      end
+
+      it 'has no auto_assign_floating_ip' do
+        node.set['openstack']['compute']['network']['service_type'] = 'neutron'
+        expect(chef_run).not_to render_file(file.name).with_content(
+          'auto_assign_floating_ip=false')
+      end
+
+      it 'templates misc_nova array correctly' do
+        node.set['openstack']['compute']['misc_nova'] = ['MISC_OPTION', 'FOO']
+        expect(chef_run).to render_file(file.name).with_content(
+          'MISC_OPTION')
+      end
+
+      context 'rbd backend' do
+        before do
+          node.set['openstack']['compute']['libvirt']['images_type'] = 'rbd'
+        end
+
+        describe 'default rdb settings' do
+          it 'sets the libvirt * options correctly' do
+            [
+              /^images_type=rbd$/,
+              /^images_rbd_pool=rbd$/,
+              %r{^images_rbd_ceph_conf=/etc/ceph/ceph.conf$},
+              /^rbd_user=cinder$/,
+              /^rbd_secret_uuid=00000000-0000-0000-0000-000000000000$/
+            ].each do |line|
+              expect(chef_run).to render_file(file.name).with_content(line)
+            end
+          end
+        end
+
+        describe 'override rbd settings' do
+          before do
+            node.set['openstack']['compute']['libvirt']['images_type'] = 'rbd'
+            node.set['openstack']['compute']['libvirt']['images_rbd_pool'] = 'myrbd'
+            node.set['openstack']['compute']['libvirt']['images_rbd_ceph_conf'] = '/etc/myceph/ceph.conf'
+          end
+
+          it 'sets the overridden libvirt options correctly' do
+            [
+              /^images_type=rbd$/,
+              /^images_rbd_pool=myrbd$/,
+              %r{^images_rbd_ceph_conf=/etc/myceph/ceph.conf$}
+            ].each do |line|
+              expect(chef_run).to render_file(file.name).with_content(line)
+            end
+          end
+        end
+      end
+
+      context 'lvm backend' do
+        before do
+          node.set['openstack']['compute']['libvirt']['images_type'] = 'lvm'
+          node.set['openstack']['compute']['libvirt']['volume_group'] = 'instances'
+        end
+
+        it 'sets the lvm options correctly' do
+          [
+            /^images_type=lvm$/,
+            /^images_volume_group=instances$/,
+            /^sparse_logical_volumes=false$/
+          ].each do |line|
+            expect(chef_run).to render_file(file.name).with_content(line)
+          end
+        end
+
+        describe 'override settings' do
+          before do
+            node.set['openstack']['compute']['libvirt']['images_type'] = 'lvm'
+            node.set['openstack']['compute']['libvirt']['volume_group'] = 'instances'
+            node.set['openstack']['compute']['libvirt']['sparse_logical_volumes'] = true
+          end
+
+          it 'sets the overridden lvm options correctly' do
+            [
+              /^images_type=lvm$/,
+              /^images_volume_group=instances$/,
+              /^sparse_logical_volumes=true$/
+            ].each do |line|
+              expect(chef_run).to render_file(file.name).with_content(line)
+            end
+          end
+        end
       end
     end
 
+    describe 'rootwrap.conf' do
+      let(:file) { chef_run.template('/etc/nova/rootwrap.conf') }
 
-#    describe "identity role local node" do
-#      before do
-#        @chef_run = ::ChefSpec::ChefRunner.new(::UBUNTU_OPTS) do |n|
-#          n.set["openstack"]["identity"]["admin_tenant_name"] = "admin-tenant"
-#          n.set["openstack"]["identity"]["admin_user"] = "admin-user"
-#        end
-#        @chef_run.converge 'role[os-identity]', "openstack-compute::nova-common"
-#      end
-#      it "has keystone_hash" do
-#        expect(@chef_run).to log 'openstack-compute::nova-common:keystone|node[???]'
-#      end
-#      it "has ksadmin_user" do
-#        expect(@chef_run).to log 'openstack-compute::nova-common:ksadmin_user|admin-user'
-#      end
-#      it "has ksadmin_tenant_name" do
-#        expect(@chef_run).to log 'openstack-compute::nova-common:ksadmin_tenant_name|admin-tenant'
-#      end
-#    end
-
-
-#    describe "identity role search" do
-#      before do
-#        @chef_run = ::ChefSpec::ChefRunner.new(::UBUNTU_OPTS) do |n|
-#          n.set["openstack"]["compute"]["identity_service_chef_role"] = "os-identity"
-#        end
-#        @chef_run.converge "openstack-compute::nova-common"
-#      end
-#      it "has keystone_hash" do
-#        expect(@chef_run).to log 'openstack-compute::nova-common:keystone|node[???]'
-#      end
-#      it "has ksadmin_user" do
-#        expect(@chef_run).to log 'openstack-compute::nova-common:ksadmin_user|admin-user'
-#      end
-#      it "has ksadmin_tenant_name" do
-#        expect(@chef_run).to log 'openstack-compute::nova-common:ksadmin_tenant_name|admin-tenant'
-#      end
-#    end
-
-    describe "rootwrap.conf" do
-      before do
-        @file = @chef_run.template "/etc/nova/rootwrap.conf"
+      it 'creates the /etc/nova/rootwrap.conf file' do
+        expect(chef_run).to create_template(file.name).with(
+          user: 'root',
+          group: 'root',
+          mode: 0644
+        )
       end
 
-      it "has proper owner" do
-        expect(@file).to be_owned_by "root", "root"
-      end
+      context 'template contents' do
+        it 'shows the custom banner' do
+          node.set['openstack']['compute']['custom_template_banner'] = 'banner'
 
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "644"
-      end
+          expect(chef_run).to render_file(file.name).with_content(/^banner$/)
+        end
 
-      it "template contents" do
-        pending "TODO: implement"
+        it 'sets the default attributes' do
+          [
+            %r(^filters_path=/etc/nova/rootwrap.d,/usr/share/nova/rootwrap$),
+            %r(^exec_dirs=/sbin,/usr/sbin,/bin,/usr/bin$),
+            /^use_syslog=False$/,
+            /^syslog_log_facility=syslog$/,
+            /^syslog_log_level=ERROR$/
+          ].each do |line|
+            expect(chef_run).to render_file(file.name).with_content(line)
+          end
+        end
       end
     end
 
-    describe "api-metadata.filters" do
-      before do
-        @file = @chef_run.template "/etc/nova/rootwrap.d/api-metadata.filters"
-      end
-
-      it "has proper owner" do
-        expect(@file).to be_owned_by "root", "root"
-      end
-
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "644"
-      end
-
-      it "template contents" do
-        pending "TODO: implement"
-      end
-    end
-
-    describe "compute.filters" do
-      before do
-        @file = @chef_run.template "/etc/nova/rootwrap.d/compute.filters"
-      end
-
-      it "has proper owner" do
-        expect(@file).to be_owned_by "root", "root"
-      end
-
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "644"
-      end
-
-      it "template contents" do
-        pending "TODO: implement"
-      end
-    end
-
-    describe "network.filters" do
-      before do
-        @file = @chef_run.template "/etc/nova/rootwrap.d/network.filters"
-      end
-
-      it "has proper owner" do
-        expect(@file).to be_owned_by "root", "root"
-      end
-
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "644"
-      end
-
-      it "template contents" do
-        pending "TODO: implement"
-      end
-    end
-
-    describe "openrc" do
-      before do
-        @file = @chef_run.template "/root/openrc"
-      end
-
-      it "has proper owner" do
-        expect(@file).to be_owned_by "root", "root"
-      end
-
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "600"
-      end
-
-      it "contains ksadmin_user" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "export OS_USERNAME=admin-user"
-      end
-
-      it "contains ksadmin_tenant_name" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "export OS_TENANT_NAME=admin-tenant"
-      end
-
-      it "contains ksadmin_pass" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "export OS_PASSWORD=admin-pass"
-      end
-
-      it "rest of template contents" do
-        pending "TODO: implement"
-      end
-    end
-
-    it "enables nova login" do
-      cmd = "usermod -s /bin/sh nova"
-      expect(@chef_run).to execute_command cmd
+    it 'enables nova login' do
+      expect(chef_run).to run_execute('usermod -s /bin/sh nova')
     end
   end
 end

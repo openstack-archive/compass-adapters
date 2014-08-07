@@ -1,25 +1,25 @@
-require_relative "spec_helper"
+# encoding: UTF-8
 
-describe "openstack-compute::conductor" do
-  before { compute_stubs }
-  describe "redhat" do
-    before do
-      @chef_run = ::ChefSpec::ChefRunner.new ::REDHAT_OPTS
-      @chef_run.converge "openstack-compute::conductor"
+require_relative 'spec_helper'
+
+describe 'openstack-compute::conductor' do
+  describe 'redhat' do
+    let(:runner) { ChefSpec::Runner.new(REDHAT_OPTS) }
+    let(:node) { runner.node }
+    let(:chef_run) { runner.converge(described_recipe) }
+
+    include_context 'compute_stubs'
+
+    it 'upgrades conductor package' do
+      expect(chef_run).to upgrade_package 'openstack-nova-conductor'
     end
 
-    expect_runs_nova_common_recipe
-
-    it "installs conductor packages" do
-      expect(@chef_run).to upgrade_package "openstack-nova-conductor"
+    it 'starts nova-conductor on boot' do
+      expect(chef_run).to enable_service 'openstack-nova-conductor'
     end
 
-    it "starts nova-conductor on boot" do
-      expect(@chef_run).to set_service_to_start_on_boot "openstack-nova-conductor"
-    end
-
-    it "starts nova-conductor" do
-      expect(@chef_run).to start_service "openstack-nova-conductor"
+    it 'starts nova-conductor' do
+      expect(chef_run).to start_service 'openstack-nova-conductor'
     end
   end
 end

@@ -1,21 +1,22 @@
-require_relative "spec_helper"
+# encoding: UTF-8
 
-describe "openstack-compute::network" do
-  before { compute_stubs }
-  describe "redhat" do
-    before do
-      @chef_run = ::ChefSpec::ChefRunner.new ::REDHAT_OPTS
-      @chef_run.converge "openstack-compute::network"
+require_relative 'spec_helper'
+
+describe 'openstack-compute::network' do
+  describe 'redhat' do
+    let(:runner) { ChefSpec::Runner.new(REDHAT_OPTS) }
+    let(:node) { runner.node }
+    let(:chef_run) { runner.converge(described_recipe) }
+
+    include_context 'compute_stubs'
+
+    it 'upgrades nova network packages' do
+      expect(chef_run).to upgrade_package('iptables')
+      expect(chef_run).to upgrade_package('openstack-nova-network')
     end
 
-    it "installs nova network packages" do
-      expect(@chef_run).to upgrade_package "iptables"
-      expect(@chef_run).to upgrade_package "openstack-nova-network"
-    end
-
-    it "starts nova network on boot" do
-      expected = "openstack-nova-network"
-      expect(@chef_run).to set_service_to_start_on_boot expected
+    it 'starts nova network on boot' do
+      expect(chef_run).to enable_service('openstack-nova-network')
     end
   end
 end

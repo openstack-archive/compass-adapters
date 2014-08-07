@@ -1,30 +1,67 @@
+# Encoding: utf-8
 require_relative 'spec_helper'
 
 describe 'openstack-network::balancer' do
+  describe 'ubuntu' do
+    let(:runner) { ChefSpec::Runner.new(UBUNTU_OPTS) }
+    let(:node) { runner.node }
+    let(:chef_run) do
+      node.set['openstack']['compute']['network']['service_type'] = 'neutron'
 
-  describe "ubuntu" do
-
-    before do
-      quantum_stubs
-      @chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS
-      @chef_run.converge "openstack-network::balancer"
+      runner.converge(described_recipe)
     end
 
-    ['haproxy', 'quantum-lbaas-agent'].each do |pack|
-      it "installs #{pack} package" do
-        expect(@chef_run).to install_package pack
+    include_context 'neutron-stubs'
+
+    it 'subscribes the agent service to its relevant config files' do
+      expect(chef_run.service('neutron-lb-agent')).to subscribe_to('template[/etc/neutron/neutron.conf]').delayed
+    end
+
+    it 'does not upgrade neutron-lbaas-agent when nova networking.' do
+      node.override['openstack']['compute']['network']['service_type'] = 'nova'
+
+      expect(chef_run).to_not upgrade_package('neutron-lbaas-agent')
+    end
+
+    ['haproxy', 'neutron-lbaas-agent'].each do |pack|
+      it "upgrades #{pack} package" do
+        expect(chef_run).to upgrade_package(pack)
       end
     end
 
-    it 'creates directory /etc/quantum/plugins/services/agent_loadbalancer' do
-      expect(@chef_run).to create_directory '/etc/quantum/plugins/services/agent_loadbalancer'
+    it 'enables agent service' do
+      expect(chef_run).to enable_service('neutron-lb-agent')
     end
 
-    it 'balancer config' do
-      configf = "/etc/quantum/plugins/services/agent_loadbalancer/lbaas_agent.ini"
-      expect(@chef_run).to create_file configf
-      expect(@chef_run).to create_file_with_content configf, /periodic_interval = 10/
-      expect(@chef_run).to create_file_with_content configf, /interface_driver = quantum.agent.linux.interface.OVSInterfaceDriver/
+    describe 'lbaas_agent.ini' do
+      let(:file) { chef_run.template('/etc/neutron/lbaas_agent.ini') }
+
+      it 'creates lbaas_agent.ini' do
+        expect(chef_run).to create_template(file.name).with(
+          user: 'neutron',
+          group: 'neutron',
+          mode: 0640
+        )
+      end
+
+      it 'has default settings' do
+        expect(chef_run).to render_file(file.name).with_content(/periodic_interval = 10/)
+        expect(chef_run).to render_file(file.name).with_content(
+          /interface_driver = neutron.agent.linux.interface.OVSInterfaceDriver/)
+        expect(chef_run).to render_file(file.name).with_content(
+          /device_driver = neutron.services.loadbalancer.drivers.haproxy.namespace_driver.HaproxyNSDriver/)
+      end
+
+      it 'has configurable device_driver setting' do
+        node.set['openstack']['network']['lbaas']['device_driver'] = 'SomeRandomDriver'
+
+        expect(chef_run).to render_file(file.name).with_content(
+          /device_driver = SomeRandomDriver/)
+      end
+
+      it 'notifies the lb agent service' do
+        expect(file).to notify('service[neutron-lb-agent]').to(:restart).delayed
+      end
     end
 
   end

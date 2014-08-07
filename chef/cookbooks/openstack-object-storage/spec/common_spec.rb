@@ -1,92 +1,93 @@
-require 'spec_helper'
+# encoding: UTF-8
+require_relative 'spec_helper'
 
 describe 'openstack-object-storage::common' do
-
-  #-------------------
-  # UBUNTU
-  #-------------------
-
-  describe "ubuntu" do
-
-    before do
-      swift_stubs
-      @chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS
-      @node = @chef_run.node
-      @node.set['platform_family'] = "debian"
-      @node.set['lsb']['codename'] = "precise"
-      @node.set['swift']['release'] = "folsom"
-      @node.set['swift']['authmode'] = 'swauth'
-      @node.set['swift']['git_builder_ip'] = '10.0.0.10'
-
-      # TODO: this does not work
-      # ::Chef::Log.should_receive(:info).with("chefspec: precise-updates/folsom")
-
-      @chef_run.converge "openstack-object-storage::common"
+  describe 'ubuntu' do
+    let(:runner) { ChefSpec::Runner.new(UBUNTU_OPTS) }
+    let(:node) { runner.node }
+    let(:chef_run) do
+      runner.converge(described_recipe)
     end
 
+    include_context 'swift-stubs'
 
-    it 'should set syctl paramaters' do
-      # N.B. we could examine chef log
-      pending "TODO: right now theres no way to do lwrp and test for this"
+    it 'includes openstack-common::sysctl' do
+      expect(chef_run).to include_recipe('openstack-common::sysctl')
     end
 
-    it 'installs git package for ring management' do
-      expect(@chef_run).to install_package "git"
+    describe '60-openstack.conf' do
+      let(:file) { chef_run.template('/etc/sysctl.d/60-openstack.conf') }
+
+      it 'creates /etc/sysctl.d/60-openstack.conf' do
+        expect(chef_run).to create_template(file.name).with(
+          user: 'root',
+          group: 'root',
+          mode: 0644
+        )
+      end
+
+      it 'sets the net.ipv4.tcp_tw_recycle' do
+        match = 'net.ipv4.tcp_tw_recycle = 1'
+        expect(chef_run).to render_file(file.name).with_content(match)
+      end
+
+      it 'sets the net.ipv4.tcp_tw_reuse' do
+        match = 'net.ipv4.tcp_tw_reuse = 1'
+        expect(chef_run).to render_file(file.name).with_content(match)
+      end
+
+      it 'sets the net.ipv4.tcp_syncookies' do
+        match = 'net.ipv4.tcp_syncookies = 0'
+        expect(chef_run).to render_file(file.name).with_content(match)
+      end
     end
 
-    describe "/etc/swift" do
-
-      before do
-        @file = @chef_run.directory "/etc/swift"
-      end
-
-      it "has proper owner" do
-        expect(@file).to be_owned_by "swift", "swift"
-      end
-
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "700"
-      end
-
+    it 'upgrades git package for ring management' do
+      expect(chef_run).to upgrade_package('git')
     end
 
-    describe "/etc/swift/swift.conf" do
+    describe '/etc/swift' do
+      let(:dir) { chef_run.directory('/etc/swift') }
 
-      before do
-        @file = @chef_run.file "/etc/swift/swift.conf"
+      it 'creates /etc/swift' do
+        expect(chef_run).to create_directory(dir.name).with(
+          user: 'swift',
+          group: 'swift',
+          mode: 0700
+        )
       end
-
-      it "has proper owner" do
-        expect(@file).to be_owned_by "swift", "swift"
-      end
-
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "700"
-      end
-
     end
 
-    describe "/etc/swift/pull-rings.sh" do
+    describe '/etc/swift/swift.conf' do
+      let(:file) { chef_run.file('/etc/swift/swift.conf') }
 
-      before do
-        @file = @chef_run.template "/etc/swift/pull-rings.sh"
+      it 'creates swift.conf' do
+        expect(chef_run).to create_file(file.name).with(
+          user: 'swift',
+          group: 'swift',
+          mode: 0700
+        )
       end
 
-      it "has proper owner" do
-        expect(@file).to be_owned_by "swift", "swift"
+      it 'template contents' do
+        pending 'TODO: implement'
       end
-
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "700"
-      end
-
-      it "template contents" do
-        pending "TODO: implement"
-      end
-
     end
 
+    describe '/etc/swift/pull-rings.sh' do
+      let(:file) { chef_run.template('/etc/swift/pull-rings.sh') }
+
+      it 'creates pull-rings.sh' do
+        expect(chef_run).to create_template(file.name).with(
+          user: 'swift',
+          group: 'swift',
+          mode: 0700
+        )
+      end
+
+      it 'template contents' do
+        pending 'TODO: implement'
+      end
+    end
   end
-
-
 end

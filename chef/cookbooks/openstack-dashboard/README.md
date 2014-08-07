@@ -35,29 +35,62 @@ Sets up the Horizon dashboard within an Apache `mod_wsgi` container.
 Attributes
 ==========
 
-* `openstack["dashboard"]["db"]["username"]` - username for horizon database access
-* `openstack["dashboard"]["server_hostname"]` - sets the ServerName in the Apache config.
-* `openstack["dashboard"]["use_ssl"]` - toggle for using ssl with dashboard (default true)
-* `openstack["dashboard"]["ssl"]["dir"]` - directory where ssl certs are stored on this system
-* `openstack["dashboard"]["ssl"]["cert"]` - name to use when creating the ssl certificate
-* `openstack["dashboard"]["ssl"]["key"]` - name to use when creating the ssl key
-* `openstack["dashboard"]["dash_path"]` - base path for dashboard files (document root)
-* `openstack["dashboard"]["wsgi_path"]` - path for wsgi dir
-* `openstack["dashboard"]["ssl_offload"]` - Set SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL', 'https') flag for offloading SSL
-* `openstack["dashboard"]["plugins"]` - Array of plugins to include via INSTALED\_APPS
+* `openstack['dashboard']['db']['username']` - Username for horizon database access
+* `openstack['dashboard']['server_hostname']` - Sets the ServerName in the Apache config
+* `openstack['dashboard']['allowed_hosts']` - List of host/domain names we can service (default: '\[\*\]')
+* `openstack['dashboard']['dash_path']` - Base path for dashboard files (document root)
+* `openstack['dashboard']['wsgi_path']` - Path for wsgi dir
+* `openstack['dashboard']['wsgi_socket_prefix']` - Location that will override the standard Apache runtime directory
+* `openstack['dashboard']['ssl_offload']` - Set SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL', 'https') flag for offloading SSL
+* `openstack['dashboard']['plugins']` - Array of plugins to include via INSTALED\_APPS
+* `openstack['dashboard']['simple_ip_management']` - Boolean to enable or disable simplified floating IP address management
+TODO: Add DB2 support on other platforms
+* `openstack['dashboard']['platform']['db2_python_packages']` - Array of DB2 python packages, only available on redhat platform
+* `openstack['dashboard']['http_port']` - Port that httpd should listen on (default: 80)
+* `openstack['dashboard']['https_port']` - Port that httpd should listen on for using ssl (default: 443)
+* `openstack['dashboard']['password_autocomplete']` - Toggle browser autocompletion for login form ('on' or 'off', default: 'on')
+
+Identity
+--------
+* `openstack['dashboard']['identity_api_version']` - Force a specific Identity API version ('2.0' or '3', default: '2.0')
+* `openstack['dashboard']['keystone_multidomain_support']` - Boolean to enable multi-Domain support
+* `openstack['dashboard']['keystone_default_domain']` - Default Domain if using API v3 and on a single-domain model (default: 'Default')
+* `openstack['dashboard']['keystone_default_role']` - Default Keystone role assigned to project members (default: '_member_')
+* `openstack['dashboard']['keystone_backend']['name']` - Keystone backend in use ('native' or 'ldap', default: 'native')
+* `openstack['dashboard']['keystone_backend']['can_edit_user']` - Boolean to allow some user-related identity operations (default: true)
+* `openstack['dashboard']['keystone_backend']['can_edit_group']` - Boolean to allow some group-related identity operations (default: true)
+* `openstack['dashboard']['keystone_backend']['can_edit_project']` - Boolean to allow some project-related identity operations (default: true)
+* `openstack['dashboard']['keystone_backend']['can_edit_domain']` - Boolean to allow some domain-related identity operations (default: true)
+* `openstack['dashboard']['keystone_backend']['can_edit_role']` - Boolean to allow some role-related identity operations (default: true)
+
+Certificate
+-----------
+* `openstack['dashboard']['use_ssl']` - Toggle for using ssl with dashboard (default: true)
+* `openstack['dashboard']['ssl']['dir']` - Directory where ssl certs are stored on this system (default: platform dependent)
+* `openstack['dashboard']['ssl']['cert']` - Name to use when creating the ssl certificate
+* `openstack['dashboard']['ssl']['cert_url']` - If using an existing certificate, this is the URL to its location
+* `openstack['dashboard']['ssl']['key']` - Name to use when creating the ssl key
+* `openstack['dashboard']['ssl']['key_url']` - If using an existing certificate key, this is the URL to its location
+
+By default the openstack-dashboard cookbook ships with a self-signed certificate from a fake organization.
+It is possible to use a real production certificate from your organization by putting that certificate
+somewhere where the cookbook can download it from then simply passing in the URL of the certificate, and its
+corresponding key, using the 'cert_url' and 'key_url' attributes.
 
 Testing
 =====
 
-This cookbook uses [bundler](http://gembundler.com/), [berkshelf](http://berkshelf.com/), and [strainer](https://github.com/customink/strainer) to isolate dependencies and run tests.
+Please refer to the [TESTING.md](TESTING.md) for instructions for testing the cookbook.
 
-Tests are defined in Strainerfile.
+Berkshelf
+=====
 
-To run tests:
-
-    $ bundle install # install gem dependencies
-    $ bundle exec berks install # install cookbook dependencies
-    $ bundle exec strainer test # run tests
+Berks will resolve version requirements and dependencies on first run and
+store these in Berksfile.lock. If new cookbooks become available you can run
+`berks update` to update the references in Berksfile.lock. Berksfile.lock will
+be included in stable branches to provide a known good set of dependencies.
+Berksfile.lock will not be included in development branches to encourage
+development against the latest cookbooks.
 
 License and Author
 ==================
@@ -75,10 +108,16 @@ License and Author
 | **Author**           |  John Dewey (<jdewey@att.com>)                     |
 | **Author**           |  Matt Ray (<matt@opscode.com>)                     |
 | **Author**           |  Sean Gallagher (<sean.gallagher@att.com>)         |
+| **Author**           |  Chen Zhiwei (<zhiwchen@cn.ibm.com>)               |
+| **Author**           |  Jian Hua Geng (<gengjh@cn.ibm.com>)               |
+| **Author**           |  Ionut Artarisi (<iartarisi@suse.cz>)              |
+| **Author**           |  Eric Zhou (<iartarisi@suse.cz>)                   |
 |                      |                                                    |
 | **Copyright**        |  Copyright (c) 2012, Rackspace US, Inc.            |
 | **Copyright**        |  Copyright (c) 2012-2013, AT&T Services, Inc.      |
 | **Copyright**        |  Copyright (c) 2013, Opscode, Inc.                 |
+| **Copyright**        |  Copyright (c) 2013-2014, IBM, Corp.               |
+| **Copyright**        |  Copyright (c) 2013-2014, SUSE Linux GmbH.         |
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

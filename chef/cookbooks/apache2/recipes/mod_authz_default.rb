@@ -1,8 +1,8 @@
 #
 # Cookbook Name:: apache2
-# Recipe:: authz_default 
+# Recipe:: authz_default
 #
-# Copyright 2008-2009, Opscode, Inc.
+# Copyright 2008-2013, Opscode, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,4 @@
 # limitations under the License.
 #
 
-unless %w{debian}.include?(node['platform_family']) && node['platform_version'].to_f >= 14 then
-  print "load authz_default module"
-  apache_module "authz_default"
-else
-  print "do not load authz_default module"
-end
+apache_module 'authz_default'

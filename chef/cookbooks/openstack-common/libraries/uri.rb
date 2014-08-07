@@ -1,3 +1,5 @@
+# encoding: UTF-8
+
 #
 # Cookbook Name:: openstack-common
 # library:: uri
@@ -17,24 +19,28 @@
 # limitations under the License.
 #
 
-require "uri"
+require 'uri'
 
-module ::Openstack
-  # Returns a uri::URI from a hash. If the hash has a "uri" key, the value
+module ::Openstack # rubocop:disable Documentation
+  # Returns a uri::URI from a hash. If the hash has a 'uri' key, the value
   # of that is returned. If not, then the routine attempts to construct
-  # the URI from other parts of the hash, notably looking for keys of
-  # "host", "port", "scheme", and "path" to construct the URI.
+  # the URI from other parts of the hash.  The values of the 'port' and 'path'
+  # keys are used directly from the hash.  For the host, if the
+  # 'bind_interface' key is non-nil then it will use the first IP address on
+  # the specified interface, otherwise it will use the value of the 'host' key
+  # from the hash.
   #
-  # Returns nil if neither "uri" or "host" keys exist in the supplied
-  # hash.
-  def uri_from_hash hash
+  # Returns nil if the 'uri' key does not exist in the supplied hash and if
+  # the determined host is nil (both the values of the 'bind_interface' and
+  # 'host' keys are nil).
+  def uri_from_hash(hash)
     if hash['uri']
-      ::URI.parse hash['uri']
+      ::URI.parse ::URI.encode(hash['uri'])
     else
-      return nil unless hash['host']
+      host = address hash
+      return nil unless host
 
-      scheme = hash['scheme'] ? hash['scheme'] : "http"
-      host = hash['host']
+      scheme = hash['scheme'] ? hash['scheme'] : 'http'
       port = hash['port']  # Returns nil if missing, which is fine.
       path = hash['path']  # Returns nil if missing, which is fine.
       ::URI::Generic.new scheme, nil, host, port, nil, path, nil, nil, nil
@@ -48,9 +54,21 @@ module ::Openstack
     return nil if paths.length == 0
     leadingslash = paths[0][0] == '/' ? '/' : ''
     trailingslash = paths[-1][-1] == '/' ? '/' : ''
-    paths.map! { |path|
-      path = path.sub(/^\/+/,'').sub(/\/+$/,'')
-    }
+    paths.map! { |path| path.sub(/^\/+/, '').sub(/\/+$/, '') }
     leadingslash + paths.join('/') + trailingslash
+  end
+
+  def auth_uri_transform(auth_uri, auth_version)
+    case auth_version
+    when 'v2.0'
+      auth_uri
+    when 'v3.0'
+      # The auth_uri should contain /v2.0 in most cases, but if the
+      # auth_version is v3.0, we set it to v3. This is only necessary
+      # for environments that need to support V3 non-default-domain
+      # tokens, which is really the only reason to set version to
+      # something other than v2.0 (the default)
+      auth_uri.gsub('/v2.0', '/v3')
+    end
   end
 end

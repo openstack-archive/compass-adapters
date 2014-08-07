@@ -17,8 +17,7 @@
 # limitations under the License.
 #
 
-#default['build_essential']['compiletime'] = false
-default['build_essential']['compiletime'] = true
+default['build_essential']['compiletime'] = false
 
 case node['platform_family']
 when "mac_os_x"

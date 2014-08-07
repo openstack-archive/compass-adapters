@@ -35,7 +35,9 @@ class Chef
         def action_create
           unless exists?
             begin
-              db.query("CREATE USER `#{@new_resource.username}`@`#{@new_resource.host}` IDENTIFIED BY '#{@new_resource.password}'")
+              statement = "CREATE USER `#{@new_resource.username}`@`#{@new_resource.host}`"
+              statement += " IDENTIFIED BY '#{@new_resource.password}'" if @new_resource.password
+              db.query(statement)
               @new_resource.updated_by_last_action(true)
             ensure
               close
@@ -48,8 +50,6 @@ class Chef
             begin
               db.query("DROP USER `#{@new_resource.username}`@`#{@new_resource.host}`")
               @new_resource.updated_by_last_action(true)
-            rescue
-              Chef::Log.warn("The action_drop drop user failed: drop user '#{@new_resource.username}'@'#{@new_resource.host}'")
             ensure
               close
             end
@@ -67,8 +67,9 @@ class Chef
               filtered = '[FILTERED]'
             end
             grant_statement = "GRANT #{@new_resource.privileges.join(', ')} ON #{@new_resource.database_name && @new_resource.database_name != '*' ? "`#{@new_resource.database_name}`" : '*'}.#{@new_resource.table && @new_resource.table != '*' ? "`#{@new_resource.table}`" : '*'} TO `#{@new_resource.username}`@`#{@new_resource.host}` IDENTIFIED BY "
+            with_grant_option = @new_resource.grant_option == true ? ' WITH GRANT OPTION ' : ''
             Chef::Log.info("#{@new_resource}: granting access with statement [#{grant_statement}#{filtered}]")
-            db.query(grant_statement + password)
+            db.query(grant_statement + password + with_grant_option)
             @new_resource.updated_by_last_action(true)
           ensure
             close

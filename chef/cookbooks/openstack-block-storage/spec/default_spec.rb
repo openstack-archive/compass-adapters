@@ -1,4 +1,8 @@
-require_relative "spec_helper"
+# encoding: UTF-8
+#
+# Cookbook Name:: openstack-block-storage
 
-describe "openstack-block-storage::default" do
+require_relative 'spec_helper'
+
+describe 'openstack-block-storage::default' do
 end

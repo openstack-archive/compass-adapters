@@ -1,3 +1,4 @@
+# encoding: UTF-8
 #
 # Cookbook Name:: openstack-common
 # library:: default
@@ -17,112 +18,88 @@
 # limitations under the License.
 #
 
-include_recipe "openstack-common::databag"
-
-case node["platform_family"]
-when "debian"
-  apt_uri = node["openstack"]["apt"]["uri"]
-  apt_components = node["openstack"]["apt"]["components"]
-
-  # Simple variable substitution for LSB codename and OpenStack release
-  apt_components.each do | comp |
-    comp = comp.gsub "%release%", node["openstack"]["release"]
-    comp = comp.gsub "%codename%", node["lsb"]["codename"]
+platform_options = node['openstack']['common']['platform']
+case node['platform_family']
+when 'debian'
+  package 'ubuntu-cloud-keyring' do
+    options platform_options['package_overrides']
+    action :upgrade
   end
 
-  apt_repository "openstack-ppa" do
-    uri node["openstack"]["apt"]["uri"]
-    components apt_components
-  end
-
-  execute "apt-update" do
-    user "root"
-    command "apt-get -y update"
-    action :run
-  end
-
-  execute "apt-upgrade" do
-    user "root"
-    command "apt-get -y upgrade"
-    action :run
-  end
-
-  package "ubuntu-cloud-keyring" do
-    action :install
-  end
-
-when "suse"
-  if node["lsb"]["description"].nil?
-  # Workaround for SLE11
-  #
-  # On SLE11 ohai is broken and prefers lsb-release. We need to
-  # install it to be able to detect if recipe is run on openSUSE or SLES.
-  #
-  # https://bugzilla.novell.com/show_bug.cgi?id=809129
-  #
-  #
-    install_lsb_release = package "lsb-release" do
-      action :nothing
+  if node['openstack']['apt']['live_updates_enabled']
+    apt_components = node['openstack']['apt']['components']
+    # Simple variable substitution for LSB codename and OpenStack release
+    apt_components.each do | comp |
+      comp.gsub! '%release%', node['openstack']['release']
+      comp.gsub! '%codename%', node['lsb']['codename']
     end
-    reload_ohai = ohai "reload_lsb" do
-      action :nothing
+    apt_repository 'openstack-ppa' do
+      uri node['openstack']['apt']['uri']
+      components apt_components
     end
-    install_lsb_release.run_action(:install)
-    reload_ohai.run_action(:reload)
   end
-  if node["lsb"]["description"][/^SUSE Linux Enterprise Server/]
-    release, patchlevel = node["platform_version"].split(".")
+when 'rhel'
+
+  if node['openstack']['yum']['rdo_enabled']
+    repo_action = :add
+    include_recipe 'yum-epel'
+  elsif FileTest.exist? "/etc/yum.repos.d/RDO-#{node['openstack']['release']}.repo"
+    repo_action = :remove
+  else
+    repo_action = :nothing
+  end
+
+  yum_repository "RDO-#{node['openstack']['release']}" do
+    description "OpenStack RDO repo for #{node['openstack']['release']}"
+    gpgkey node['openstack']['yum']['repo-key']
+    baseurl node['openstack']['yum']['uri']
+    enabled true
+    action repo_action
+  end
+
+when 'suse'
+  if node['lsb']['description'].nil?
+    # Ohai lsb does not work at all on SLES11SP3
+    # See https://tickets.opscode.com/browse/OHAI-454
+    # Until then, copy chef's lsb_release parsing code from its lsb module.
+    package 'lsb-release'
+
+    Mixlib::ShellOut.new('lsb_release -a').run_command.stdout.split("\n").each do |line|
+      case line
+      when /^Description:\s+(.+)$/
+        node.set_unless['lsb']['description'] = Regexp.last_match[1]
+      when /^Release:\s+(.+)$/
+        node.set_unless['lsb']['release'] = Regexp.last_match[1]
+      end
+    end
+  end
+  if node['lsb']['description'][/^SUSE Linux Enterprise Server/]
+    release, patchlevel = node['platform_version'].split('.')
     zypp_release = "SLE_#{release}_SP#{patchlevel}"
-  elsif node["lsb"]["description"][/^openSUSE/]
-    zypp_release = "openSUSE_" + node["lsb"]["release"]
+  elsif node['lsb']['description'][/^openSUSE/]
+    zypp_release = 'openSUSE_' + node['lsb']['release']
   end
-  zypp = node["openstack"]["zypp"]
-  repo_uri = zypp["uri"].gsub(
-    "%release%", node["openstack"]["release"].capitalize)
-  repo_uri.gsub! "%suse-release%", zypp_release
-  repo_alias = "Cloud:OpenStack:" + node["openstack"]["release"].capitalize
+  zypp = node['openstack']['zypp']
+  repo_uri = zypp['uri'].gsub(
+    '%release%', node['openstack']['release'].capitalize)
+  repo_uri.gsub! '%suse-release%', zypp_release
+  repo_alias = 'Cloud:OpenStack:' + node['openstack']['release'].capitalize
 
   # TODO(iartarisi) this should be moved to its own cookbook
-  bash "add repository key" do
-    cwd "/tmp"
+  bash 'add repository key' do
+    cwd '/tmp'
     code <<-EOH
-      gpg --keyserver pgp.mit.edu --recv-keys #{zypp["repo-key"]}
-      gpg --armor --export #{zypp["repo-key"]} > cloud.asc
+      gpg --keyserver pgp.mit.edu --recv-keys #{zypp['repo-key']}
+      gpg --armor --export #{zypp['repo-key']} > cloud.asc
       rpm --import cloud.asc
       rm -f cloud.asc
     EOH
 
-    not_if { `rpm -qa gpg-pubkey*`.include? zypp["repo-key"].downcase }
+    not_if { Mixlib::ShellOut.new('rpm -qa gpg-pubkey*').run_command.stdout.include? zypp['repo-key'].downcase }
   end
 
-  execute "add repository" do
+  execute 'add repository' do
     command "zypper addrepo --check #{repo_uri} #{repo_alias}"
-    not_if { `zypper repos --export -`.include? repo_uri }
-  end
-    
-when "rhel", "fedora"
-  if node['platform_version'].to_f < 6.4
-    Chef::Log.error("The client(IP: #{node['ipaddress']}) OS #{node['platform']} #{node['platform_version']} is lower than 6.4")
-    return
-  end
-
-  # add epel repo
-  include_recipe "yum::epel"
-
-  # add repoforge repo
-  # include_recipe "yum::repoforge"  
-  
-  yum_repository "openstack" do
-    description "redhat packages for openstack"  
-    url node["openstack"]["yum"]["openstack"]["url"]
-    # mirrorlist true
-    action :create
-  end
-  
-  execute "yum-update" do
-    user "root"
-    command "yum -y update"
-    action :run
+    not_if { Mixlib::ShellOut.new('zypper repos --export -').run_command.stdout.include? repo_uri }
   end
 end
-

@@ -1,37 +1,74 @@
 <%= node["openstack"]["compute"]["custom_template_banner"] %>
 
 [DEFAULT]
+
 # LOGS/STATE
 debug=<%= node["openstack"]["compute"]["debug"] %>
 verbose=<%= node["openstack"]["compute"]["verbose"] %>
 auth_strategy=<%= node["openstack"]["compute"]["api"]["auth_strategy"] %>
 dhcpbridge_flagfile=/etc/nova/nova.conf
 dhcpbridge=/usr/bin/nova-dhcpbridge
-logdir=/var/log/nova
+log_dir=<%= node["openstack"]["compute"]["log_dir"] %>
 <% if node["openstack"]["compute"]["syslog"]["use"] %>
 log_config = /etc/openstack/logging.conf
 <% end %>
-state_path=/var/lib/nova
-lock_path=/var/lock/nova
+state_path=<%= node["openstack"]["compute"]["state_path"] %>
+instances_path=<%= node["openstack"]["compute"]["instances_path"] %>
+instance_name_template=<%= node["openstack"]["compute"]["instance_name_template"] %>
+network_allocate_retries=<%= node['openstack']['compute']['network_allocate_retries'] %>
+lock_path=<%= node["openstack"]["compute"]["lock_path"] %>
 
+# Command prefix to use for running commands as root (default: sudo)
+rootwrap_config=/etc/nova/rootwrap.conf
+
+# Should unused base images be removed? (default: false)
+remove_unused_base_images=<%= node["openstack"]["compute"]["libvirt"]["remove_unused_base_images"] %>
+
+# Unused unresized base images younger than this will not be removed (default: 86400)
+remove_unused_original_minimum_age_seconds=<%= node["openstack"]["compute"]["libvirt"]["remove_unused_original_minimum_age_seconds"] %>
+
+# Options defined in nova.openstack.common.rpc
+rpc_thread_pool_size=<%= node["openstack"]["compute"]["rpc_thread_pool_size"] %>
+rpc_conn_pool_size=<%= node["openstack"]["compute"]["rpc_conn_pool_size"] %>
+rpc_response_timeout=<%= node["openstack"]["compute"]["rpc_response_timeout"] %>
+rpc_backend=<%= node["openstack"]["compute"]["rpc_backend"] %>
+amqp_durable_queues=<%= node['openstack']['mq']['compute']['durable_queues'] %>
+amqp_auto_delete=<%= node['openstack']['mq']['compute']['auto_delete'] %>
+
+<% if @mq_service_type == "rabbitmq"  %>
 ##### RABBITMQ #####
-rabbit_userid=<%= node['openstack']['mq']['user'] %>
-rabbit_password=<%= node['openstack']['mq']['password'] %>
-# rabbit_virtual_host=<%= node["openstack"]["compute"]["rabbit"]["vhost"] %>
-<% if node["openstack"]["compute"]["rabbit"]["ha"] -%>
+rabbit_userid=<%= node["openstack"]["mq"]["compute"]["rabbit"]["userid"] %>
+rabbit_password=<%= @mq_password %>
+rabbit_virtual_host=<%= node["openstack"]["mq"]["compute"]["rabbit"]["vhost"] %>
+<% if node["openstack"]["mq"]["compute"]["rabbit"]["ha"] -%>
 rabbit_hosts=<%= @rabbit_hosts %>
 rabbit_ha_queues=True
 <% else -%>
-rabbit_host=<%= node['openstack']['mq']['bind_address'] %>
-rabbit_port=<%= node['openstack']['mq']['port'] %>
+rabbit_host=<%= node["openstack"]["mq"]["compute"]["rabbit"]["host"] %>
+rabbit_port=<%= node["openstack"]["mq"]["compute"]["rabbit"]["port"] %>
+rabbit_use_ssl=<%= node["openstack"]["mq"]["compute"]["rabbit"]["use_ssl"] %>
 <% end -%>
-# Seconds to wait before a cast expires (TTL). Only supported
-# by impl_zmq. (integer value)
-rpc_cast_timeout=300
-# Seconds to wait for a response from a call. (integer value)
-rpc_response_timeout=300
-# Size of RPC connection pool. (integer value)
-rpc_conn_pool_size=100
+<% end -%>
+
+<% if @mq_service_type == "qpid"  %>
+##### QPID #####
+qpid_hostname=<%= node["openstack"]["mq"]["compute"]["qpid"]["host"] %>
+qpid_port=<%= node["openstack"]["mq"]["compute"]["qpid"]["port"] %>
+qpid_password=<%= @mq_password %>
+qpid_username=<%= node["openstack"]["mq"]["compute"]["qpid"]["username"] %>
+qpid_sasl_mechanisms=<%= node["openstack"]["mq"]["compute"]["qpid"]["sasl_mechanisms"] %>
+qpid_reconnect_timeout=<%= node["openstack"]["mq"]["compute"]["qpid"]["reconnect_timeout"] %>
+qpid_reconnect_limit=<%= node["openstack"]["mq"]["compute"]["qpid"]["reconnect_limit"] %>
+qpid_reconnect_interval_min=<%= node["openstack"]["mq"]["compute"]["qpid"]["reconnect_interval_min"] %>
+qpid_reconnect_interval_max=<%= node["openstack"]["mq"]["compute"]["qpid"]["reconnect_interval_max"] %>
+qpid_reconnect_interval=<%= node["openstack"]["mq"]["compute"]["qpid"]["reconnect_interval"] %>
+qpid_heartbeat=<%= node["openstack"]["mq"]["compute"]["qpid"]["heartbeat"] %>
+# qpid protocol. default 'tcp'. set to 'ssl' to enable SSL
+qpid_protocol=<%= node["openstack"]["mq"]["compute"]["qpid"]["protocol"] %>
+qpid_tcp_nodelay=<%= node["openstack"]["mq"]["compute"]["qpid"]["tcp_nodelay"] %>
+qpid_topology_version=<%= node['openstack']['mq']['compute']['qpid']['topology_version'] %>
+<% end %>
+
 
 ##### SCHEDULER #####
 # scheduler_manager=nova.scheduler.manager.SchedulerManager
@@ -44,56 +81,47 @@ default_schedule_zone=<%= node["openstack"]["compute"]["config"]["default_schedu
 storage_availability_zone=<%= node["openstack"]["compute"]["config"]["storage_availability_zone"] %>
 
 ##### NETWORK #####
+
+
 <% case node["openstack"]["compute"]["network"]["service_type"]
 
-when "quantum" -%>
+when "neutron" -%>
+
 # N.B. due to https://bugs.launchpad.net/nova/+bug/1206330
 # we override the endpoint scheme below, ignore the port
 # and essentially force http
 <% if @network_endpoint.port == 443 -%>
-quantum_url=http://<%= @network_endpoint.host %>:80
+neutron_url=http://<%= @network_endpoint.host %>:80
 <% else -%>
-quantum_url=http://<%= @network_endpoint.host %>:<%= @network_endpoint.port %>
+neutron_url=http://<%= @network_endpoint.host %>:<%= @network_endpoint.port %>
 <% end -%>
-network_api_class=<%= node["openstack"]["compute"]["network"]["quantum"]["network_api_class"]  %>
-quantum_auth_strategy=<%= node["openstack"]["compute"]["network"]["quantum"]["auth_strategy"] %>
-quantum_admin_tenant_name=<%= node['openstack']['identity']['network']['tenant'] %>
-quantum_admin_username=<%= node['openstack']['identity']['network']['username'] %>
-quantum_admin_password=<%= node['openstack']['identity']['network']['password'] %>
-quantum_admin_auth_url=<%= @identity_endpoint.to_s %>
-libvirt_vif_driver=<%= node["openstack"]["compute"]["network"]["quantum"]["libvirt_vif_driver"] %>
-linuxnet_interface_driver=<%= node["openstack"]["compute"]["network"]["quantum"]["linuxnet_interface_driver"] %>
+network_api_class=<%= node["openstack"]["compute"]["network"]["neutron"]["network_api_class"]  %>
+neutron_auth_strategy=<%= node["openstack"]["compute"]["network"]["neutron"]["auth_strategy"] %>
+neutron_admin_tenant_name=<%= node["openstack"]["compute"]["network"]["neutron"]["admin_tenant_name"] %>
+neutron_admin_username=<%= node["openstack"]["compute"]["network"]["neutron"]["admin_username"] %>
+neutron_admin_password=<%= @neutron_admin_password %>
+neutron_admin_auth_url=<%= @identity_endpoint.to_s %>
+linuxnet_interface_driver=<%= node["openstack"]["compute"]["network"]["neutron"]["linuxnet_interface_driver"] %>
 firewall_driver = nova.virt.firewall.NoopFirewallDriver
-security_group_api=<%= node["openstack"]["compute"]["network"]["quantum"]["security_group_api"] %>
-service_quantum_metadata_proxy=<%= node["openstack"]["compute"]["network"]["quantum"]["service_quantum_metadata_proxy"] %>
-quantum_metadata_proxy_shared_secret=<%= @quantum_metadata_proxy_shared_secret %>
-default_floating_pool=<%= node["openstack"]["compute"]["network"]["quantum"]["public_network_name"] %>
-dns_server=<%= node["openstack"]["compute"]["network"]["quantum"]["dns_server"] %>
+security_group_api=<%= node["openstack"]["compute"]["network"]["neutron"]["security_group_api"] %>
+service_neutron_metadata_proxy=<%= node["openstack"]["compute"]["network"]["neutron"]["service_neutron_metadata_proxy"] %>
+neutron_metadata_proxy_shared_secret=<%= @neutron_metadata_proxy_shared_secret %>
+default_floating_pool=<%= node["openstack"]["compute"]["network"]["neutron"]["public_network_name"] %>
+dns_server=<%= node["openstack"]["compute"]["network"]["neutron"]["dns_server"] %>
 
 <% when "nova" -%>
 multi_host=<%= node["openstack"]["compute"]["network"]["multi_host"] %>
 network_manager=<%= node["openstack"]["compute"]["network"]["network_manager"] %>
 public_interface=<%= node["openstack"]["compute"]["network"]["public_interface"] %>
-fixed_range=<%= node["openstack"]["compute"]["network"]["fixed_range"] %>
 dmz_cidr=<%= node["openstack"]["compute"]["network"]["dmz_cidr"] %>
-<% if %w(fedora redhat centos).include? node.platform -%>
-# https://bugzilla.redhat.com/show_bug.cgi?id=788485 - not released in epel yet
-force_dhcp_release=false
-<% else -%>
-force_dhcp_release=true
-<% end -%>
+force_dhcp_release=<%= node["openstack"]["compute"]["network"]["force_dhcp_release"] %>
 <% if node["openstack"]["compute"]["dhcp_domain"] -%>
 dhcp_domain=<%= node["openstack"]["compute"]["dhcp_domain"] %>
 <% end %>
 send_arp_for_ha=true
 use_single_default_gateway=<%= node["openstack"]["compute"]["network"]["use_single_default_gateway"] %>
-<% if node["openstack"]["compute"]["libvirt"]["virt_type"] == "qemu" -%>
-libvirt_use_virtio_for_bridges=false
-<% else -%>
-libvirt_use_virtio_for_bridges=true
-<% end -%>
 vlan_interface=<%= node["openstack"]["compute"]["network"]["vlan_interface"] %>
-
+auto_assign_floating_ip=<%= node["openstack"]["compute"]["network"]["auto_assign_floating_ip"] %>
 <% end -%>
 
 ##### GLANCE #####
@@ -102,35 +130,59 @@ glance_api_servers=<%= @glance_api_ipaddress %>:<%= @glance_api_port %>
 
 ##### COMPUTE #####
 compute_driver=<%= node["openstack"]["compute"]["driver"] %>
+<% if node["openstack"]["compute"]["default_ephemeral_format"] %>
+default_ephemeral_format=<%= node["openstack"]["compute"]["default_ephemeral_format"] %>
+<% end %>
+preallocate_images=<%= node["openstack"]["compute"]["preallocate_images"] %>
+use_cow_images=<%= node["openstack"]["compute"]["use_cow_images"] %>
+vif_plugging_is_fatal=<%= node["openstack"]["compute"]["vif_plugging_is_fatal"] %>
+vif_plugging_timeout=<%= node["openstack"]["compute"]["vif_plugging_timeout"] %>
 compute_manager=nova.compute.manager.ComputeManager
 sql_connection=<%= @sql_connection %>
-sql_max_pool_size=100
-sql_max_overflow=100
 connection_type=libvirt
-libvirt_inject_password=True
-libvirt_type=<%= node["openstack"]["compute"]["libvirt"]["virt_type"] %>
-# Command prefix to use for running commands as root (default: sudo)
-rootwrap_config=/etc/nova/rootwrap.conf
-# Should unused base images be removed? (default: false)
-remove_unused_base_images=<%= node["openstack"]["compute"]["libvirt"]["remove_unused_base_images"] %>
-# Unused resized base images younger than this will not be removed (default: 3600)
-remove_unused_resized_minimum_age_seconds=<%= node["openstack"]["compute"]["libvirt"]["remove_unused_resized_minimum_age_seconds"] %>
-# Unused unresized base images younger than this will not be removed (default: 86400)
-remove_unused_original_minimum_age_seconds=<%= node["openstack"]["compute"]["libvirt"]["remove_unused_original_minimum_age_seconds"] %>
-# Write a checksum for files in _base to disk (default: false)
-checksum_base_images=<%= node["openstack"]["compute"]["libvirt"]["checksum_base_images"] %>
+
+##### NOTIFICATIONS #####
+<% if node['openstack']['compute']['config']['notification_drivers'] %>
+# Driver or drivers to handle sending notifications (multi valued)
+<% node['openstack']['compute']['config']['notification_drivers'].each do |d| %>
+notification_driver=<%= d %>
+<% end %>
+<% end %>
+
+# Generate periodic compute.instance.exists notifications
+instance_usage_audit=<%= node['openstack']['compute']['config']['instance_usage_audit'] %>
+
+# Time period to generate instance usages for.  Time period
+# must be hour, day, month or year (string value)
+instance_usage_audit_period=<%= node['openstack']['compute']['config']['instance_usage_audit_period'] %>
+
+<% unless node['openstack']['compute']['config']['notify_on_state_change'].empty? -%>
+# If set, send compute.instance.update notifications on
+# instance state changes.  Valid values are None for no
+# notifications, "vm_state" for notifications on VM state
+# changes, or "vm_and_task_state" for notifications on VM and
+# task state changes. (string value)
+notify_on_state_change=<%= node['openstack']['compute']['config']['notify_on_state_change'] %>
+<% end %>
+
+<% if node["openstack"]["compute"]["enabled_apis"].include?("osapi_compute") -%>
+# The IP address on which the OpenStack API will listen. (string value)
+osapi_compute_listen=<%= @compute_api_bind_ip %>
+# The port on which the OpenStack API will listen. (integer value)
+osapi_compute_listen_port=<%= @compute_api_bind_port %>
+<% end -%>
 
 ##### VNCPROXY #####
 novncproxy_base_url=<%= @novncproxy_base_url %>
-#xvpvncproxy_base_url=<%= @xvpvncproxy_base_url %>
+xvpvncproxy_base_url=<%= @xvpvncproxy_base_url %>
 
 # This is only required on the server running xvpvncproxy
-# xvpvncproxy_host=<%= node['openstack']['endpoints']['compute-xvpvnc']['host'] %>
-# xvpvncproxy_port=<%= node['openstack']['endpoints']['compute-xvpvnc']['port'] %>
+xvpvncproxy_host=<%= @xvpvncproxy_bind_host %>
+xvpvncproxy_port=<%= @xvpvncproxy_bind_port %>
 
 # This is only required on the server running novncproxy
-#novncproxy_host=<%= node['openstack']['endpoints']['compute-novnc']['host'] %>
-novncproxy_port=<%= node['openstack']['endpoints']['compute-novnc']['port'] %>
+novncproxy_host=<%= @novncproxy_bind_host %>
+novncproxy_port=<%= @novncproxy_bind_port %>
 
 vncserver_listen=<%= @vncserver_listen %>
 vncserver_proxyclient_address=<%= @vncserver_proxyclient_address %>
@@ -151,9 +203,9 @@ osapi_max_limit=<%= node["openstack"]["compute"]["config"]["osapi_max_limit"] %>
 # URIs returned in the various links collections to contain the proper
 # HTTPS endpoint.
 osapi_compute_link_prefix = <%= @osapi_compute_link_prefix %>
-snapshot_image_format=<%= node["openstack"]["compute"]["config"]["snapshot_image_format"] %>
 start_guests_on_host_boot=<%= node["openstack"]["compute"]["config"]["start_guests_on_host_boot"] %>
 resume_guests_state_on_host_boot=<%= node["openstack"]["compute"]["config"]["resume_guests_state_on_host_boot"] %>
+allow_resize_to_same_host=<%= node["openstack"]["compute"]["config"]["allow_resize_to_same_host"] %>
 
 ##### QUOTAS #####
 # (StrOpt) default driver to use for quota checks (default: nova.quota.DbQuotaDriver)
@@ -195,33 +247,60 @@ cpu_allocation_ratio=<%= node["openstack"]["compute"]["config"]["cpu_allocation_
 # virtual ram to physical ram allocation ratio (default: 1.5)
 ram_allocation_ratio=<%= node["openstack"]["compute"]["config"]["ram_allocation_ratio"] %>
 <%- end %>
+<%- if /DiskFilter/.match(@scheduler_default_filters) %>
+# virtual disk to physical disk allocation ratio (default: 1.0)
+disk_allocation_ratio=<%= node["openstack"]["compute"]["config"]["disk_allocation_ratio"] %>
+<%- end %>
 <%- elsif /SimpleScheduler/.match(node["openstack"]["compute"]["scheduler"]["scheduler_driver"]) %>
 # SimpleScheduler Only Options
 # maximum number of instance cores to allow per host
 max_cores=<%= node["openstack"]["compute"]["config"]["cpu_allocation_ratio"].to_i * node["cpu"]["total"].to_i %>
 <%- end %>
 
-# If true, force creation of config drive regardless of if --config-drive was specified in the API call
+<% if node["openstack"]["compute"]["config"]["force_config_drive"] %>
 force_config_drive=<%= node["openstack"]["compute"]["config"]["force_config_drive"] %>
+<% end %>
+mkisofs_cmd=<%= node["openstack"]["compute"]["config"]["mkisofs_cmd"] %>
+injected_network_template=<%= node["openstack"]["compute"]["config"]["injected_network_template"] %>
 
-<% if %w(fedora redhat centos).include? node.platform -%>
+<% if node["openstack"]["compute"]["enabled_apis"].include?("ec2") %>
+# The IP address on which the EC2 API will listen. (string value)
+ec2_listen=<%= @ec2_api_bind_ip %>
+# The port on which the EC2 API will listen. (integer value)
+ec2_listen_port=<%= @ec2_api_bind_port %>
+
+<% if %w(fedora rhel).include? node.platform_family -%>
 # Adding support for non-modded euca2ools to display ip address info
 # https://bugs.launchpad.net/nova/+bug/901594
 ec2_private_dns_show_ip=True
 <% end -%>
 
 ##### WORKERS ######
-ec2_workers=<%= node["cpu"]["total"] %>
-osapi_compute_workers=<%= node["cpu"]["total"] %>
-metadata_workers=<%= node["cpu"]["total"] %>
+<% if node["openstack"]["compute"]["ec2_workers"] %>
+ec2_workers=<%= node["openstack"]["compute"]["ec2_workers"] %>
+<% end %>
 
 ##### KEYSTONE #####
 keystone_ec2_url=<%= @identity_endpoint.scheme %>://<%= @identity_endpoint.host %>:<%= @identity_endpoint.port %>/v2.0/ec2tokens
+<% end -%>
+
+# a list of APIs to enable by default (list value)
+enabled_apis=<%= node["openstack"]["compute"]["enabled_apis"] %>
+
+##### WORKERS ######
+<% if node["openstack"]["compute"]["osapi_compute_workers"] %>
+osapi_compute_workers=<%= node["openstack"]["compute"]["osapi_compute_workers"] %>
+<% end %>
+<% if node["openstack"]["compute"]["metadata_workers"] %>
+metadata_workers=<%= node["openstack"]["compute"]["metadata_workers"] %>
+<% end %>
 
 ##### VOLUMES #####
 # iscsi target user-land tool to use
 iscsi_helper=<%= @iscsi_helper %>
 volume_api_class=<%= node["openstack"]["compute"]["config"]["volume_api_class"] %>
+# Region name of this node (string value)
+os_region_name=<%= node['openstack']['region'] %>
 
 ##### THIRD PARTY ADDITIONS #####
 <% if node["openstack"]["compute"]["plugins"] %>
@@ -230,6 +309,273 @@ osapi_compute_extension=<%= p %>
 <% end %>
 <% end %>
 
+<% if node["openstack"]["compute"]["misc_nova"] %>
+<% node["openstack"]["compute"]["misc_nova"].each do |m| %>
+<%= m %>
+<% end %>
+<% end %>
+
 [conductor]
 
 use_local=<%= node["openstack"]["compute"]["conductor"]["use_local"] %>
+<% if node["openstack"]["compute"]["conductor"]["workers"] %>
+workers=<%= node["openstack"]["compute"]["conductor"]["workers"] %>
+<% end %>
+
+<% if %w(vmwareapi.VMwareESXDriver vmwareapi.VMwareVCDriver).include?(node['openstack']['compute']['driver']) %>
+[vmware]
+
+#
+# Options defined in nova.virt.vmwareapi.driver
+#
+
+# URL for connection to VMware ESX/VC host. (string value)
+host_ip = <%= node['openstack']['compute']['vmware']['host_ip'] %>
+
+# Username for connection to VMware ESX/VC host. (string
+# value)
+host_username = <%= node['openstack']['compute']['vmware']['host_username'] %>
+
+# Password for connection to VMware ESX/VC host. (string
+# value)
+host_password = <%= @vmware_host_pass %>
+
+<% if node['openstack']['compute']['vmware']['cluster_name'] %>
+# Name of a VMware Cluster ComputeResource. Used only if
+# compute_driver is vmwareapi.VMwareVCDriver. (multi valued)
+  <% node['openstack']['compute']['vmware']['cluster_name'].each do |cluster| %>
+cluster_name = <%= cluster %>
+  <% end %>
+<% end %>
+
+<% if node['openstack']['compute']['vmware']['datastore_regex'] %>
+# Regex to match the name of a datastore. (string value)
+datastore_regex = <%= node['openstack']['compute']['vmware']['datastore_regex'] %>
+<% end %>
+
+# The interval used for polling of remote tasks. (floating
+# point value)
+task_poll_interval = <%= node['openstack']['compute']['vmware']['task_poll_interval'] %>
+
+# The number of times we retry on failures, e.g., socket
+# error, etc. (integer value)
+api_retry_count = <%= node['openstack']['compute']['vmware']['api_retry_count'] %>
+
+# VNC starting port (integer value)
+vnc_port = <%= node['openstack']['compute']['vmware']['vnc_port'] %>
+
+# Total number of VNC ports (integer value)
+vnc_port_total = <%= node['openstack']['compute']['vmware']['vnc_port_total'] %>
+
+# Whether to use linked clone (boolean value)
+use_linked_clone = <%= node['openstack']['compute']['vmware']['use_linked_clone'] %>
+
+
+#
+# Options defined in nova.virt.vmwareapi.vif
+#
+
+# Physical ethernet adapter name for vlan networking (string
+# value)
+vlan_interface = <%= node['openstack']['compute']['vmware']['vlan_interface'] %>
+
+
+<% if node['openstack']['compute']['vmware']['wsdl_location'] %>
+#
+# Options defined in nova.virt.vmwareapi.vim
+#
+# Optional VIM Service WSDL Location e.g
+# http://<server>/vimService.wsdl. Optional over-ride to
+# default location for bug work-arounds (string value)
+wsdl_location = <%= node['openstack']['compute']['vmware']['wsdl_location'] %>
+<% end %>
+
+#
+# Options defined in nova.virt.vmwareapi.vim_util
+#
+
+# The maximum number of ObjectContent data objects that should
+# be returned in a single result. A positive value will cause
+# the operation to suspend the retrieval when the count of
+# objects reaches the specified maximum. The server may still
+# limit the count to something less than the configured value.
+# Any remaining objects may be retrieved with additional
+# requests. (integer value)
+maximum_objects = <%= node['openstack']['compute']['vmware']['maximum_objects'] %>
+
+
+#
+# Options defined in nova.virt.vmwareapi.vmops
+#
+
+# Name of Integration Bridge (string value)
+integration_bridge = <%= node['openstack']['compute']['vmware']['integration_bridge'] %>
+<% end %>
+
+[libvirt]
+
+#
+# Options defined in nova.virt.libvirt.driver
+#
+
+# Rescue ami image (string value)
+#rescue_image_id=<None>
+
+# Rescue aki image (string value)
+#rescue_kernel_id=<None>
+
+# Rescue ari image (string value)
+#rescue_ramdisk_id=<None>
+
+# Libvirt domain type (valid options are: kvm, lxc, qemu, uml,
+# xen) (string value)
+# Deprecated group/name - [DEFAULT]/libvirt_type
+virt_type=<%= node["openstack"]["compute"]["libvirt"]["virt_type"] %>
+
+# Override the default libvirt URI (which is dependent on
+# virt_type) (string value)
+# Deprecated group/name - [DEFAULT]/libvirt_uri
+#connection_uri=
+
+# Inject the admin password at boot time, without an agent.
+# (boolean value)
+# Deprecated group/name - [DEFAULT]/libvirt_inject_password
+inject_password=<%= node["openstack"]["compute"]["libvirt"]["libvirt_inject_password"] %>
+
+# Inject the ssh public key at boot time (boolean value)
+# Deprecated group/name - [DEFAULT]/libvirt_inject_key
+inject_key=<%= node["openstack"]["compute"]["libvirt"]["libvirt_inject_key"] %>
+
+# The partition to inject to : -2 => disable, -1 => inspect
+# (libguestfs only), 0 => not partitioned, >0 => partition
+# number (integer value)
+# Deprecated group/name - [DEFAULT]/libvirt_inject_partition
+#inject_partition=-2
+
+# Sync virtual and real mouse cursors in Windows VMs (boolean
+# value)
+#use_usb_tablet=true
+
+# Migration target URI (any included "%s" is replaced with the
+# migration target hostname) (string value)
+#live_migration_uri=qemu+tcp://%s/system
+
+# Migration flags to be set for live migration (string value)
+#live_migration_flag=VIR_MIGRATE_UNDEFINE_SOURCE, VIR_MIGRATE_PEER2PEER
+
+# Migration flags to be set for block migration (string value)
+#block_migration_flag=VIR_MIGRATE_UNDEFINE_SOURCE, VIR_MIGRATE_PEER2PEER, VIR_MIGRATE_NON_SHARED_INC
+
+# Maximum bandwidth to be used during migration, in Mbps
+# (integer value)
+#live_migration_bandwidth=0
+
+# Snapshot image format (valid options are : raw, qcow2, vmdk,
+# vdi). Defaults to same as source image (string value)
+snapshot_image_format=<%= node["openstack"]["compute"]["config"]["snapshot_image_format"] %>
+
+# The libvirt VIF driver to configure the VIFs. (string value)
+# Deprecated group/name - [DEFAULT]/libvirt_vif_driver
+vif_driver=<%= node["openstack"]["compute"]["network"]["neutron"]["libvirt_vif_driver"] %>
+
+# Libvirt handlers for remote volumes. (list value)
+# Deprecated group/name - [DEFAULT]/libvirt_volume_drivers
+#volume_drivers=iscsi=nova.virt.libvirt.volume.LibvirtISCSIVolumeDriver,iser=nova.virt.libvirt.volume.LibvirtISERVolumeDriver,local=nova.virt.libvirt.volume.LibvirtVolumeDriver,fake=nova.virt.libvirt.volume.LibvirtFakeVolumeDriver,rbd=nova.virt.libvirt.volume.LibvirtNetVolumeDriver,sheepdog=nova.virt.libvirt.volume.LibvirtNetVolumeDriver,nfs=nova.virt.libvirt.volume.LibvirtNFSVolumeDriver,aoe=nova.virt.libvirt.volume.LibvirtAOEVolumeDriver,glusterfs=nova.virt.libvirt.volume.LibvirtGlusterfsVolumeDriver,fibre_channel=nova.virt.libvirt.volume.LibvirtFibreChannelVolumeDriver,scality=nova.virt.libvirt.volume.LibvirtScalityVolumeDriver
+
+# Override the default disk prefix for the devices attached to
+# a server, which is dependent on virt_type. (valid options
+# are: sd, xvd, uvd, vd) (string value)
+# Deprecated group/name - [DEFAULT]/libvirt_disk_prefix
+#disk_prefix=<None>
+
+# Number of seconds to wait for instance to shut down after
+# soft reboot request is made. We fall back to hard reboot if
+# instance does not shutdown within this window. (integer
+# value)
+# Deprecated group/name - [DEFAULT]/libvirt_wait_soft_reboot_seconds
+#wait_soft_reboot_seconds=120
+
+# Set to "host-model" to clone the host CPU feature flags; to
+# "host-passthrough" to use the host CPU model exactly; to
+# "custom" to use a named CPU model; to "none" to not set any
+# CPU model. If virt_type="kvm|qemu", it will default to
+# "host-model", otherwise it will default to "none" (string
+# value)
+# Deprecated group/name - [DEFAULT]/libvirt_cpu_mode
+<% if node["openstack"]["compute"]["libvirt"]["virt_type"] == "qemu" -%>
+cpu_mode=none
+<% end -%>
+
+# Set to a named libvirt CPU model (see names listed in
+# /usr/share/libvirt/cpu_map.xml). Only has effect if
+# cpu_mode="custom" and virt_type="kvm|qemu" (string value)
+# Deprecated group/name - [DEFAULT]/libvirt_cpu_model
+#cpu_model=<none>
+
+# Location where libvirt driver will store snapshots before
+# uploading them to image service (string value)
+# Deprecated group/name - [DEFAULT]/libvirt_snapshots_directory
+#snapshots_directory=$instances_path/snapshots
+
+# Location where the Xen hvmloader is kept (string value)
+#xen_hvmloader_path=/usr/lib/xen/boot/hvmloader
+
+# Specific cachemodes to use for different disk types e.g:
+# file=directsync,block=none (list value)
+<% if node["openstack"]["compute"]["config"]["disk_cachemodes"] %>
+disk_cachemodes=<%= node["openstack"]["compute"]["config"]["disk_cachemodes"] %>
+<% end %>
+
+# A path to a device that will be used as source of entropy on
+# the host. Permitted options are: /dev/random or /dev/hwrng
+# (string value)
+#rng_dev_path=<None>
+
+#
+# Options defined in nova.virt.libvirt.imagecache
+#
+
+# Unused resized base images younger than this will not be removed (default: 3600)
+remove_unused_resized_minimum_age_seconds=<%= node["openstack"]["compute"]["libvirt"]["remove_unused_resized_minimum_age_seconds"] %>
+
+# Write a checksum for files in _base to disk (default: false)
+checksum_base_images=<%= node["openstack"]["compute"]["libvirt"]["checksum_base_images"] %>
+
+#
+# Options defined in nova.virt.libvirt.vif
+#
+
+<% if node["openstack"]["compute"]["libvirt"]["virt_type"] == "qemu" -%>
+use_virtio_for_bridges=false
+<% else -%>
+use_virtio_for_bridges=true
+<% end -%>
+
+#
+# Options defined in nova.virt.libvirt.imagebackend
+#
+
+# VM Images format. Acceptable values are: raw, qcow2, lvm, rbd, default. If default is specified,
+# then use_cow_images flag is used instead of this one.
+images_type=<%= node['openstack']['compute']['libvirt']['images_type'] %>
+
+<% if node['openstack']['compute']['libvirt']['images_type'] == 'lvm' -%>
+images_volume_group=<%= node['openstack']['compute']['libvirt']['volume_group'] %>
+sparse_logical_volumes=<%= node['openstack']['compute']['libvirt']['sparse_logical_volumes'] %>
+
+<% elsif node['openstack']['compute']['libvirt']['images_type'] == 'rbd' -%>
+images_rbd_pool=<%= node['openstack']['compute']['libvirt']['images_rbd_pool'] %>
+images_rbd_ceph_conf=<%= node['openstack']['compute']['libvirt']['images_rbd_ceph_conf'] %>
+
+#
+# Options defined in nova.virt.libvirt.volume
+#
+
+# The RADOS client name for accessing rbd volumes (string value)
+# NOTE that if these two options are set here, it will override the rbd_user that cinder provides
+# for nova in netdisk_properties:
+# https://github.com/openstack/nova/blob/c15dff2e9978fe851c73e92ab7f9b46e27de81ba/nova/virt/libvirt/volume.py#L217-L229
+rbd_user=<%= node['openstack']['compute']['libvirt']['rbd']['rbd_user'] %>
+# The libvirt UUID of the secret for the rbd images (string value)
+rbd_secret_uuid=<%= @rbd_secret_uuid %>
+<% end -%>

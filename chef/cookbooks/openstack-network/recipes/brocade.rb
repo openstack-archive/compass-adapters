@@ -1,3 +1,4 @@
+# Encoding: utf-8
 #
 # Cookbook Name:: openstack-network
 # Recipe:: brocade
@@ -17,4 +18,6 @@
 # limitations under the License.
 #
 
-include_recipe "openstack-network::common"
+['quantum', 'neutron'].include?(node['openstack']['compute']['network']['service_type']) || return
+
+include_recipe 'openstack-network::common'

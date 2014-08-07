@@ -1,14 +1,16 @@
+# encoding: UTF-8
 require_relative 'spec_helper'
 
-describe "openstack-ops-messaging::server" do
-  before { ops_messaging_stubs }
-  describe "ubuntu" do
+describe 'openstack-ops-messaging::server' do
+  describe 'ubuntu' do
+    let(:runner) { ChefSpec::Runner.new(UBUNTU_OPTS) }
+    let(:node) { runner.node }
+    let(:chef_run) { runner.converge(described_recipe) }
 
-    it "uses proper messaging server recipe" do
-      chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS
-      chef_run.converge "openstack-ops-messaging::server"
+    include_context 'ops_messaging_stubs'
 
-      expect(chef_run).to include_recipe "openstack-ops-messaging::rabbitmq-server"
+    it 'uses proper messaging server recipe' do
+      expect(chef_run).to include_recipe 'openstack-ops-messaging::rabbitmq-server'
     end
   end
 end

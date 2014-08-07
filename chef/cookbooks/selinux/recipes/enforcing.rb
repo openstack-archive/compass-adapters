@@ -18,16 +18,8 @@
 # limitations under the License.
 #
 
-execute "enable selinux enforcement" do
-  not_if "getenforce | egrep -qx 'Enforcing|Disabled'"
-  command "setenforce 1"
-  action :run
-end
+include_recipe 'selinux::_common'
 
-template "/etc/selinux/config" do
-  source "sysconfig/selinux.erb"
-  variables(
-    :selinux => "enforcing",
-    :selinuxtype => "targeted"
-  )
+selinux_state "SELinux Enforcing" do
+  action :enforcing
 end

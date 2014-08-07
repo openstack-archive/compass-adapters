@@ -1,5 +1,6 @@
+# encoding: UTF-8
 #
-# Cookbook Name:: swift
+# Cookbook Name:: openstack-object-storage
 # Recipe:: setup
 #
 # Copyright 2012, Rackspace US, Inc.
@@ -16,43 +17,67 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-include_recipe "openstack-object-storage::common"
+include_recipe 'openstack-object-storage::common'
 
 # make sure we die if there are multiple swift-setups
 if Chef::Config[:solo]
-  Chef::Application.fatal! "This recipe uses search. Chef Solo does not support search."
+  Chef::Application.fatal! 'This recipe uses search. Chef Solo does not support search.'
 else
-  setup_role_count = search(:node, "chef_environment:#{node.chef_environment} AND roles:swift-setup").length
+  setup_role = node['openstack']['object-storage']['setup_chef_role']
+  setup_role_count = search(:node, "chef_environment:#{node.chef_environment} AND roles:#{setup_role}").length
   if setup_role_count > 1
-    Chef::Application.fatal! "You can only have one node with the swift-setup role"
+    Chef::Application.fatal! 'You can only have one node with the swift-setup role'
   end
 end
 
-unless node["swift"]["service_pass"]
-  Chef::Log.info("Running swift setup - setting swift passwords")
+unless node['openstack']['object-storage']['service_pass']
+  Chef::Log.info('Running swift setup - setting swift passwords')
 end
 
-platform_options = node["swift"]["platform"]
+platform_options = node['openstack']['object-storage']['platform']
 
 # install platform-specific packages
-platform_options["proxy_packages"].each do |pkg|
+platform_options['proxy_packages'].each do |pkg|
   package pkg do
     action :upgrade
-    options platform_options["override_options"]
+    options platform_options['override_options']
   end
 end
 
-package "python-swauth" do
-  action :upgrade
-  only_if { node["swift"]["authmode"] == "swauth" }
+if node['openstack']['object-storage']['authmode'] == 'swauth'
+  case node['openstack']['object-storage']['swauth_source']
+  when 'package'
+    platform_options['swauth_packages'].each do |pkg|
+      package pkg do
+        action :upgrade
+        options platform_options['override_options']
+      end
+    end
+  when 'git'
+    git "#{Chef::Config[:file_cache_path]}/swauth" do
+      repository node['openstack']['object-storage']['swauth_repository']
+      revision node['openstack']['object-storage']['swauth_version']
+      action :sync
+    end
+
+    bash 'install_swauth' do
+      cwd "#{Chef::Config[:file_cache_path]}/swauth"
+      user 'root'
+      group 'root'
+      code <<-EOH
+        python setup.py install
+      EOH
+      environment 'PREFIX' => '/usr/local'
+    end
+  end
 end
 
-package "python-swift-informant" do
+package 'python-swift-informant' do
   action :upgrade
-  only_if { node["swift"]["use_informant"] }
+  only_if { node['openstack']['object-storage']['use_informant'] }
 end
 
-package "python-keystone" do
+package 'python-keystoneclient' do
   action :upgrade
-  only_if { node["swift"]["authmode"] == "keystone" }
+  only_if { node['openstack']['object-storage']['authmode'] == 'keystone' }
 end

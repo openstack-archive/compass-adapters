@@ -2,6 +2,121 @@ mysql Cookbook CHANGELOG
 ========================
 This file is used to list changes made in each version of the mysql cookbook.
 
+
+v4.1.2 (2014-02-28)
+-------------------
+- [COOK-4349] - Fix invalid platform check
+- [COOK-4184] - Better handling of Ubuntu upstart service
+- [COOK-2100] - Changing innodb_log_file_size tunable results in inability to start MySQL
+
+
+v4.1.1 (2014-02-25)
+-------------------
+- **[COOK-2966] - Address foodcritic failures'
+- **[COOK-4182] - Template parse failure in /etc/init/mysql.conf (data_dir)'
+- **[COOK-4198] - Added missing tunable'
+- **[COOK-4206] - create root@127.0.0.1, as well as root@localhost'
+
+
+v4.0.20 (2014-01-18)
+--------------------
+* [COOK-3931] - MySQL Server Recipe Regression for Non-LTS Ubuntu Versions
+* [COOK-3945] - MySQL cookbook fails on Ubuntu 13.04/13.10
+* [COOK-3966] - mysql::server recipe can't find a template with debian 7.x
+* [COOK-3985] - Missing /etc/mysql/debian.cnf template on mysql::_server_debian.rb recipe (mysql 4.0.4)
+* [COOK-3974] - debian.cnf not updated
+* [COOK-4001] - Pull request: Fixes for broken mysql::server on Debian
+* [COOK-4071] - Mysql cookbook doesn't work on debian 7.2
+
+
+v4.0.14
+-------
+Fixing style cops
+
+
+v4.0.12
+-------
+### Bug
+- **[COOK-4068](https://tickets.opscode.com/browse/COOK-4068)** - rework MySQL Windows recipe
+
+### Improvement
+- **[COOK-3801](https://tickets.opscode.com/browse/COOK-3801)** - Add innodb_adaptive_flushing_method and innodb_adaptive_checkpoint
+
+
+v4.0.10
+-------
+fixing metadata version error. locking to 3.0
+
+
+v4.0.8
+------
+Locking yum dependency to '< 3'
+
+
+v4.0.6
+------
+# Bug
+- [COOK-3943] Notifying service restart on grants update
+
+
+v4.0.4
+------
+[COOK-3952] - Adding 'recursive true' to directory resources
+
+
+v4.0.2
+------
+### BUGS
+- Adding support for Amazon Linux in attributes/server_rhel.rb
+- Fixing bug where unprivileged users cannot connect over a local socket. Adding integration test.
+- Fixing bug in mysql_grants_cmd generation
+
+
+v4.0.0
+------
+- [COOK-3928] Heavily refactoring for readability. Moving platform implementation into separate recipes
+- Moving integration tests from minitest to serverspec, removing "improper" tests
+- Moving many attributes into the ['mysql']['server']['whatever'] namespace
+- [COOK-3481] - Merged Lucas Welsh's Windows bits and moved into own recipe
+- [COOK-3697] - Adding security hardening attributes
+- [COOK-3780] - Fixing data_dir on Debian and Ubuntu
+- [COOK-3807] - Don't use execute[assign-root-password] on Debian and Ubuntu
+- [COOK-3881] - Fixing /etc being owned by mysql user
+
+
+v3.0.12
+-------
+### Bug
+- **[COOK-3752](https://tickets.opscode.com/browse/COOK-3752)** - mysql service fails to start in mysql::server recipe
+
+
+v3.0.10
+-------
+- Fix a failed release attempt for v3.0.8
+
+
+v3.0.8
+------
+### Bug
+- **[COOK-3749](https://tickets.opscode.com/browse/COOK-3749)** - Fix a regression with Chef 11-specific features
+
+
+v3.0.6
+------
+### Bug
+- **[COOK-3674](https://tickets.opscode.com/browse/COOK-3674)** - Fix an issue where the MySQL server fails to set the root password correctly when `data_dir` is a non-default value
+- **[COOK-3647](https://tickets.opscode.com/browse/COOK-3647)** - Fix README typo (databas => database)
+- **[COOK-3477](https://tickets.opscode.com/browse/COOK-3477)** - Fix log-queries-not-using-indexes not working
+- **[COOK-3436](https://tickets.opscode.com/browse/COOK-3436)** - Pull percona repo in compilation phase
+- **[COOK-3208](https://tickets.opscode.com/browse/COOK-3208)** - Fix README typo (LitenPort => ListenPort)
+- **[COOK-3149](https://tickets.opscode.com/browse/COOK-3149)** - Create my.cnf before installing
+- **[COOK-2681](https://tickets.opscode.com/browse/COOK-2681)** - Fix log_slow_queries for 5.5+
+- **[COOK-2606](https://tickets.opscode.com/browse/COOK-2606)** - Use proper bind address on cloud providers
+
+### Improvement
+- **[COOK-3498](https://tickets.opscode.com/browse/COOK-3498)** - Add support for replicate_* variables in my.cnf
+
+
 v3.0.4
 ------
 ### Bug

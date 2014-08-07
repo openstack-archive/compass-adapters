@@ -1,36 +1,52 @@
-require_relative "spec_helper"
+# encoding: UTF-8
+require_relative 'spec_helper'
 
-describe "openstack-image::registry" do
-  before { image_stubs }
-  describe "redhat" do
-    before do
-      @chef_run = ::ChefSpec::ChefRunner.new ::REDHAT_OPTS
-      @chef_run.converge "openstack-image::registry"
+describe 'openstack-image::registry' do
+  describe 'redhat' do
+    let(:runner) { ChefSpec::Runner.new(REDHAT_OPTS) }
+    let(:node) { runner.node }
+    let(:chef_run) do
+      runner.converge(described_recipe)
     end
 
-    it "installs mysql python packages" do
-      expect(@chef_run).to install_package "MySQL-python"
+    include_context 'image-stubs'
+
+    it 'converges when configured to use sqlite' do
+      node.set['openstack']['db']['image']['service_type'] = 'sqlite'
+
+      expect { chef_run }.to_not raise_error
     end
 
-    it "installs glance packages" do
-      expect(@chef_run).to upgrade_package "openstack-glance"
-      expect(@chef_run).to upgrade_package "openstack-swift"
-      expect(@chef_run).to upgrade_package "cronie"
+    it 'does upgrades keystoneclient package' do
+      expect(chef_run).to upgrade_package('python-keystoneclient')
     end
 
-    it "starts glance registry on boot" do
-      expected = "openstack-glance-registry"
-      expect(@chef_run).to set_service_to_start_on_boot expected
+    it 'upgrades mysql python package' do
+      expect(chef_run).to upgrade_package('MySQL-python')
     end
 
-    it "doesn't version the database" do
-      opts = ::REDHAT_OPTS.merge(:evaluate_guards => true)
-      chef_run = ::ChefSpec::ChefRunner.new opts
-      chef_run.stub_command("glance-manage db_version", false)
-      chef_run.converge "openstack-image::registry"
-      cmd = "glance-manage version_control 0"
+    it 'upgrades db2 python packages if explicitly told' do
+      node.set['openstack']['db']['image']['service_type'] = 'db2'
 
-      expect(chef_run).not_to execute_command cmd
+      ['python-ibm-db', 'python-ibm-db-sa'].each do |pkg|
+        expect(chef_run).to upgrade_package(pkg)
+      end
+    end
+
+    it 'upgrades glance packages' do
+      expect(chef_run).to upgrade_package('openstack-glance')
+      expect(chef_run).to upgrade_package('cronie')
+    end
+
+    it 'starts glance registry on boot' do
+      expect(chef_run).to enable_service('openstack-glance-registry')
+    end
+
+    it 'does not version the database' do
+      stub_command('glance-manage db_version').and_return(false)
+      cmd = 'glance-manage version_control 0'
+
+      expect(chef_run).not_to run_execute(cmd)
     end
   end
 end

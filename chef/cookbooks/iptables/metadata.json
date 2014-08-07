@@ -1,5 +1,6 @@
 {
   "name": "iptables",
+  "version": "0.13.2",
   "description": "Sets up iptables to use a script to maintain rules",
   "long_description": "",
   "maintainer": "Opscode, Inc.",
@@ -9,7 +10,8 @@
     "redhat": ">= 0.0.0",
     "centos": ">= 0.0.0",
     "debian": ">= 0.0.0",
-    "ubuntu": ">= 0.0.0"
+    "ubuntu": ">= 0.0.0",
+    "amazon": ">= 0.0.0"
   },
   "dependencies": {
   },
@@ -29,6 +31,5 @@
   },
   "recipes": {
     "iptables": "Installs iptables and sets up .d style config directory of iptables rules"
-  },
-  "version": "0.12.0"
+  }
 }

@@ -1,6 +1,6 @@
 # Description #
 
-This cookbook provides shared database configuration for the OpenStack **Grizzly** reference deployment provided by Chef for OpenStack. The http://github.com/mattray/chef-openstack-repo contains documentation for using this cookbook in the context of a full OpenStack deployment. It currently supports MySQL and will soon support PostgreSQL.
+This cookbook provides a reference example of database configuration for the OpenStack **Icehouse** reference deployment provided by Chef for OpenStack. It currently supports MySQL and PostgreSQL.
 
 # Requirements #
 
@@ -9,14 +9,25 @@ Chef 11 with Ruby 1.9.x required.
 # Platforms #
 
 * Ubuntu-12.04
+* SLES 11 SP3
+* RHEL/CentOS 6.5
 
 # Cookbooks #
 
 The following cookbooks are dependencies:
 
 * database
+* openstack-common
 * mysql
-* openssl
+* postgresql
+
+# Usage #
+
+The usage of this cookbook is optional, you may choose to set up your own databases without using this cookbook. If you choose to do so, you will need to do the following:
+
+* create the schema specified by the `openstack-db` recipe.
+* create and upload encrypted data bags into your chef environment, as
+  specified by `#get_password` in the `openstack-db` recipe.
 
 # Resources/Providers #
 
@@ -44,12 +55,46 @@ None
 
 - configures the mysql server for OpenStack
 
+## postgresql-client ##
+
+- calls postgresql::ruby and postgresql::client and installs 'postgresql_python_packages'
+
+## postgresql-server ##
+
+- configures the PostgreSQL server for OpenStack
+
+## openstack-db ##
+
+- creates necessary tables, users, and grants for OpenStack
+
 # Attributes #
 
-* `openstack['role']['database]` - which role should other nodes search on to find the database service, defaults to 'os-ops-database'
+* `openstack["db"]["platform"]["mysql_python_packages"]` - platform-specific mysql python packages to install
 
-* `openstack['database']['service']` - which service to use, defaults to 'mysql'
-* `openstack['database']['platform']['mysql_python_packages']` - platform-specific mysql python packages to install
+The following attributes are defined in attributes/database.rb of the common cookbook, but are documented here due to their relevance:
+
+* `openstack["endpoints"]["db"]["host"]` - The IP address to bind the database service to
+* `openstack["endpoints"]["db"]["scheme"]` - Unused at this time
+* `openstack["endpoints"]["db"]["port"]` - The port to bind the database service to
+* `openstack["endpoints"]["db"]["path"]` - Unused at this time
+* `openstack["endpoints"]["db"]["bind_interface"]` - The interface name to bind the database service to
+
+If the value of the "bind_interface" attribute is non-nil, then the database service will be bound to the first IP address on that interface.  If the value of the "bind_interface" attribute is nil, then the database service will be bound to the IP address specified in the host attribute.
+
+Testing
+=====
+
+Please refer to the [TESTING.md](TESTING.md) for instructions for testing the cookbook.
+
+Berkshelf
+=====
+
+Berks will resolve version requirements and dependencies on first run and
+store these in Berksfile.lock. If new cookbooks become available you can run
+`berks update` to update the references in Berksfile.lock. Berksfile.lock will
+be included in stable branches to provide a known good set of dependencies.
+Berksfile.lock will not be included in development branches to encourage
+development against the latest cookbooks.
 
 License and Author
 ==================
@@ -65,9 +110,14 @@ License and Author
 | **Author**           |  Evan Callicoat (<evan.callicoat@rackspace.com>)   |
 | **Author**           |  Matt Thompson (<matt.thompson@rackspace.co.uk>)   |
 | **Author**           |  Matt Ray (<matt@opscode.com>)                     |
+| **Author**           |  Sean Gallagher (<sean.gallagher@.att.com>)        |
+| **Author**           |  John Dewey (<jdewey@att.com>)                     |
+| **Author**           |  Ionut Artarisi (<iartarisi@suse.cz>)              |
 |                      |                                                    |
 | **Copyright**        |  Copyright (c) 2012-2013, Rackspace US, Inc.       |
 | **Copyright**        |  Copyright (c) 2012-2013, Opscode, Inc.            |
+| **Copyright**        |  Copyright (c) 2013, AT&T Services, Inc.           |
+| **Copyright**        |  Copyright (c) 2013, SUSE Linux GmbH               |
 
 
 Licensed under the Apache License, Version 2.0 (the "License");

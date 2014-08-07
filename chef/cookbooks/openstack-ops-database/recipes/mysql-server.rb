@@ -1,9 +1,11 @@
+# encoding: UTF-8
 #
 # Cookbook Name:: openstack-ops-database
 # Recipe:: mysql-server
 #
 # Copyright 2013, Opscode, Inc.
 # Copyright 2012-2013, Rackspace US, Inc.
+# Copyright 2013, AT&T Services, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,52 +20,72 @@
 # limitations under the License.
 #
 
-# override default attributes in the upstream mysql cookbook
-node.set['mysql']['bind_address'] = node['openstack']['db']['bind_address']
-node.set['mysql']['server_debian_password'] = node['openstack']['db']['super']['password']
-node.set['mysql']['server_root_password']   = node['openstack']['db']['super']['password']
-node.set['mysql']['server_repl_password']   = node['openstack']['db']['super']['password']
-  
-node.set['mysql']['tunable']['innodb_thread_concurrency']       = "0"
-node.set['mysql']['tunable']['innodb_commit_concurrency']       = "0"
-node.set['mysql']['tunable']['innodb_read_io_threads']          = "4"
-node.set['mysql']['tunable']['innodb_flush_log_at_trx_commit']  = "2"
-
-node.save
-
-include_recipe "openstack-ops-database::mysql-client"
-include_recipe "mysql::server"
-
-mysql_connection_info = {:host => "localhost",
-                         :username => 'root',
-                         :password => node['mysql']['server_root_password']}
-
-# removing insecure default mysql users
-mysql_database_user 'drop empty localhost user' do
-  username ''
-  host 'localhost'
-  connection mysql_connection_info
-  action :drop
+class ::Chef::Recipe # rubocop:disable Documentation
+  include ::Openstack
 end
 
-# removing insecure default mysql users
-mysql_database_user 'drop empty hostname user' do
-  username ''
-  host "#{node.hostname}"
-  connection mysql_connection_info
-  action :drop
+db_endpoint = endpoint 'db'
+
+node.override['mysql']['bind_address'] = db_endpoint.host
+node.override['mysql']['tunable']['innodb_thread_concurrency'] = '0'
+node.override['mysql']['tunable']['innodb_commit_concurrency'] = '0'
+node.override['mysql']['tunable']['innodb_read_io_threads'] = '4'
+node.override['mysql']['tunable']['innodb_flush_log_at_trx_commit'] = '2'
+node.override['mysql']['tunable']['skip-name-resolve'] = true
+
+include_recipe 'openstack-ops-database::mysql-client'
+include_recipe 'mysql::server'
+
+# NOTE:(mancdaz) This is a temporary workaround for this upstream bug in the
+# mysql cookbook. It can be removed once the upstream issue is resolved:
+#
+# https://tickets.opscode.com/browse/COOK-4161
+case node['platform_family']
+when 'debian'
+  mycnf_template = '/etc/mysql/my.cnf'
+when 'rhel'
+  mycnf_template = 'final-my.cnf'
 end
 
-# drop the test database
+r = resources("template[#{mycnf_template}]")
+r.notifies_immediately(:restart, 'service[mysql]')
+
+if node['openstack']['db']['root_user_use_databag']
+  super_password = get_password 'user', node['openstack']['db']['root_user_key']
+else
+  super_password = node['mysql']['server_root_password']
+end
+
+mysql_connection_info = {
+  host: 'localhost',
+  username: 'root',
+  password: super_password
+}
+
+mysql_database 'FLUSH PRIVILEGES' do
+  connection mysql_connection_info
+  sql 'FLUSH PRIVILEGES'
+  action :query
+end
+
+# Unfortunately, this is needed to get around a MySQL bug
+# that repeatedly shows its face when running this in Vagabond
+# containers:
+#
+# http://bugs.mysql.com/bug.php?id=69644
+mysql_database 'drop empty localhost user' do
+  sql "DELETE FROM mysql.user WHERE User = '' OR Password = ''"
+  connection mysql_connection_info
+  action :query
+end
+
 mysql_database 'test' do
   connection mysql_connection_info
   action :drop
 end
 
-# flush the privileges
-mysql_database "FLUSH privileges" do
+mysql_database 'FLUSH PRIVILEGES' do
   connection mysql_connection_info
-  sql "FLUSH privileges"
-  action :nothing
-  subscribes :query, "mysql_database[test]"
+  sql 'FLUSH PRIVILEGES'
+  action :query
 end

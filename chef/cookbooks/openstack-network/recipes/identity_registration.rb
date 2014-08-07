@@ -1,3 +1,4 @@
+# Encoding: utf-8
 #
 # Cookbook Name:: openstack-network
 # Recipe:: identity_registration
@@ -18,39 +19,42 @@
 # limitations under the License.
 #
 
-require "uri"
+['quantum', 'neutron'].include?(node['openstack']['compute']['network']['service_type']) || return
 
+require 'uri'
+
+# Make Openstack object available in Chef::Recipe
 class ::Chef::Recipe
   include ::Openstack
 end
 
-identity_admin_endpoint = endpoint "identity-admin"
+identity_admin_endpoint = endpoint 'identity-admin'
 
-bootstrap_token = secret "secrets", "#{node['openstack']['identity']['admin_token']}"
+bootstrap_token = get_secret 'openstack_identity_bootstrap_token'
 auth_uri = ::URI.decode identity_admin_endpoint.to_s
 
-api_endpoint = endpoint "network-api"
+api_endpoint = endpoint 'network-api'
 
-service_pass = service_password "openstack-network"
-service_tenant_name = node["openstack"]["network"]["service_tenant_name"]
-service_user = node["openstack"]["network"]["service_user"]
-service_role = node["openstack"]["network"]["service_role"]
+service_pass = get_password 'service', 'openstack-network'
+service_tenant_name = node['openstack']['network']['service_tenant_name']
+service_user = node['openstack']['network']['service_user']
+service_role = node['openstack']['network']['service_role']
 
-openstack_identity_register "Register Network API Service" do
+openstack_identity_register 'Register Network API Service' do
   auth_uri auth_uri
   bootstrap_token bootstrap_token
-  service_name node["openstack"]["network"]["service_name"]
-  service_type node["openstack"]["network"]["service_type"]
-  service_description "OpenStack Network Service"
+  service_name node['openstack']['network']['service_name']
+  service_type node['openstack']['network']['service_type']
+  service_description 'OpenStack Network Service'
 
   action :create_service
 end
 
-openstack_identity_register "Register Network Endpoint" do
+openstack_identity_register 'Register Network Endpoint' do
   auth_uri auth_uri
   bootstrap_token bootstrap_token
-  service_type node["openstack"]["network"]["service_type"]
-  endpoint_region node["openstack"]["network"]["region"]
+  service_type node['openstack']['network']['service_type']
+  endpoint_region node['openstack']['network']['region']
   endpoint_adminurl api_endpoint.to_s
   endpoint_internalurl api_endpoint.to_s
   endpoint_publicurl api_endpoint.to_s
@@ -58,11 +62,11 @@ openstack_identity_register "Register Network Endpoint" do
   action :create_endpoint
 end
 
-openstack_identity_register "Register Service Tenant" do
+openstack_identity_register 'Register Service Tenant' do
   auth_uri auth_uri
   bootstrap_token bootstrap_token
   tenant_name service_tenant_name
-  tenant_description "Service Tenant"
+  tenant_description 'Service Tenant'
 
   action :create_tenant
 end
