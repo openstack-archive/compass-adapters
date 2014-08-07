@@ -21,6 +21,9 @@ from traceback import format_exc
 
 host = None
 port = None
+differentiate_values = False
+differentiate_values_over_time = False
+lowercase_metric_names = False
 prefix = None
 types = {}
 postfix = None
@@ -85,9 +88,9 @@ def sanitize_field(field):
     return field
 
 def kairosdb_config(c):
-    global host, port, prefix, postfix, host_separator, \
-            metric_separator, lowercase_metric_names, protocol, \
-            tags
+    global host, port,  differentiate_values, differentiate_values_over_time, \
+            prefix, postfix, host_separator, metric_separator, \
+            lowercase_metric_names, protocol, tags
 
     for child in c.children:
         if child.key == 'KairosDBHost':
@@ -97,6 +100,14 @@ def kairosdb_config(c):
         elif child.key == 'TypesDB':
             for v in child.values:
                 kairosdb_parse_types_file(v)
+        # DeriveCounters maintained for backwards compatibility
+        elif child.key == 'DeriveCounters':
+            differentiate_values = True
+        elif child.key == 'DifferentiateCounters':
+            differentiate_values = True
+        elif child.key == 'DifferentiateCountersOverTime':
+            differentiate_values = True
+            differentiate_values_over_time = True
         elif child.key == 'LowercaseMetricNames':
             lowercase_metric_names = True
         elif child.key == 'MetricPrefix':
@@ -130,6 +141,8 @@ def kairosdb_init():
     d = {
         'host': host,
         'port': port,
+        'differentiate_values': differentiate_values,
+        'differentiate_values_over_time': differentiate_values_over_time,
         'lowercase_metric_names': lowercase_metric_names,
         'sock': None,
         'lock': threading.Lock(),
@@ -240,7 +253,39 @@ def kairosdb_write(v, data=None):
 
         metric = '.'.join(path_fields)
 
-        new_value = value
+        # perform data normalization for COUNTER and DERIVE points
+        if (isinstance(value, (float, int)) and
+                data['differentiate_values'] and
+                (ds_type == 'COUNTER' or ds_type == 'DERIVE')):
+            # we have an old value
+            if metric in data['values']:
+                old_time, old_value = data['values'][metric]
+
+                # overflow
+                if value < old_value:
+                    v_type_max = v_type[i][3]
+                    if v_type_max == 'U':
+                        # this is funky. pretend as if this is the first data point
+                        new_value = None
+                    else:
+                        v_type_min = str_to_num(v_type[i][2])
+                        v_type_max = str_to_num(v_type[i][3])
+                        new_value = v_type_max - old_value + value - v_type_min
+                else:
+                    new_value = value - old_value
+
+                if (isinstance(new_value, (float, int)) and
+                        data['differentiate_values_over_time']):
+                    interval = time - old_time
+                    if interval < 1:
+                        interval = 1
+                    new_value = new_value / interval
+
+            # update previous value
+            data['values'][metric] = ( time, value )
+
+        else:
+            new_value = value
 
         if new_value is not None:
             line = 'put %s %d %f %s' % ( metric, time, new_value, tags)

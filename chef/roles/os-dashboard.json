@@ -5,6 +5,13 @@
   "default_attributes": {
   },
   "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {"ProcessMatch": ["httpd\" \"httpd"]}
+        }
+      }
+    }
   },
   "chef_type": "role",
   "run_list": [
