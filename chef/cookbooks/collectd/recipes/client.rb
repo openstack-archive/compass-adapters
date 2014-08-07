@@ -2,7 +2,7 @@
 # Cookbook Name:: collectd
 # Recipe:: client
 #
-# Copyright 2010, Atari, Inc
+# Copyright 2014, Huawei Technologies Co,ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,33 +18,17 @@
 #
 include_recipe "collectd"
 
-#servers = []
-#search(:node, 'recipes:collectd\\:\\:server') do |n|
-#  servers << n['fqdn']
-#end
-
-#if servers.empty?
-#  raise "No servers found. Please configure at least one node with collectd::server."
-#end
-
-#collectd_plugin "network" do
-#  options :server=>servers
-#end
-
-cookbook_file "#{node['collectd']['plugin_dir']}/kairosdb_writer.py" do
-  source "kairosdb_writer.py"
-  owner "root"
-  group "root"
-  mode 00644
-  notifies :restart, "service[collectd]"
-  action :create_if_missing
-end
-
-case node["platform_family"]
-when "rhel"
-  node.override["collectd"]["plugins"]=node["collectd"]["rhel"]["plugins"].to_hash
-when "debian"
-  node.override["collectd"]["plugins"]=node["collectd"]["debian"]["plugins"].to_hash
+if node["collectd"].attribute?("rhel") or node["collectd"].attribute?("debian")
+  case node["platform_family"]
+  when "rhel"
+    if not node["collectd"]["rhel"]["plugins"].nil?
+      node.override["collectd"]["plugins"]=node["collectd"]["rhel"]["plugins"].to_hash
+    end
+  when "debian"
+    if not node["collectd"]["debian"]["plugins"].nil?
+      node.override["collectd"]["plugins"]=node["collectd"]["debian"]["plugins"].to_hash
+    end
+  end
 end
 
 node["collectd"]["plugins"].each_pair do |plugin_key, options|
@@ -53,13 +37,9 @@ node["collectd"]["plugins"].each_pair do |plugin_key, options|
   end
 end
 
-collectd_python_plugin "kairosdb_writer" do
-  opts  =    {"KairosDBHost"=>node['collectd']['server']['host'],
-              "KairosDBPort"=>node['collectd']['server']['port'],
-              "KairosDBProtocol"=>node['collectd']['server']['protocol'],
-              "LowercaseMetricNames"=>"true",
-              "Tags" => "host=#{node['fqdn']}\" \"role=OSROLE\" \"location=China.Beijing.TsingHua\" \"cluster=#{node['cluster']}",
-              "TypesDB" => node['collectd']['types_db']
-             }
-  options(opts)         
+#for python plugins or more complicated ones, use seperate recipe to deploy them
+if node["collectd"].attribute?("included_plugins") and not node["collectd"]["included_plugins"].nil?
+  node["collectd"]["included_plugins"].each do |plugin_key|
+    include_recipe("collectd::#{plugin_key}")
+  end
 end
