@@ -1,0 +1,18 @@
+{
+  "name": "os-block-storage-controller",
+  "description": "Configures OpenStack block storage controller, configured by attributes.",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[os-base]",
+    "role[os-block-storage-api]",
+    "role[os-block-storage-scheduler]",
+    "recipe[openstack-block-storage::identity_registration]"
+  ],
+  "env_run_lists": {
+  }
+}

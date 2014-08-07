@@ -1,0 +1,21 @@
+{
+  "name": "os-compute-controller",
+  "description": "Roll-up role for all of the OpenStack Compute services on a single roles",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[os-base]",
+    "role[os-compute-setup]",
+    "role[os-compute-conductor]",
+    "role[os-compute-scheduler]",
+    "role[os-compute-api]",
+    "role[os-compute-cert]",
+    "role[os-compute-vncproxy]"
+  ],
+  "env_run_lists": {
+  }
+}
