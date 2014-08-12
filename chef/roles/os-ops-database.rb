@@ -12,7 +12,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["mysqld"] }
+        "processes" => { "ProcessMatch" => ["mysqld\" \"mysqld"] }
       }
     }
   }

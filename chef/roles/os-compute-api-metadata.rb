@@ -4,7 +4,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["openstack-nova-metadata-api"] }
+        "processes" => { "ProcessMatch" => ["nova-metadata-api\" \"nova-metadata-api"] }
       }
     }
   }

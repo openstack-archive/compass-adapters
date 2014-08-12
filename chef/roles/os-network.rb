@@ -16,7 +16,10 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["quantum-dhcp-agent", "quantum-l3-agent", "quantum-openvswitch-agent", "quantum-metadata-agent"] }
+        "processes" => { "ProcessMatch" => ["quantum-dhcp-agent\" \"quantum-dhcp-agent",
+                                            "quantum-l3-agent\" \"quantum-l3-agent",
+                                            "quantum-openvswitch-agent\" \"quantum-openvswitch-agent",
+                                            "quantum-metadata-agent\" \"quantum-metadata-agent"] }
       }
     }
   }

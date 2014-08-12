@@ -12,7 +12,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["rabbitmq-server"] }
+        "processes" => { "ProcessMatch" => ["rabbitmq-server\" \"rabbitmq-server"] }
       }
     },
     "included_plugins" => {"rabbitmq"=>{}}

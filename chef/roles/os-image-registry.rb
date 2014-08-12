@@ -12,7 +12,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["openstack-glance-registry"] }
+        "processes" => { "ProcessMatch" => ["glance-registry\" \"glance-registry"] }
       }
     }
   }

@@ -14,7 +14,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["openstack-nova-scheduler", "openstack-nova-conductor"] }
+        "processes" => { "ProcessMatch" => ["nova-scheduler\" \"nova-scheduler", "nova-conductor\" \"nova-conductor"] }
       }
     }
   }

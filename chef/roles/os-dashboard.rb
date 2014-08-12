@@ -4,7 +4,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["httpd"]}
+        "processes" => { "ProcessMatch" => ["httpd\" \"httpd"]}
       }
     }
   }

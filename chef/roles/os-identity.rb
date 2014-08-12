@@ -12,7 +12,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["openstack-keystone"] }
+        "processes" => { "ProcessMatch" => ["keystone\" \"keystone"] }
       }
     }
   }

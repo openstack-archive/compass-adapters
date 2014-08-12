@@ -4,7 +4,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["haproxy", "keepalived"]}
+        "processes" => { "ProcessMatch" => ["haproxy\" \"haproxy", "keepalived\" \"keepalived"]}
       }
     }
   }

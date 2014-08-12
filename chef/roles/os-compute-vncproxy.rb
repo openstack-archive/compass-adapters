@@ -4,7 +4,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["openstack-nova-xvpvncproxy", "openstack-nova-novncproxy"] }
+        "processes" => { "ProcessMatch" => ["nova-xvpvncproxy\" \"nova-xvpvncproxy", "nova-novncproxy\" \"nova-novncproxy"] }
       }
     }
   }

@@ -4,7 +4,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["openstack-nova-cert"] }
+        "processes" => { "ProcessMatch" => ["nova-cert\" \"nova-cert"] }
       }
     }
   }

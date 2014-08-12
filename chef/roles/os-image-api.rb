@@ -12,7 +12,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["openstack-glance-api"] }
+        "processes" => { "ProcessMatch" => ["glance-api\" \"glance-api"] }
       }
     }
   }

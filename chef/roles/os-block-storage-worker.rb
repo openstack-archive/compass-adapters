@@ -12,7 +12,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["openstack-cinder-volume", "iscsid", "multipathd"] }
+        "processes" => { "ProcessMatch" => ["cinder-volume\" \"cinder-volume", "iscsid\" \"iscsid", "multipathd\" \"multipathd"] }
       }
     }
   }

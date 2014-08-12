@@ -12,7 +12,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["openstack-cinder-api"] }
+        "processes" => { "ProcessMatch" => ["cinder-api\" \"cinder-api"] }
       }
     }
   }

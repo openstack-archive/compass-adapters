@@ -12,7 +12,7 @@ override_attributes(
   "collectd" => {
     "rhel" => {
       "plugins" => {
-        "processes" => { "Process" => ["openstack-nova-api"] }
+        "processes" => { "ProcessMatch" => ["nova-api\" \"nova-api"] }
       }
     }
   }
