@@ -191,6 +191,7 @@ echo "   gateway $gateway" >> /target/etc/network/interfaces; \
             #if $nameservers != ""
 echo "   dns-nameservers $nameservers" >> /target/etc/network/interfaces; \
             #end if
+echo "   dns-nameservers 8.8.8.8" >> /target/etc/network/interfaces; \
             #if $nameserver_search != ""
 echo "   dns-search $nameserver_search" >> /target/etc/network/interfaces; \
             #end if
