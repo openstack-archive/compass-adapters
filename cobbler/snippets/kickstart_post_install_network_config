@@ -331,6 +331,9 @@ sed -i -e "/^nameserver /d" /etc/resolv.conf
 echo "nameserver $nameserver" >>/etc/resolv.conf
         #end for
     #end if
+    #if '8.8.8.8' not in $name_servers
+echo "nameserver 8.8.8.8" >>/etc/resolv.conf
+    #end if
 
 ## Disable all eth interfaces by default before overwriting
 ## the old files with the new ones in the working directory

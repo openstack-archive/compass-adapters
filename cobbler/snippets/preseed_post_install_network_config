@@ -187,6 +187,9 @@ echo "   gateway $gateway" >> /target/etc/network/interfaces; \
             ## =============================================================================
             ## Configure name server search path in /target/etc/resolv.conf
             #set $nameservers = ' '.join($name_servers)
+            #if '8.8.8.8' not in $name_servers
+            #set $nameservers = ' '.join(($nameservers, '8.8.8.8'))
+            #end if
             #set $nameserver_search = ' '.join($name_servers_search)
             #if $nameservers != ""
 echo "   dns-nameservers $nameservers" >> /target/etc/network/interfaces; \
