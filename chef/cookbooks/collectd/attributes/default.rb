@@ -44,4 +44,5 @@ default[:collectd][:plugins] = {"cpu"=>{},
 default[:collectd][:included_plugins] = {"kairosdb"=>{}}
 default[:collectd][:server][:host] = "10.145.81.250"
 default[:collectd][:server][:port] = "4242"
-default[:collectd][:server][:protocol] = "tcp"
+default[:collectd][:server][:protocol] = "udp"
+default[:collectd][:mq][:vhost] = "/"
