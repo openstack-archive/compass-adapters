@@ -3,7 +3,7 @@
 # Description: This plugin uses Collectd's Python plugin to obtain RabbitMQ metrics.
 #
 # Copyright 2012 Daniel Maher
-#
+# Copyright 2014 Xinyu Zhao
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -16,27 +16,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-## copied from https://github.com/phrawzty/rabbitmq-collectd-plugin
-
 import collectd
 import subprocess
 import re
-
+import json
+import os
 
 NAME = 'rabbitmq_info'
 # Override in config by specifying 'RmqcBin'.
 RABBITMQCTL_BIN = '/usr/sbin/rabbitmqctl'
+RABBITMQ_API = 'http://localhost:15672/api/queues'
 # Override in config by specifying 'PmapBin'
 PMAP_BIN = '/usr/bin/pmap'
 # Override in config by specifying 'PidofBin'.
 PIDOF_BIN = '/bin/pidof'
+# Override in config by specifying 'PidFile.
+PID_FILE = "/var/run/rabbitmq/pid"
+# Override in config by specifying 'Vhost'.
+VHOST = "/"
 # Override in config by specifying 'Verbose'.
 VERBOSE_LOGGING = False
-
-# Wasn't specified for some reason...
-PID_FILE = '/var/run/rabbitmq/pid'
-
-
+USERPASS = 'guest:guest'
 
 # Obtain the interesting statistical info
 def get_stats():
@@ -48,22 +48,50 @@ def get_stats():
     stats['pmap_used'] = 0
     stats['pmap_shared'] = 0
 
-    # call rabbitmqctl
+    # call http api instead of rabbitmqctl to collect statistics due to issue:
+    #  https://github.com/phrawzty/rabbitmq-collectd-plugin/issues/5
     try:
-        p = subprocess.Popen([RABBITMQCTL_BIN, '-q', 'list_queues', 'messages', 'memory', 'consumers'], shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p = subprocess.Popen(['curl', '-s', '-i', '-u', USERPASS,
+            %s/%s, % (RABBITMQ_API, VHOST)],
+            shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+#        p = subprocess.Popen([RABBITMQCTL_BIN, '-q', '-p', VHOST,
+#            'list_queues', 'name', 'messages', 'memory', 'consumers'],
+#            shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     except:
-        logger('err', 'Failed to run %s' % RABBITMQCTL_BIN)
+        logger('err', 'Failed to run curl %s/%s' % (RABBITMQ_API, VHOST))
         return None
 
-    for line in p.stdout.readlines():
-        if re.match('\d', line):
-            ctl_stats = line.split()
-            stats['ctl_messages'] += int(ctl_stats[0])
-            stats['ctl_memory'] += int(ctl_stats[1])
-            stats['ctl_consumers'] += int(ctl_stats[2])
-
+#    for line in p.stdout.readlines():
+#        ctl_stats = line.split()
+#        try:
+#            ctl_stats[1] = int(ctl_stats[1])
+#            ctl_stats[2] = int(ctl_stats[2])
+#            ctl_stats[3] = int(ctl_stats[3])
+#        except:
+#            continue
+#        queue_name = ctl_stats[0]
+#        stats['ctl_messages'] += ctl_stats[1]
+#        stats['ctl_memory'] += ctl_stats[2]
+#        stats['ctl_consumers'] += ctl_stats[3]
+#        stats['ctl_messages_%s' % queue_name] = ctl_stats[1]
+#        stats['ctl_memory_%s' % queue_name] = ctl_stats[2]
+#        stats['ctl_consumers_%s' % queue_name] = ctl_stats[3]
+    script_response = p.stdout.read().split('\n')
+    try:
+        resp=json.loads(script_response[7])
+    except:
+        logger('err', 'No result found for this vhost')
+        return None
+    for i in range(0, len(resp)-1):
+        stats['ctl_messages'] += resp[i]['messages']
+        stats['ctl_memory'] += resp[i]['memory']
+        stats['ctl_consumers'] += resp[i]['consumers']
+        stats['ctl_messages_%s' % resp[i]['name']] = resp[i]['messages']
+        stats['ctl_memory_%s' % resp[i]['name']] = resp[i]['memory']
+        stats['ctl_consumers_%s' % resp[i]['name']] = resp[i]['consumers']
     if not stats['ctl_memory'] > 0:
-        logger('warn', '%s reports 0 memory usage. This is probably incorrect.' % RABBITMQCTL_BIN)
+        logger('warn', '%s reports 0 memory usage. This is probably incorrect.'
+            % RABBITMQ_API)
 
     # get the pid of rabbitmq
     try:
@@ -75,7 +103,8 @@ def get_stats():
 
     # use pmap to get proper memory stats
     try:
-        p = subprocess.Popen([PMAP_BIN, '-d', pid], shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p = subprocess.Popen([PMAP_BIN, '-d', pid], shell=False,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     except:
         logger('err', 'Failed to run %s' % PMAP_BIN)
         return None
@@ -91,15 +120,17 @@ def get_stats():
         return None
 
     # Verbose output
-    logger('verb', '[rmqctl] Messages: %i, Memory: %i, Consumers: %i' % (stats['ctl_messages'], stats['ctl_memory'], stats['ctl_consumers']))
-    logger('verb', '[pmap] Mapped: %i, Used: %i, Shared: %i' % (stats['pmap_mapped'], stats['pmap_used'], stats['pmap_shared']))
+    logger('verb', '[rmqctl] Messages: %i, Memory: %i, Consumers: %i' %
+        (stats['ctl_messages'], stats['ctl_memory'], stats['ctl_consumers']))
+    logger('verb', '[pmap] Mapped: %i, Used: %i, Shared: %i' %
+        (stats['pmap_mapped'], stats['pmap_used'], stats['pmap_shared']))
 
     return stats
 
 
 # Config data from collectd
 def configure_callback(conf):
-    global RABBITMQCTL_BIN, PMAP_BIN, PID_FILE, VERBOSE_LOGGING
+    global RABBITMQCTL_BIN, PMAP_BIN, PID_FILE, VERBOSE_LOGGING, VHOST
     for node in conf.children:
         if node.key == 'RmqcBin':
             RABBITMQCTL_BIN = node.values[0]
@@ -109,6 +140,12 @@ def configure_callback(conf):
             PID_FILE = node.values[0]
         elif node.key == 'Verbose':
             VERBOSE_LOGGING = bool(node.values[0])
+        elif node.key == 'Vhost':
+            VHOST = node.values[0]
+        elif node.key == 'UserPass':
+            USERPASS = node.values[0]
+        elif node.key == 'Api':
+            RABBITMQ_API == node.values[0]
         else:
             logger('warn', 'Unknown config key: %s' % node.key)
 

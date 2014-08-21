@@ -244,7 +244,7 @@ node.override['openstack']['mq']['bind_address'] = mydata['mq']["#{node['opensta
 node.override['openstack']['mq']['port'] = mydata['mq']["#{node['openstack']['mq']['service_type']}"]['port']
 node.override['openstack']['mq']['user'] = mydata['credential']['mq']["#{node['openstack']['mq']['service_type']}"]['username']
 node.override['openstack']['mq']['password'] = mydata['credential']['mq']["#{node['openstack']['mq']['service_type']}"]['password']
-#node.override['openstack']['mq']['vhost'] = "/"
+node.override['openstack']['mq']['vhost'] = mydata['mq']["#{node['openstack']['mq']['service_type']}"]['vhost']
 
 
 
