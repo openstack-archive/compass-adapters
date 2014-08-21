@@ -42,6 +42,7 @@ define :collectd_python_plugin, :options => {}, :mod => nil, :path => nil do
       options :paths=>[node[:collectd][:plugin_dir]], :modules=>{}
       template "python_plugin.conf.erb"
       cookbook "collectd"
+      notifies :restart, resources(:service => "collectd")
     end
     retry
   end
