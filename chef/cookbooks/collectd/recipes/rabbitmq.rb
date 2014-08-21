@@ -23,6 +23,17 @@ cookbook_file File.join(node['collectd']['plugin_dir'], "rabbitmq_info.py") do
   owner "root"
   group "root"
   mode "0755"
+  notifies :restart, resources(:service => "collectd")
 end
 
-collectd_python_plugin "rabbitmq_info"
+if node["openstack"]["mq"]["vhost"]
+  node.override["collectd"]["mq"]["vhost"] = node["openstack"]["mq"]["vhost"]
+end
+
+collectd_python_plugin "rabbitmq_info" do
+  opts = { "Vhost" => node["collectd"]["mq"]["vhost"],
+           "Api" => "http://localhost:15672/api/queues/#{node["collectd"]["mq"]["vhost"]}",
+           "UserPass" => "#{node["credential"]["mq"]["rabbitmq"]["username"]}:#{node["credential"]["mq"]["rabbitmq"]["password"]}"
+         }
+  options(opts)
+end
