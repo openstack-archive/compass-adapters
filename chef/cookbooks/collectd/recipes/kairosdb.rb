@@ -22,6 +22,7 @@ cookbook_file "#{node['collectd']['plugin_dir']}/kairosdb_writer.py" do
   group "root"
   mode 00644
   action :create_if_missing
+  notifies :restart, resources(:service => "collectd")
 end
 
 if ! node['cluster']

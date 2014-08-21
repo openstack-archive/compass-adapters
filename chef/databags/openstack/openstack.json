@@ -112,7 +112,8 @@
         },
       "metadata" : { "password" : "Hello_Openstack" },
       "mq" : { "rabbitmq" : { "password" : "guest",
-              "username" : "guest"
+              "username" : "guest",
+              "vhost" : "/"
             } },
       "mysql" : { "compute" : { "password" : "admin",
               "username" : "nova"
