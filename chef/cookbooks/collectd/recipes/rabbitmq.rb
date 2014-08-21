@@ -23,6 +23,13 @@ cookbook_file File.join(node['collectd']['plugin_dir'], "rabbitmq_info.py") do
   owner "root"
   group "root"
   mode "0755"
+  notifies :restart, resources(:service => "collectd")
 end
 
-collectd_python_plugin "rabbitmq_info"
+collectd_python_plugin "rabbitmq_info" do
+  opts = { "Vhost" => node["mq"]["vhost"],
+           "Api" => "http://localhost:15672/api/queues/#{node["mq"]["vhost"]}",
+           "UserPass" => "#{node["mq"]["user"]}:#{node["mq"]["password"]}"
+         }
+  options(opts)
+end
