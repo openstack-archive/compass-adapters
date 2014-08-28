@@ -1,6 +1,11 @@
 cat << EOF > /etc/chef/firstrun.sh
 #raw
 #!/bin/bash
+
+# dmidecode package cannot be installed by chef-cookbook for
+# some reason
+yum install -yt dmidecode
+
 touch /tmp/chef.log
 while true; do
   echo "firstrun chef-client on \`date\`" &>> /tmp/chef.log
