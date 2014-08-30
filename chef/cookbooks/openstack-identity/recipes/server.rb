@@ -107,12 +107,41 @@ if node['openstack']['auth']['strategy'] == 'pki'
   end
 
   if certfile_url.nil? || keyfile_url.nil? || ca_certs_url.nil?
-    execute 'keystone-manage pki_setup' do
-      user  node['openstack']['identity']['user']
-      group node['openstack']['identity']['group']
-
-      not_if { ::FileTest.exists? node['openstack']['identity']['signing']['keyfile'] }
+    keygen_node = node_election('os-identity', 'keystone_keygen')
+    if keygen_node.nil?
+      keygen_node = node
     end
+    if node.name.eql?(keygen_node.name)
+      execute 'keystone-manage pki_setup' do
+        user  node['openstack']['identity']['user']
+        group node['openstack']['identity']['group']
+        not_if { ::FileTest.exists? node['openstack']['identity']['signing']['keyfile'] }
+      end
+      %w{certfile keyfile ca_certs}.each do |name|
+        ruby_block "read #{name}" do
+          block do
+            file = node['openstack']['identity']['signing']["#{name}"]
+            if File.exists?(file) and !node['openstack']['identity']['signing'].attribute?("#{name}_data")
+              node.set['openstack']['identity']['signing']["#{name}_data"] = File.read(file)
+              node.save
+            end
+          end
+        end
+      end
+
+    else
+      if keygen_node['openstack']['identity']['signing'].attribute?("#{name}_data")
+        %w{certfile keyfile ca_certs}.each do |name|
+          file node['openstack']['identity']['signing']["#{name}"] do
+            content keygen_node['openstack']['identity']['signing']["#{name}_data"]
+            owner   node['openstack']['identity']['user']
+            group   node['openstack']['identity']['group']
+            mode    00640
+          end
+        end
+      end
+    end
+
   else
     remote_file node['openstack']['identity']['signing']['certfile'] do
       source certfile_url
@@ -163,7 +192,12 @@ bind_address = bind_endpoint.host
 # If the search role is set, we search for memcache
 # servers via a Chef search. If not, we look at the
 # memcache.servers attribute.
-memcache_servers = memcached_servers.join ','  # from openstack-common lib
+if node['openstack']['identity']['token']['backend'].eql?('memcache')
+  memcache_servers = memcached_servers('os-ops-caching').join ','  # from openstack-common lib
+  # number of seconds to wait before sockets timeout when the memcached server is down
+  # the default number is 3, here is going to set it as 0.1
+  `sed -i "s/_SOCKET_TIMEOUT = 3/_SOCKET_TIMEOUT = 0.1/g" /usr/lib/python[0-9].[0-9]/site-packages/memcache.py`
+end
 
 # These configuration endpoints must not have the path (v2.0, etc)
 # added to them, as these values are used in returning the version
