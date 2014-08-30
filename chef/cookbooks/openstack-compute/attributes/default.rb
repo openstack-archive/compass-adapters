@@ -217,6 +217,8 @@ default['openstack']['compute']['libvirt']['images_rbd_ceph_conf'] = '/etc/ceph/
 default['openstack']['compute']['libvirt']['volume_backend'] = nil
 default['openstack']['compute']['libvirt']['rbd']['rbd_secret_name'] = 'rbd_secret_uuid'
 default['openstack']['compute']['libvirt']['rbd']['rbd_user'] = 'cinder'
+default['openstack']['compute']['libvirt']['host_uuid'] = nil
+
 default['openstack']['compute']['config']['availability_zone'] = 'nova'
 default['openstack']['compute']['config']['storage_availability_zone'] = 'nova'
 default['openstack']['compute']['config']['default_schedule_zone'] = 'nova'
@@ -340,7 +342,7 @@ when 'fedora', 'rhel', 'suse' # :pragma-foodcritic: ~FC024 - won't fix this
     'compute_vncproxy_service' => 'openstack-nova-novncproxy',
     'compute_vncproxy_consoleauth_packages' => ['openstack-nova-console'],
     'compute_vncproxy_consoleauth_service' => 'openstack-nova-consoleauth',
-    'libvirt_packages' => ['libvirt'],
+    'libvirt_packages' => ['libvirt', 'dmidecode'],
     'libvirt_service' => 'libvirtd',
     'libvirt_ceph_packages' => ['ceph-common'],
     'dbus_service' => 'messagebus',
@@ -393,7 +395,7 @@ when 'debian'
     'compute_vncproxy_service' => 'nova-novncproxy',
     'compute_vncproxy_consoleauth_packages' => ['nova-consoleauth'],
     'compute_vncproxy_consoleauth_service' => 'nova-consoleauth',
-    'libvirt_packages' => ['libvirt-bin'],
+    'libvirt_packages' => ['libvirt-bin', 'dmidecode'],
     'libvirt_service' => 'libvirt-bin',
     'libvirt_ceph_packages' => ['ceph-common'],
     'dbus_service' => 'dbus',
