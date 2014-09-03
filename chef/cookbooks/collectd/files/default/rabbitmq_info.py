@@ -85,11 +85,12 @@ def get_stats():
     for i in resp:
         if "messages" in i:
             stats['ctl_messages'] += i['messages']
-            stats['ctl_memory'] += i['memory']
-            stats['ctl_consumers'] += i['consumers']
             stats['ctl_messages_%s' % i['name']] = i['messages']
-            stats['ctl_memory_%s' % i['name']] = i['memory']
-            stats['ctl_consumers_%s' % i['name']] = i['consumers']
+        stats['ctl_memory'] += i['memory']
+        stats['ctl_consumers'] += i['consumers']
+        stats['ctl_messages_%s' % i['name']] = i['messages']
+        stats['ctl_memory_%s' % i['name']] = i['memory']
+        stats['ctl_consumers_%s' % i['name']] = i['consumers']
     if not stats['ctl_memory'] > 0:
         logger('warn', '%s reports 0 memory usage. This is probably incorrect.'
                % RABBITMQ_API)
