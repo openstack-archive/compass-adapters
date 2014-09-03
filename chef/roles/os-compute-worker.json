@@ -9,8 +9,7 @@
   "chef_type": "role",
   "run_list": [
     "role[os-base]",
-    "recipe[openstack-compute::compute]",
-    "recipe[openssh::passwordless]"
+    "recipe[openstack-compute::compute]"
   ],
   "env_run_lists": {
   }
