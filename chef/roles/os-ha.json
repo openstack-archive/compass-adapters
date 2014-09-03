@@ -1,0 +1,25 @@
+{
+  "name": "os-ha",
+  "description": "Software load banance for all of the OpenStack services.",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {
+            "Process": ["haproxy", "keepalived"]
+          }
+        }
+      }
+    }
+  },
+  "chef_type": "role",
+  "run_list": [
+    "recipe[keepalived]",
+    "recipe[haproxy::tcp_lb]"
+  ],
+  "env_run_lists": {
+  }
+}
