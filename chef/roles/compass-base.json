@@ -9,7 +9,7 @@
   "chef_type": "role",
   "run_list": [
     "recipe[collectd]"
-  },
+  ],
   "env_run_lists": {
   }
 } 
