@@ -14,3 +14,4 @@ $cname_record
 
 $host_record
 $hostname IN A $ipaddr
+metrics IN A $ipaddr
