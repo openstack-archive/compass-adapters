@@ -21,7 +21,7 @@ when "rhel"
   include_recipe "yum-epel"
   yum_repository "collectd" do
     description "collectd and its plugins"
-    gpgcheck 0
+    gpgcheck false
     baseurl node["collectd"]["yum"]["uri"]
     enabled true
     action :add
