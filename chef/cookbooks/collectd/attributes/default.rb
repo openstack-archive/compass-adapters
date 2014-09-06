@@ -21,7 +21,6 @@ if platform_family?("rhel")
   default[:collectd][:package_name] = ["collectd",
                                         "collectd-amqp",
                                         "collectd-apache",
-                                        "collectd-collection3",
                                         "collectd-dbi",
                                         "collectd-email",
                                         "collectd-gmond",
@@ -34,7 +33,6 @@ if platform_family?("rhel")
                                         "collectd-nginx",
                                         "collectd-OpenIPMI",
                                         "collectd-perl",
-                                        "collectd-php-collection",
                                         "collectd-postgresql",
                                         "collectd-python",
                                         "collectd-rrdtool",
@@ -66,7 +64,7 @@ default[:collectd][:plugins] = {"cpu"=>{},
                                 "match_regex"=>""
                                }
 default[:collectd][:included_plugins] = {"kairosdb"=>{}}
-default[:collectd][:server][:host] = "10.145.81.250"
+default[:collectd][:server][:host] = "metrics"
 default[:collectd][:server][:port] = "4242"
 default[:collectd][:server][:protocol] = "tcp"
 default[:collectd][:mq][:vhost] = "/"
