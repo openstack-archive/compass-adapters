@@ -448,6 +448,11 @@ default['openstack']['network']['openvswitch']['fw_driver'] = 'neutron.agent.lin
 # It should be false when you use nova security group.
 default['openstack']['network']['openvswitch']['enable_security_group'] = 'True'
 
+# OVS host for GRE tunnel. If bind_interface is set, it will set the host IP of
+# this interface, otherwise use default host.
+default['openstack']['network']['openvswitch']['host'] = '127.0.0.1'
+default['openstack']['network']['openvswitch']['bind_interface'] = nil
+
 # The newest version of OVS which comes with 12.04 Precise is 1.4.0
 # Which is legacy. Should we compile a newer version from source?
 # If so, set ['openstack']['network']['openvswitch']['use_source_version']
