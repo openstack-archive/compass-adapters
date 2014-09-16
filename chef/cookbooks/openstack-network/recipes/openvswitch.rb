@@ -105,14 +105,14 @@ directory '/etc/neutron/plugins/openvswitch' do
   only_if { platform_family?('rhel') }
 end
 
-openvswitch_endpoint = endpoint 'network-openvswitch'
+openvswitch = address node['openstack']['network']['openvswitch']
 template '/etc/neutron/plugins/openvswitch/ovs_neutron_plugin.ini' do
   source 'plugins/openvswitch/ovs_neutron_plugin.ini.erb'
   owner node['openstack']['network']['platform']['user']
   group node['openstack']['network']['platform']['group']
   mode 00644
   variables(
-    local_ip: openvswitch_endpoint.host
+    local_ip: openvswitch
   )
   only_if { platform_family?('rhel') }
 end
