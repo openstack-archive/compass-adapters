@@ -32,10 +32,8 @@ collectd_python_plugin "kairosdb_writer" do
   opts  =    {"KairosDBHost"=>node['collectd']['server']['host'],
               "KairosDBPort"=>node['collectd']['server']['port'],
               "KairosDBProtocol"=>node['collectd']['server']['protocol'],
-              "LowercaseMetricNames"=>"true",
               "Tags" => "host=#{node['fqdn']}\" \"role=OSROLE\" \"location=China.Beijing.TsingHua\" \"cluster=#{node['cluster']}",
               "TypesDB" => node['collectd']['types_db'],
-              "DifferentiateCountersOverTime" => true
              }
   options(opts)
 end
