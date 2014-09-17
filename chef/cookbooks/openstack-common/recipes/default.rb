@@ -51,9 +51,10 @@ when 'rhel'
 
   yum_repository "RDO-#{node['openstack']['release']}" do
     description "OpenStack RDO repo for #{node['openstack']['release']}"
-    gpgkey node['openstack']['yum']['repo-key']
+    # gpgkey node['openstack']['yum']['repo-key']
     baseurl node['openstack']['yum']['uri']
     enabled true
+    gpgcheck false
     action repo_action
   end
 
