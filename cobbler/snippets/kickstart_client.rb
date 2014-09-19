@@ -17,9 +17,6 @@ no_proxy         '$ignore_proxy'
 ENV['no_proxy'] = '$ignore_proxy'
 ENV['NO_PROXY'] = '$ignore_proxy'
 #end if
-#if $getVar('chef_node_name', '') != ""
-node_name        '$chef_node_name'
-#end if
 validation_client_name 'chef-validator'
 json_attribs nil
 pid_file '/var/run/chef-client.pid'
