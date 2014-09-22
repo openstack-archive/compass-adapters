@@ -8,16 +8,15 @@ while true; do
         echo "there are chef-clients '\\$clients' running" &>> /tmp/chef.log
         break
     else
-	set >> /tmp/chef.log
-	echo "knife search nodes" &>> /tmp/chef.log
-	USER=root HOME=/root knife search node "name:\\$HOSTNAME.*" -i -a name &>> /tmp/chef.log
+        echo "knife search nodes" &>> /tmp/chef.log
+        USER=root HOME=/root knife search node "name:\\$HOSTNAME.*" -i -a name &>> /tmp/chef.log
         nodes=\\$(USER=root HOME=/root knife search node "name:\\$HOSTNAME.*" -i -a name | grep 'name: ' | awk '{print \\$2}')
-	echo "found nodes \\$nodes" &>> /tmp/chef.log
-	let all_nodes_success=1
-	for node in \\$nodes; do
-	    mkdir -p /var/log/chef/\\$node
-	    if [ ! -f "/etc/chef/\\$node.pem" ]; then
-	        cat << EOL > /etc/rsyslog.d/\\$node.conf
+        echo "found nodes \\$nodes" &>> /tmp/chef.log
+        let all_nodes_success=1
+        for node in \\$nodes; do
+            mkdir -p /var/log/chef/\\$node
+            if [ ! -f "/etc/chef/\\$node.pem" ]; then
+                cat << EOL > /etc/rsyslog.d/\\$node.conf
 \\\\$ModLoad imfile
 \\\\$InputFileName /var/log/chef/\\$node/chef-client.log
 \\\\$InputFileReadMode 0
@@ -29,27 +28,27 @@ while true; do
 \\\\$InputFilePollInterval 1
 local3.info @$server:514
 EOL
-		rm -rf /var/lib/rsyslog/chef_\\$node_log
-		service rsyslog restart
+                rm -rf /var/lib/rsyslog/chef_\\$node_log
+                service rsyslog restart
 	    fi
-	    if [ -f "/etc/chef/\\$node.done" ]; then
-		chef-client --node-name \\$node --client_key /etc/chef/\\$node.pem &>> /tmp/chef.log
-	    else
+            if [ -f "/etc/chef/\\$node.done" ]; then
+                chef-client --node-name \\$node --client_key /etc/chef/\\$node.pem &>> /tmp/chef.log
+            else
                 chef-client --node-name \\$node --client_key /etc/chef/\\$node.pem -L /var/log/chef/\\$node/chef-client.log &>> /tmp/chef.log
-	    fi
+            fi
             if [ "\\$?" != "0" ]; then
                 echo "chef-client --node-name \\$node run failed"  &>> /tmp/chef.log
-		let all_nodes_success=0
+                let all_nodes_success=0
             else
                 echo "chef-client --node-name \\$node run success" &>> /tmp/chef.log
-		touch /etc/chef/\\$node.done
+                touch /etc/chef/\\$node.done
             fi
         done
-	if [ \\$all_nodes_success -eq 0 ]; then
-	    sleep 1m
-	else
-	    break
-	fi
+        if [ \\$all_nodes_success -eq 0 ]; then
+            sleep 1m
+        else
+            break
+        fi
     fi
 done
 EOF
