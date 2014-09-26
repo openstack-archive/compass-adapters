@@ -94,6 +94,9 @@ chkconfig iptables off
 chkconfig ip6tables off
 
 $SNIPPET('kickstart_yum.conf')
+#if $getVar('local_repo', '') != ''
+    $SNIPPET('local_repo')
+#end if
 $SNIPPET('kickstart_ssh')
 $SNIPPET('kickstart_ntp')
 $SNIPPET('kickstart_limits.conf')

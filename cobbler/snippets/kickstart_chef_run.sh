@@ -15,6 +15,11 @@ while true; do
         let all_nodes_success=1
         for node in \\$nodes; do
             mkdir -p /var/log/chef/\\$node
+            #if $getVar("local_repo","") != ""
+                cat << EOL > /etc/chef/\\$node.json
+{"local_repo": "$local_repo"}
+EOL
+            #end if
             if [ ! -f "/etc/chef/\\$node.pem" ]; then
                 cat << EOL > /etc/rsyslog.d/\\$node.conf
 \\\\$ModLoad imfile
@@ -32,9 +37,9 @@ EOL
                 service rsyslog restart
             fi
             if [ -f "/etc/chef/\\$node.done" ]; then
-                chef-client --node-name \\$node --client_key /etc/chef/\\$node.pem &>> /tmp/chef.log
+                chef-client --node-name \\$node -j /etc/chef/\\$node.json --client_key /etc/chef/\\$node.pem &>> /tmp/chef.log
             else
-                chef-client --node-name \\$node --client_key /etc/chef/\\$node.pem -L /var/log/chef/\\$node/chef-client.log &>> /tmp/chef.log
+                chef-client --node-name \\$node -j /etc/chef/\\$node.json --client_key /etc/chef/\\$node.pem -L /var/log/chef/\\$node/chef-client.log &>> /tmp/chef.log
             fi
             if [ "\\$?" != "0" ]; then
                 echo "chef-client --node-name \\$node run failed"  &>> /tmp/chef.log

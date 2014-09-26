@@ -27,7 +27,7 @@ if platform_family?("rhel")
                                         "collectd-java",
                                         "collectd-libnotify",
                                         "collectd-liboping",
-                                        "collectd-libvirt",
+#                                        "collectd-libvirt",
                                         "collectd-memcache",
                                         "collectd-mysql",
                                         "collectd-nginx",

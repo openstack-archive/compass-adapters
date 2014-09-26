@@ -44,4 +44,12 @@ node['mysql']['client']['packages'].each do |name|
   resources("package[#{name}]").run_action(:install)
 end
 
-chef_gem 'mysql'
+if node['local_repo'] == ""
+  chef_gem 'mysql'
+else
+  gem_package 'mysql' do
+    options("--clear-sources --source #{node['local_repo']}/gem_repo/")
+    action :install
+    version '2.9.1'
+  end
+end
