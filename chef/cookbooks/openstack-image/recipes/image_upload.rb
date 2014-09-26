@@ -26,6 +26,10 @@ if node['openstack']['image']['syslog']['use']
   include_recipe 'openstack-common::logging'
 end
 
+if node['local_repo'] != ""
+  node.override['openstack']['image']['upload_image']['cirros'] = "#{node['local_repo']}/cirros-0.3.2-x86_64-disk.img"
+end
+
 platform_options = node['openstack']['image']['platform']
 platform_options['image_client_packages'].each do |pkg|
   package pkg do
