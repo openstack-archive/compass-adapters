@@ -15,11 +15,13 @@ while true; do
         let all_nodes_success=1
         for node in \\$nodes; do
             mkdir -p /var/log/chef/\\$node
-            #if $getVar("local_repo","") != ""
-                cat << EOL > /etc/chef/\\$node.json
+            cat << EOL > /etc/chef/\\$node.json
+#if $getVar("local_repo","") != ""
 {"local_repo": "$local_repo"}
+#else
+{}
+#end if
 EOL
-            #end if
             if [ ! -f "/etc/chef/\\$node.pem" ]; then
                 cat << EOL > /etc/rsyslog.d/\\$node.conf
 \\\\$ModLoad imfile
