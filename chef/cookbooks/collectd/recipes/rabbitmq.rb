@@ -31,13 +31,13 @@ cookbook_file File.join(node['collectd']['plugin_dir'], "rabbitmq_info.py") do
   notifies :restart, resources(:service => "collectd")
 end
 
-node.override["collectd"]["mq"]["vhost"] = node["mq"]["vhost"]
+node.override["collectd"]["mq"]["vhost"] = node["openstack"]["mq"]["vhost"]
 
 collectd_python_plugin "rabbitmq_info" do
   opts = { "Vhost" => node["collectd"]["mq"]["vhost"],
            "Api" => "http://localhost:15672/api/queues",
-           "User" => "#{node["mq"]["user"]}",
-           "Pass" => "#{node["mq"]["password"]}"
+           "User" => "#{node["openstack"]["mq"]["user"]}",
+           "Pass" => "#{node["openstack"]["mq"]["password"]}"
          }
   options(opts)
 end
