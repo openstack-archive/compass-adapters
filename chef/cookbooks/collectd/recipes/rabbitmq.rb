@@ -21,8 +21,6 @@ package "python-requests" do
   action :install
 end
 
-mydata = data_bag_item(defaultbag, myitem)
-
 cookbook_file File.join(node['collectd']['plugin_dir'], "rabbitmq_info.py") do
   source "rabbitmq_info.py"
   owner "root"
