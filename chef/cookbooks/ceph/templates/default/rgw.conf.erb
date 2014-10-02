@@ -1,0 +1,39 @@
+<% if node['ceph']['radosgw']['rgw_port'] -%>
+FastCgiExternalServer /var/www/s3gw.fcgi -host 127.0.0.1:<%= node['ceph']['radosgw']['rgw_port'] %>
+<% else -%>
+FastCgiExternalServer /var/www/s3gw.fcgi -socket /var/run/ceph/radosgw.<%= node['hostname'] %>
+<% end -%>
+
+LogFormat "%{X-Forwarded-For}i %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\" \"%{Host}i\"" proxy_combined
+LogFormat "%{X-Forwarded-For}i %h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\" \"%{Host}i\"" proxy_debug
+
+<VirtualHost <%= node['ceph']['radosgw']['rgw_addr'] %>>
+  ServerName <%= @params[:server_name] %>
+<% if node['ceph']['radosgw']['api_aliases'] -%>
+<%   node['ceph']['radosgw']['api_aliases'].each do |api_alias| -%>
+  ServerAlias <%= api_alias %>
+<%   end -%>
+<% end -%>
+  ServerAdmin <%= node["ceph"]["radosgw"]["admin_email"] %>
+  DocumentRoot /var/www/
+
+  RewriteEngine On
+  RewriteRule ^/(.*) /s3gw.fcgi?%{QUERY_STRING} [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]
+
+  <IfModule mod_fastcgi.c>
+    <Directory /var/www/>
+      Options +ExecCGI
+      AllowOverride All
+      SetHandler fastcgi-script
+      Order allow,deny
+      Allow from all
+      AuthBasicAuthoritative Off
+    </Directory>
+  </IfModule>
+
+  AllowEncodedSlashes On
+
+  ErrorLog /var/log/<%= node['apache']['package'] %>/error.log
+  CustomLog /var/log/<%= node['apache']['package'] %>/rgw-access.log proxy_combined
+  ServerSignature Off
+</VirtualHost>

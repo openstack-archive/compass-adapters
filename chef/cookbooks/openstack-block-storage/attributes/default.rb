@@ -80,8 +80,8 @@ default['openstack']['block-storage']['quota_gigabytes'] = '1000'
 default['openstack']['block-storage']['quota_driver'] = 'cinder.quota.DbQuotaDriver'
 
 # Common rpc definitions
-default['openstack']['block-storage']['rpc_thread_pool_size'] = 64
-default['openstack']['block-storage']['rpc_conn_pool_size'] = 30
+default['openstack']['block-storage']['rpc_thread_pool_size'] = 240
+default['openstack']['block-storage']['rpc_conn_pool_size'] = 100
 default['openstack']['block-storage']['rpc_response_timeout'] = 60
 case node['openstack']['mq']['service_type']
 when 'rabbitmq'
@@ -209,7 +209,7 @@ default['openstack']['block-storage']['volume']['volume_group_size'] = 40
 default['openstack']['block-storage']['volume']['volume_clear_size'] = 10
 default['openstack']['block-storage']['volume']['volume_clear'] = 'zero'
 # volume disk can be loopfile or /dev/sdb
-default['openstack']['block-storage']['volume']['disk'] = 'loopfile'
+default['openstack']['block-storage']['volume']['disk'] = '/dev/sdb'
 default['openstack']['block-storage']['volume']['create_volume_group'] = false
 default['openstack']['block-storage']['volume']['iscsi_helper'] = 'tgtadm'
 default['openstack']['block-storage']['volume']['iscsi_ip_address'] = node['ipaddress']

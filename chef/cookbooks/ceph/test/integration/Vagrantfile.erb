@@ -1,0 +1,10 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "<%= config[:box] %>"
+  config.vm.box_url = "<%= config[:box_url ]%>"
+  (0..2).each do |d|
+    config.vm.provider :virtualbox do |vb|
+      vb.customize [ "createhd", "--filename", "disk-#{d}", "--size", "1000" ]
+      vb.customize [ "storageattach", :id, "--storagectl", "IDE Controller", "--device", (1+d)/2, "--port", (1+d)%2, "--type", "hdd", "--medium", "disk-#{d}.vdi" ]
+    end
+  end
+end

@@ -55,7 +55,7 @@ service 'nova-api-metadata' do
   supports status: true, restart: true
   subscribes :restart, resources('template[/etc/nova/nova.conf]')
 
-  action :enable
+  action [:enable, :start]
 end
 
 identity_endpoint = endpoint 'identity-api'

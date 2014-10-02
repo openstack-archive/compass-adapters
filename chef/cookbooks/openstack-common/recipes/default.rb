@@ -40,6 +40,12 @@ when 'debian'
   end
 when 'rhel'
 
+  cookbook_file '/etc/pki/rpm-gpg/RPM-GPG-KEY-RDO-Icehouse' do
+    source 'RPM-GPG-KEY-RDO-Icehouse'
+    mode   00644
+    action :create
+  end
+
   if node['openstack']['yum']['rdo_enabled']
     repo_action = :add
     include_recipe 'yum-epel'
@@ -51,10 +57,9 @@ when 'rhel'
 
   yum_repository "RDO-#{node['openstack']['release']}" do
     description "OpenStack RDO repo for #{node['openstack']['release']}"
-    # gpgkey node['openstack']['yum']['repo-key']
+    gpgkey node['openstack']['yum']['repo-key']
     baseurl node['openstack']['yum']['uri']
     enabled true
-    gpgcheck false
     action repo_action
   end
 

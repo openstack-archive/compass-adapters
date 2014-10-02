@@ -33,7 +33,9 @@ when 'debian'
   package 'util-linux'
 
   if node['rabbitmq']['use_distro_version']
-    package 'rabbitmq-server'
+    package 'rabbitmq-server' do
+      action :upgrade
+    end
   else
     # we need to download the package
     deb_package = "https://www.rabbitmq.com/releases/rabbitmq-server/v#{node['rabbitmq']['version']}/rabbitmq-server_#{node['rabbitmq']['version']}-1_all.deb"

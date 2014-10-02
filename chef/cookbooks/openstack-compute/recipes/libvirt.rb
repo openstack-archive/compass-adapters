@@ -178,24 +178,14 @@ execute 'Deleting default libvirt network' do
   only_if 'virsh net-list | grep -q default'
 end
 
-# use bios system-uuid as host uuid
-ruby_block "set_libvirt_host_uuid" do
-  block do
-    # use bios system-uuid as host uuid
-    if node['openstack']['compute']['libvirt']['host_uuid'].nil?
-      cmd = Mixlib::ShellOut.new('dmidecode -s system-uuid').run_command
-
-      system_uuid = cmd.stdout.strip
-
-      invalid_uuid = ["00000000-0000-0000-0000-000000000000", \
-                    "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"]
-      if system_uuid.length.eql?(36) and \
-        !invalid_uuid.include?(system_uuid.upcase)
-        node.set['openstack']['compute']['libvirt']['host_uuid'] = system_uuid
-      end
+# Host uuid
+if node['openstack']['compute']['libvirt']['host_uuid'].nil?
+  ruby_block "set host uuid" do
+    block do
+      new_uuid = `uuidgen`.delete("\n")
+      node.set['openstack']['compute']['libvirt']['host_uuid'] = new_uuid
     end
   end
-  action :run
 end
 
 # TODO(breu): this section needs to be rewritten to support key privisioning

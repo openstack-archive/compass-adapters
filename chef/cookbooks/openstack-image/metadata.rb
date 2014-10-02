@@ -16,3 +16,4 @@ end
 
 depends           'openstack-common', '~> 9.0'
 depends           'openstack-identity', '~> 9.0'
+depends           'ceph', '>= 0.2.1'

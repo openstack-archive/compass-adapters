@@ -30,7 +30,7 @@ rpc_backend=<%= node["openstack"]["identity"]["rpc_backend"] %>
 <% end %>
 <% end %>
 
-<% if @memcache_servers -%>
+<% if node['openstack']['identity']['token']['backend'].eql?('memcache') -%>
 [memcache]
 servers = <%= @memcache_servers %>
 
@@ -39,7 +39,7 @@ servers = <%= @memcache_servers %>
 connection = <%= @sql_connection %>
 idle_timeout = 200
 min_pool_size = 5
-max_pool_size = 10
+max_pool_size = 100
 pool_timeout = 200
 
 [ldap]
@@ -51,7 +51,7 @@ password = <%= @ldap["password"] %>
 # password = None
 <% end -%>
 <% if @ldap["use_tls"] -%>
-use_tls = True
+# use_tls = True
 <%   if @ldap["tls_cacertfile"] -%>
 tls_cacertfile = <%= @ldap["tls_cacertfile"] %>
 <%   elsif @ldap["tls_cacertdir"] -%>
@@ -71,10 +71,10 @@ tls_req_cert = <%= @ldap["tls_req_cert"] %>
 suffix = <%= @ldap["suffix"] %>
 use_dumb_member = <%= @ldap["use_dumb_member"] %>
 allow_subtree_delete = <%= @ldap["allow_subtree_delete"] %>
-dumb_member = <%= @ldap["dumb_member"] %>
-page_size = <%= @ldap["page_size"] %>
-alias_dereferencing = <%= @ldap["alias_dereferencing"] %>
-query_scope = <%= @ldap["query_scope"] %>
+# dumb_member = <%= @ldap["dumb_member"] %>
+# page_size = <%= @ldap["page_size"] %>
+# alias_dereferencing = <%= @ldap["alias_dereferencing"] %>
+# query_scope = <%= @ldap["query_scope"] %>
 
 <% if @ldap["user_tree_dn"] -%>
 user_tree_dn = <%= @ldap["user_tree_dn"] %>
@@ -91,7 +91,7 @@ user_id_attribute = <%= @ldap["user_id_attribute"] %>
 user_name_attribute = <%= @ldap["user_name_attribute"] %>
 user_mail_attribute = <%= @ldap["user_mail_attribute"] %>
 user_pass_attribute = <%= @ldap["user_pass_attribute"] %>
-user_enabled_attribute = <%= @ldap["user_enabled_attribute"] %>
+# user_enabled_attribute = <%= @ldap["user_enabled_attribute"] %>
 user_domain_id_attribute = <%= @ldap["user_domain_id_attribute"] %>
 user_enabled_mask = <%= @ldap["user_enabled_mask"] %>
 user_enabled_default = <%= @ldap["user_enabled_default"] %>
@@ -106,6 +106,8 @@ user_enabled_emulation_dn = <%= @ldap["user_enabled_emulation_dn"] %>
 # user_enabled_emulation_dn =
 <% end -%>
 
+
+
 <% if @ldap["tenant_tree_dn"] -%>
 tenant_tree_dn = <%= @ldap["tenant_tree_dn"] %>
 <% else -%>
@@ -116,22 +118,22 @@ tenant_filter = <%= @ldap["tenant_filter"] %>
 <% else -%>
 # tenant_filter =
 <% end -%>
-tenant_objectclass = <%= @ldap["tenant_objectclass"] %>
-tenant_id_attribute = <%= @ldap["tenant_id_attribute"] %>
-tenant_member_attribute = <%= @ldap["tenant_member_attribute"] %>
-tenant_name_attribute = <%= @ldap["tenant_name_attribute"] %>
-tenant_desc_attribute = <%= @ldap["tenant_desc_attribute"] %>
-tenant_enabled_attribute = <%= @ldap["tenant_enabled_attribute"] %>
-tenant_domain_id_attribute = <%= @ldap["tenant_domain_id_attribute"] %>
+#tenant_objectclass = <%= @ldap["tenant_objectclass"] %>
+#tenant_id_attribute = <%= @ldap["tenant_id_attribute"] %>
+#tenant_member_attribute = <%= @ldap["tenant_member_attribute"] %>
+#tenant_name_attribute = <%= @ldap["tenant_name_attribute"] %>
+#tenant_desc_attribute = <%= @ldap["tenant_desc_attribute"] %>
+#tenant_enabled_attribute = <%= @ldap["tenant_enabled_attribute"] %>
+#tenant_domain_id_attribute = <%= @ldap["tenant_domain_id_attribute"] %>
 <% if @ldap["tenant_attribute_ignore"] -%>
 tenant_attribute_ignore = <%= @ldap["tenant_attribute_ignore"] %>
 <% else -%>
 # tenant_attribute_ignore =
 <% end -%>
-tenant_allow_create = <%= @ldap["tenant_allow_create"] %>
-tenant_allow_update = <%= @ldap["tenant_allow_update"] %>
-tenant_allow_delete = <%= @ldap["tenant_allow_delete"] %>
-tenant_enabled_emulation = <%= @ldap["tenant_enabled_emulation"] %>
+#tenant_allow_create = <%= @ldap["tenant_allow_create"] %>
+#tenant_allow_update = <%= @ldap["tenant_allow_update"] %>
+#tenant_allow_delete = <%= @ldap["tenant_allow_delete"] %>
+#tenant_enabled_emulation = <%= @ldap["tenant_enabled_emulation"] %>
 <% if @ldap["tenant_enabled_emulation_dn"] -%>
 tenant_enabled_emulation_dn = <%= @ldap["tenant_enabled_emulation_dn"] %>
 <% else -%>
@@ -148,18 +150,18 @@ role_filter = <%= @ldap["role_filter"] %>
 <% else -%>
 # role_filter =
 <% end -%>
-role_objectclass = <%= @ldap["role_objectclass"] %>
-role_id_attribute = <%= @ldap["role_id_attribute"] %>
-role_name_attribute = <%= @ldap["role_name_attribute"] %>
-role_member_attribute = <%= @ldap["role_member_attribute"] %>
+#role_objectclass = <%= @ldap["role_objectclass"] %>
+#role_id_attribute = <%= @ldap["role_id_attribute"] %>
+#role_name_attribute = <%= @ldap["role_name_attribute"] %>
+#role_member_attribute = <%= @ldap["role_member_attribute"] %>
 <% if @ldap["role_attribute_ignore"] -%>
 role_attribute_ignore = <%= @ldap["role_attribute_ignore"] %>
 <% else -%>
 # role_attribute_ignore =
 <% end -%>
-role_allow_create = <%= @ldap["role_allow_create"] %>
-role_allow_update = <%= @ldap["role_allow_update"] %>
-role_allow_delete = <%= @ldap["role_allow_delete"] %>
+#role_allow_create = <%= @ldap["role_allow_create"] %>
+#role_allow_update = <%= @ldap["role_allow_update"] %>
+#role_allow_delete = <%= @ldap["role_allow_delete"] %>
 
 <% if @ldap["group_tree_dn"] -%>
 group_tree_dn = <%= @ldap["group_tree_dn"] %>
@@ -171,8 +173,8 @@ group_filter = <%= @ldap["group_filter"] %>
 <% else -%>
 # group_filter =
 <% end -%>
-group_objectclass = <%= @ldap["group_objectclass"] %>
-group_id_attribute = <%= @ldap["group_id_attribute"] %>
+#group_objectclass = <%= @ldap["group_objectclass"] %>
+#group_id_attribute = <%= @ldap["group_id_attribute"] %>
 group_name_attribute = <%= @ldap["group_name_attribute"] %>
 group_member_attribute = <%= @ldap["group_member_attribute"] %>
 group_desc_attribute = <%= @ldap["group_desc_attribute"] %>

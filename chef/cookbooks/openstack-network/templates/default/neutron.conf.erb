@@ -107,7 +107,8 @@ rpc_conn_pool_size = <%= node['openstack']['network']['rpc_conn_pool_size'] %>
 # Seconds to wait for a response from call or multicall
 rpc_response_timeout = <%= node['openstack']['network']['rpc_response_timeout'] %>
 # Seconds to wait before a cast expires (TTL). Only supported by impl_zmq.
-# rpc_cast_timeout = 30
+rpc_cast_timeout = <%= node['openstack']['network']['rpc_cast_timeout'] %>
+
 # Modules of exceptions that are permitted to be recreated
 # upon receiving exception data from an rpc call.
 # allowed_rpc_exception_modules = neutron.openstack.common.exception, nova.exception
@@ -246,6 +247,18 @@ router_scheduler_driver = <%= node["openstack"]["network"]["l3"]["scheduler"] %>
 # ===========  end of items for agent scheduler extension =====
 
 # =========== WSGI parameters related to the API server ==============
+# Number of separate worker processes to spawn.  The default, 0, runs the
+# worker thread in the current process.  Greater than 0 launches that number of
+# child processes as workers.  The parent process manages them.
+api_workers = <%= node['openstack']['network']['api_workers'] %>
+
+# Number of separate RPC worker processes to spawn.  The default, 0, runs the
+# worker thread in the current process.  Greater than 0 launches that number of
+# child processes as RPC workers.  The parent process manages them.
+# This feature is experimental until issues are addressed and testing has been
+# enabled for various plugins for compatibility.
+rpc_workers = <%= node['openstack']['network']['rpc_workers'] %>
+
 # Sets the value of TCP_KEEPIDLE in seconds to use for each server socket when
 # starting API server. Not supported on OS X.
 #tcp_keepidle = 600

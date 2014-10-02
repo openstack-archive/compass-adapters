@@ -69,6 +69,12 @@ default['openstack']['network']['api']['auth']['cache_dir'] = '/var/cache/neutro
 # The auth api version used to interact with identity service.
 default['openstack']['network']['api']['auth']['version'] = node['openstack']['api']['auth']['version']
 
+# Number of separate worker processes to spawn.
+default['openstack']['network']['api_workers'] = 8
+
+# Number of separate RPC worker processes to spawn.
+default['openstack']['network']['rpc_workers'] = 8
+
 # logging attribute
 default['openstack']['network']['log_dir'] = '/var/log/neutron'
 default['openstack']['network']['syslog']['use'] = false
@@ -95,19 +101,19 @@ default['openstack']['network']['quota']['items'] = 'network,subnet,port'
 default['openstack']['network']['quota']['default'] = -1
 
 # number of networks allowed per tenant, and minus means unlimited
-default['openstack']['network']['quota']['network'] = 10
+default['openstack']['network']['quota']['network'] = 100
 
 # number of subnets allowed per tenant, and minus means unlimited
-default['openstack']['network']['quota']['subnet'] = 10
+default['openstack']['network']['quota']['subnet'] = 100
 
 # number of ports allowed per tenant, and minus means unlimited
-default['openstack']['network']['quota']['port'] = 50
+default['openstack']['network']['quota']['port'] = 8000
 
 # number of security groups allowed per tenant, and minus means unlimited
-default['openstack']['network']['quota']['security_group'] = 10
+default['openstack']['network']['quota']['security_group'] = 1000
 
 # number of security group rules allowed per tenant, and minus means unlimited
-default['openstack']['network']['quota']['security_group_rule'] = 100
+default['openstack']['network']['quota']['security_group_rule'] = 1000
 
 # Whether or not we want to disable offloading
 # on all the NIC interfaces (currently only supports
@@ -174,7 +180,7 @@ default['openstack']['network']['dhcp_driver'] = 'neutron.agent.linux.dhcp.Dnsma
 # you must have kernel build with CONFIG_NET_NS=y and
 # iproute2 package that supports namespaces.
 default['openstack']['network']['use_namespaces'] = 'True'
-default['openstack']['network']['allow_overlapping_ips'] = 'False'
+default['openstack']['network']['allow_overlapping_ips'] = 'True'
 
 # use neutron root wrap
 default['openstack']['network']['use_rootwrap'] = true
@@ -187,9 +193,10 @@ default['openstack']['network']['notification_driver'] = 'neutron.openstack.comm
 default['openstack']['network']['control_exchange'] =  node['openstack']['mq']['network']['control_exchange']
 
 # Common rpc definitions
-default['openstack']['network']['rpc_thread_pool_size'] = 64
-default['openstack']['network']['rpc_conn_pool_size'] = 30
-default['openstack']['network']['rpc_response_timeout'] = 60
+default['openstack']['network']['rpc_thread_pool_size'] = 240
+default['openstack']['network']['rpc_conn_pool_size'] = 100
+default['openstack']['network']['rpc_response_timeout'] = 300
+default['openstack']['network']['rpc_cast_timeout'] = 300
 
 # ======== Neutron Nova interactions ==========
 # Send notification to nova when port status is active.
@@ -452,6 +459,7 @@ default['openstack']['network']['openvswitch']['enable_security_group'] = 'True'
 # this interface, otherwise use default host.
 default['openstack']['network']['openvswitch']['host'] = '127.0.0.1'
 default['openstack']['network']['openvswitch']['bind_interface'] = nil
+
 
 # The newest version of OVS which comes with 12.04 Precise is 1.4.0
 # Which is legacy. Should we compile a newer version from source?

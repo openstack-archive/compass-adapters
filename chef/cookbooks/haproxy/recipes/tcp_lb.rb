@@ -17,33 +17,14 @@
 # limitations under the License.
 #
 
-defaultbag = "openstack"
-if !Chef::DataBag.list.key?(defaultbag)
-    Chef::Application.fatal!("databag '#{defaultbag}' doesn't exist.")
-    return
-end
-
-myitem = node.attribute?('cluster')? node['cluster']:"env_default"
-
-if !search(defaultbag, "id:#{myitem}")
-    Chef::Application.fatal!("databagitem '#{myitem}' doesn't exist.")
-    return
-end
-
-mydata = data_bag_item(defaultbag, myitem)
-
-if mydata['ha']['status'].eql?('enable')
-  node.set['haproxy']['enabled_services'] = nil
-  node.set['haproxy']['incoming_address'] = mydata['ha']['haproxy']['vip']
-
-  mydata['ha']['haproxy']['roles'].each do |role, services|
-    services.each do |service|
-      node.set['haproxy']['services'][service]['role'] = role
-      unless node['haproxy']['enabled_services'].include?(service)
-        # node['haproxy']['enabled_services'] << service
-        node.set['haproxy']['enabled_services'] = node['haproxy']['enabled_services'] + [service]
-      end
+node['haproxy']['roles'].each do |role, services|
+  services.each do |service|
+    node.set['haproxy']['services'][service]['role'] = role
+    unless node['haproxy']['enabled_services'].include?(service)
+      # node['haproxy']['enabled_services'] << service
+      node.set['haproxy']['enabled_services'] = node['haproxy']['enabled_services'] + [service]
     end
+    node.save
   end
 end
 
@@ -54,23 +35,28 @@ node['haproxy']['services'].each do |name, service|
 
   if node['haproxy']['choose_backend'].eql?("prefeed")
     pool_members = []
-    mydata['node_mapping'].each do |nodename, nodeinfo|
-      if nodeinfo['roles'].include?(service['role'])
-        pool_members << nodename
+    if node['haproxy'].has_attribute?(:node_mapping)
+      node['haproxy']['node_mapping'].each do |nodename, nodeinfo|
+        if nodeinfo['roles'].include?(service['role'])
+          pool_members << nodename
+        end
       end
     end
   else
     pool_members = search(:node, "run_list:role\\[#{service['role']}\\] AND chef_environment:#{node.chef_environment}") || []
+    Chef::Log.info("===== search run_list:role\\[#{service['role']}\\] AND chef_environment:#{node.chef_environment}") 
     # load balancer may be in the pool
     pool_members << node if node.run_list.roles.include?(service[:role])
+    pool_members = pool_members.sort_by { |node| node.name } unless pool_members.empty?
   end
 
   # we prefer connecting via local_ipv4 if
   # pool members are in the same cloud
   # TODO refactor this logic into library...see COOK-494
   pool_members.map! do |member|
+      Chef::Log.info("processing member ...... #{member}")
     if node['haproxy']['choose_backend'].eql?("prefeed")
-      server_ip = mydata['node_mapping']["#{member}"]['management_ip']
+      server_ip = node['haproxy']['node_mapping']["#{member}"]['management_ip']
       {:ipaddress => server_ip, :hostname => member}
     else
       server_ip = begin
@@ -92,10 +78,12 @@ node['haproxy']['services'].each do |name, service|
   pool = service[:options]
   servers = pool_members.uniq.map do |s|
     # novncproxy cannot to be checked
-    if name.eql?("novncproxy")
-      "#{s[:hostname]} #{s[:ipaddress]}:#{service[:backend_port]}"
-    else
-      "#{s[:hostname]} #{s[:ipaddress]}:#{service[:backend_port]} check inter 2000 rise 2 fall 5"
+    if s[:hostname] and s[:ipaddress]
+      if name.eql?("novncproxy")
+        "#{s[:hostname]} #{s[:ipaddress]}:#{service[:backend_port]}"
+      else
+        "#{s[:hostname]} #{s[:ipaddress]}:#{service[:backend_port]} check inter 30000 fastinter 1000 rise 2 fall 5"
+      end
     end
   end
 
@@ -134,4 +122,31 @@ end
 service "haproxy" do
   supports :restart => true, :status => true, :reload => true
   action [:enable, :start]
+end
+
+# Enable haproxy log to file
+service "rsyslog" do
+  supports :status => true, :restart => true, :start => true, :stop => true
+  action :nothing
+end
+
+ruby_block "enable haproxy log" do
+  block do
+    fe = Chef::Util::FileEdit.new('/etc/rsyslog.conf')
+    fe.search_file_replace_line(/^\#\$ModLoad\s+imudp/, '$ModLoad imudp')
+    fe.write_file
+    fe.search_file_replace_line(/^\#\$UDPServerRun\s+514/, '$UDPServerRun 514')
+    fe.write_file
+    fe.search_file_replace_line(/^\*.emerg\s+\*/, "#*.emerg        *")
+    fe.write_file
+    haproxylog = "#{node['haproxy']['log']['facilities']}.*  \
+                  #{node['haproxy']['log']['file']}"
+    if !::File.readlines('/etc/rsyslog.conf').grep(/#{haproxylog}/).any?
+      fe.insert_line_after_match('^local7.*', haproxylog)
+      fe.write_file
+    end
+  end
+  action :nothing
+  subscribes :run, "template[#{node['haproxy']['conf_dir']}/haproxy.cfg]", :immediately
+  notifies :restart, "service[rsyslog]", :delayed
 end

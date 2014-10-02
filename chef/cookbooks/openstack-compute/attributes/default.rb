@@ -33,16 +33,18 @@ default['openstack']['compute']['lock_path'] =
 # Workers
 # nova will default to number of cpus
 default['openstack']['compute']['ec2_workers'] = nil
-default['openstack']['compute']['osapi_compute_workers'] = nil
+default['openstack']['compute']['osapi_compute_workers'] = [6, node['cpu']['total'].to_i].min
 default['openstack']['compute']['metadata_workers'] = nil
 
 # The name of the Chef role that sets up the Keystone Service API
 default['openstack']['compute']['identity_service_chef_role'] = 'os-identity'
 
 # Common rpc definitions
-default['openstack']['compute']['rpc_thread_pool_size'] = 64
-default['openstack']['compute']['rpc_conn_pool_size'] = 30
-default['openstack']['compute']['rpc_response_timeout'] = 60
+default['openstack']['compute']['rpc_cast_timeout'] = 300
+default['openstack']['compute']['rpc_response_timeout'] = 300
+default['openstack']['compute']['rpc_thread_pool_size'] = 240
+default['openstack']['compute']['rpc_conn_pool_size'] = 100
+
 case node['openstack']['mq']['service_type']
 when 'rabbitmq'
   default['openstack']['compute']['rpc_backend'] = 'nova.openstack.common.rpc.impl_kombu'
@@ -62,6 +64,11 @@ when 'suse'
   default['openstack']['compute']['user'] = 'openstack-nova'
   default['openstack']['compute']['group'] = 'openstack-nova'
 end
+
+# Options defined in nova.image.glance
+# Number of retries when downloading an image from glance
+# the actually retries num  = glance_num_retries + 1
+default['openstack']['compute']['glance_num_retries'] = 2
 
 # Logging stuff
 default['openstack']['compute']['log_dir'] = '/var/log/nova'
@@ -83,6 +90,7 @@ default['openstack']['compute']['network']['service_type'] = 'nova'
 default['openstack']['compute']['network']['plugins'] = ['openvswitch']
 
 # Neutron options
+default["openstack"]["compute"]["network"]["neutron"]["url_timeout"] = 90
 default['openstack']['compute']['network']['neutron']['network_api_class'] = 'nova.network.neutronv2.api.API'
 default['openstack']['compute']['network']['neutron']['auth_strategy'] = 'keystone'
 default['openstack']['compute']['network']['neutron']['admin_tenant_name'] = 'service'
@@ -173,12 +181,14 @@ default['openstack']['compute']['scheduler']['default_filters'] = %W(
   SameHostFilter
   DifferentHostFilter)
 
+default['openstack']['compute']['scheduler']['host_subset_size']= 100
+
 default['openstack']['compute']['driver'] = 'libvirt.LibvirtDriver'
 default['openstack']['compute']['default_ephemeral_format'] = nil
 default['openstack']['compute']['preallocate_images'] = 'none'
 default['openstack']['compute']['use_cow_images'] = true
-default['openstack']['compute']['vif_plugging_is_fatal'] = true
-default['openstack']['compute']['vif_plugging_timeout'] = 300
+default['openstack']['compute']['vif_plugging_is_fatal'] = 'True'
+default['openstack']['compute']['vif_plugging_timeout'] = 360
 
 default['openstack']['compute']['libvirt']['virt_type'] = 'kvm'
 default['openstack']['compute']['libvirt']['virt_auto'] = false
@@ -224,9 +234,9 @@ default['openstack']['compute']['config']['storage_availability_zone'] = 'nova'
 default['openstack']['compute']['config']['default_schedule_zone'] = 'nova'
 default['openstack']['compute']['config']['force_raw_images'] = false
 default['openstack']['compute']['config']['allow_same_net_traffic'] = true
-default['openstack']['compute']['config']['osapi_max_limit'] = 1000
-default['openstack']['compute']['config']['cpu_allocation_ratio'] = 16.0
-default['openstack']['compute']['config']['ram_allocation_ratio'] = 1.5
+default['openstack']['compute']['config']['osapi_max_limit'] = 5000
+default['openstack']['compute']['config']['cpu_allocation_ratio'] = 2.0
+default['openstack']['compute']['config']['ram_allocation_ratio'] = 1.0
 default['openstack']['compute']['config']['disk_allocation_ratio'] = 1.0
 default['openstack']['compute']['config']['snapshot_image_format'] = 'qcow2'
 default['openstack']['compute']['config']['allow_resize_to_same_host'] = false
@@ -246,16 +256,16 @@ default['openstack']['compute']['config']['injected_network_template'] = '$pybas
 default['openstack']['compute']['config']['volume_api_class'] = 'nova.volume.cinder.API'
 
 # quota settings
-default['openstack']['compute']['config']['quota_security_groups'] = 50
-default['openstack']['compute']['config']['quota_security_group_rules'] = 20
+default['openstack']['compute']['config']['quota_security_groups'] = 200
+default['openstack']['compute']['config']['quota_security_group_rules'] = 200
 # (StrOpt) default driver to use for quota checks (default: nova.quota.DbQuotaDriver)
 default['openstack']['compute']['config']['quota_driver'] = 'nova.quota.DbQuotaDriver'
 # number of instance cores allowed per project (default: 20)
-default['openstack']['compute']['config']['quota_cores'] = 20
+default['openstack']['compute']['config']['quota_cores'] = 200
 # number of fixed ips allowed per project (this should be at least the number of instances allowed) (default: -1)
 default['openstack']['compute']['config']['quota_fixed_ips'] = -1
 # number of floating ips allowed per project (default: 10)
-default['openstack']['compute']['config']['quota_floating_ips'] = 10
+default['openstack']['compute']['config']['quota_floating_ips'] = 100
 # number of bytes allowed per injected file (default: 10240)
 default['openstack']['compute']['config']['quota_injected_file_content_bytes'] = 10240
 # number of bytes allowed per injected file path (default: 255)
@@ -263,13 +273,13 @@ default['openstack']['compute']['config']['quota_injected_file_path_bytes'] = 25
 # number of injected files allowed (default: 5)
 default['openstack']['compute']['config']['quota_injected_files'] = 5
 # number of instances allowed per project (defailt: 10)
-default['openstack']['compute']['config']['quota_instances'] = 10
+default['openstack']['compute']['config']['quota_instances'] = 100
 # number of key pairs per user (default: 100)
 default['openstack']['compute']['config']['quota_key_pairs'] = 100
 # number of metadata items allowed per instance (default: 128)
 default['openstack']['compute']['config']['quota_metadata_items'] = 128
 # megabytes of instance ram allowed per project (default: 51200)
-default['openstack']['compute']['config']['quota_ram'] = 51200
+default['openstack']['compute']['config']['quota_ram'] = 2048000
 # disk cache modes
 default['openstack']['compute']['config']['disk_cache_modes'] = nil
 
@@ -297,6 +307,15 @@ else
   default['openstack']['compute']['config']['notify_on_state_change'] = ''
 end
 
+# vncproxy setttings
+default['openstack']['compute']['vnc']['vncserver_listen'] = '0.0.0.0'
+# nova consoleauth token backend could be 'memcache' or nil:
+# 'memcache' means consoleauth storage tokens into memcache,
+# it can work on single or multiply consoleauth
+# nil means consoleauth storage tokens in its local memory,
+# only works on single node.
+default['openstack']['compute']['consoleauth']['token']['backend'] = 'memcache'
+
 # Keystone settings
 default['openstack']['compute']['api']['auth_strategy'] = 'keystone'
 
@@ -309,7 +328,7 @@ default['openstack']['compute']['api']['auth']['cache_dir'] = '/var/cache/nova/a
 # Perform nova-conductor operations locally (boolean value)
 default['openstack']['compute']['conductor']['use_local'] = 'False'
 # nova-conductor will default to number of cpus
-default['openstack']['compute']['conductor']['workers'] = nil
+default['openstack']['compute']['conductor']['workers'] = [6, node['cpu']['total'].to_i].min
 
 default['openstack']['compute']['network']['force_dhcp_release'] = true
 
@@ -344,7 +363,7 @@ when 'fedora', 'rhel', 'suse' # :pragma-foodcritic: ~FC024 - won't fix this
     'compute_vncproxy_consoleauth_service' => 'openstack-nova-consoleauth',
     'libvirt_packages' => ['libvirt', 'dmidecode'],
     'libvirt_service' => 'libvirtd',
-    'libvirt_ceph_packages' => ['ceph-common'],
+    'libvirt_ceph_packages' => [],
     'dbus_service' => 'messagebus',
     'compute_cert_packages' => ['openstack-nova-cert'],
     'compute_cert_service' => 'openstack-nova-cert',

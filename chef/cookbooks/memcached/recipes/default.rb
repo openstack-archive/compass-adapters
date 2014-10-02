@@ -20,6 +20,10 @@
 # include epel on redhat/centos 5 and below in order to get the memcached packages
 include_recipe 'yum-epel' if node['platform_family'] == 'rhel' && node['platform_version'].to_i == 5
 
+class ::Chef::Recipe # rubocop:disable Documentation
+  include ::Openstack
+end
+
 package 'memcached'
 
 package 'libmemcache-dev' do
@@ -42,6 +46,10 @@ end
 service 'memcached' do
   action :enable
   supports :status => true, :start => true, :stop => true, :restart => true, :enable => true
+end
+
+if !node['memcached']['bind_interface'].nil?
+  node.set['memcached']['listen'] = address_for(node['memcached']['bind_interface'])
 end
 
 case node['platform_family']

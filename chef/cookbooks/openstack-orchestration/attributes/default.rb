@@ -64,8 +64,8 @@ default['openstack']['orchestration']['syslog']['facility'] = 'LOG_LOCAL2'
 default['openstack']['orchestration']['syslog']['config_facility'] = 'local2'
 
 # Common rpc definitions
-default['openstack']['orchestration']['rpc_thread_pool_size'] = 64
-default['openstack']['orchestration']['rpc_conn_pool_size'] = 30
+default['openstack']['orchestration']['rpc_thread_pool_size'] = 240
+default['openstack']['orchestration']['rpc_conn_pool_size'] = 100
 default['openstack']['orchestration']['rpc_response_timeout'] = 60
 
 # Notification definitions

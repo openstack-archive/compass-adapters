@@ -132,11 +132,11 @@ default['openstack']['db']['network']['retry_interval'] = 10
 # Minimum number of SQL connections to keep open in a pool
 default['openstack']['db']['network']['min_pool_size'] = 1
 # Maximum number of SQL connections to keep open in a pool
-default['openstack']['db']['network']['max_pool_size'] = 10
+default['openstack']['db']['network']['max_pool_size'] = 100
 # Timeout in seconds before idle sql connections are reaped
 default['openstack']['db']['network']['idle_timeout'] = 3600
 # If set, use this value for max_overflow with sqlalchemy
-default['openstack']['db']['network']['max_overflow'] = 20
+default['openstack']['db']['network']['max_overflow'] = 100
 # Verbosity of SQL debugging information. 0=None, 100=Everything
 default['openstack']['db']['network']['connection_debug'] = 0
 # Add python stack traces to SQL as comment strings

@@ -37,10 +37,10 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL', 'https')
 
 # If Horizon is being served through SSL, then uncomment the following two
 # settings to better secure the cookies from security exploits
-<% if node["openstack"]["dashboard"]["use_ssl"] %>
+<% if eval(node['openstack']['dashboard']['use_ssl']) -%>
 CSRF_COOKIE_SECURE = <%= node["openstack"]["dashboard"]["csrf_cookie_secure"] ? "True" : "False" %>
 SESSION_COOKIE_SECURE = <%= node["openstack"]["dashboard"]["session_cookie_secure"] ? "True" : "False" %>
-<% end %>
+<% end -%>
 
 # Overrides for OpenStack API versions. Use this setting to force the
 # OpenStack dashboard to use a specfic API version for a given service API.
@@ -133,6 +133,8 @@ CACHES = {
     when "sql"
 %>
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+<%  when "signed_cookies" %>
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 <% end %>
 
 # Send email to the console by default

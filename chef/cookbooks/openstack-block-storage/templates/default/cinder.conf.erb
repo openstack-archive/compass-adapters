@@ -560,6 +560,15 @@ rbd_user=<%= node["openstack"]["block-storage"]["rbd_user"] %>
 
 rbd_secret_uuid=<%= node["openstack"]["block-storage"]["rbd_secret_uuid"] %>
 #### (StrOpt) the libvirt uuid of the secret for the rbd_uservolumes
+
+rbd_ceph_conf=<%= node["openstack"]["block-storage"]["rbd_ceph_conf"] %>
+
+rbd_flatten_volume_from_snapshot=<%= node["openstack"]["block-storage"]["rbd_flatten_volume_from_snapshot"] %>
+
+rbd_max_clone_depth=<%= node["openstack"]["block-storage"]["rbd_max_clone_depth"] %>
+
+glance_api_version=<%= node["openstack"]["block-storage"]["glance_api_version"] %>
+
 <% end %>
 # volume_tmp_dir=<None>
 #### (StrOpt) where to store temporary image files if the volume driver

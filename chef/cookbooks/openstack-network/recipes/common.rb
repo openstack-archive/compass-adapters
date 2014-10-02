@@ -170,7 +170,7 @@ ruby_block 'query service tenant uuid' do
       return false if tenant_id.nil?
       # Chef::Log.error('service tenant UUID for nova_admin_tenant_id not found.') if tenant_id.nil?
       node.set['openstack']['network']['nova']['admin_tenant_id'] = tenant_id
-      # rescue RuntimeError => e
+    rescue RuntimeError => e
       # Chef::Log.error("Could not query service tenant UUID for nova_admin_tenant_id. Error was #{e.message}")
     end
   end

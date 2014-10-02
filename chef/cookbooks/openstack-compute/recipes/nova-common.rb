@@ -75,7 +75,16 @@ elsif mq_service_type == 'qpid'
                   node['openstack']['mq']['compute']['qpid']['username'])
 end
 
-memcache_servers = memcached_servers.join ','
+if node['openstack']['compute']['consoleauth']['token']['backend'].eql?('memcache')
+  memcache_servers = memcached_servers('os-ops-caching').join ','
+  # number of seconds to wait before sockets timeout when the memcached server is down
+  # the default number is 3, here is going to set it as 0.1
+  ruby_block "Set memcache socket timeout" do
+    block do
+      `sed -i "s/_SOCKET_TIMEOUT = 3/_SOCKET_TIMEOUT = 0.1/g" /usr/lib/python[0-9].[0-9]/site-packages/memcache.py`
+    end
+  end
+end
 
 # find the node attribute endpoint settings for the server holding a given role
 identity_endpoint = endpoint 'identity-api'
@@ -105,7 +114,7 @@ if node['openstack']['compute']['network']['service_type'] == 'neutron'
 end
 
 if node['openstack']['compute']['libvirt']['images_type'] == 'rbd'
-  rbd_secret_uuid = get_secret node['openstack']['compute']['libvirt']['rbd']['rbd_secret_name']
+  #rbd_secret_uuid = get_secret node['openstack']['compute']['libvirt']['rbd']['rbd_secret_name']
 end
 
 vmware_host_pass = get_secret node['openstack']['compute']['vmware']['secret_name']
@@ -129,7 +138,7 @@ template '/etc/nova/nova.conf' do
     xvpvncproxy_bind_port: xvpvnc_bind.port,
     novncproxy_bind_host: novnc_bind.host,
     novncproxy_bind_port: novnc_bind.port,
-    vncserver_listen: vnc_bind.host,
+    vncserver_listen: node['openstack']['compute']['vnc']['vncserver_listen'],
     vncserver_proxyclient_address: vnc_bind.host,
     memcache_servers: memcache_servers,
     mq_service_type: mq_service_type,
@@ -150,7 +159,7 @@ template '/etc/nova/nova.conf' do
     compute_api_bind_port: compute_api_bind.port,
     ec2_api_bind_ip: ec2_api_bind.host,
     ec2_api_bind_port: ec2_api_bind.port,
-    rbd_secret_uuid: rbd_secret_uuid,
+    #rbd_secret_uuid: rbd_secret_uuid,
     vmware_host_pass: vmware_host_pass
   )
 end

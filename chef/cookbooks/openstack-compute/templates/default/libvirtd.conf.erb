@@ -367,7 +367,9 @@ max_client_requests = <%= node['openstack']['compute']['libvirt']['max_client_re
 # NB This default all-zeros UUID will not work. Replace
 # it with the output of the 'uuidgen' command and then
 # uncomment this entry
-#host_uuid = "00000000-0000-0000-0000-000000000000"
+<% unless node['openstack']['compute']['libvirt']['host_uuid'].nil? %>
+host_uuid = "<%= node['openstack']['compute']['libvirt']['host_uuid'] %>"
+<% end %>
 
 ###################################################################
 # Keepalive protocol:

@@ -35,7 +35,7 @@ default['openstack']['dashboard']['keystone_default_role'] = '_member_'
 default['openstack']['dashboard']['keystone_service_chef_role'] = 'keystone'
 
 default['openstack']['dashboard']['server_hostname'] = nil
-default['openstack']['dashboard']['use_ssl'] = true
+default['openstack']['dashboard']['use_ssl'] = false
 default['openstack']['dashboard']['ssl']['cert_url'] = nil
 default['openstack']['dashboard']['ssl']['key_url'] = nil
 # When using a remote certificate and key, the names of the actual installed certificate
@@ -138,7 +138,7 @@ default['openstack']['dashboard']['static_path'] = "#{node['openstack']['dashboa
 default['openstack']['dashboard']['stylesheet_path'] = '/usr/share/openstack-dashboard/openstack_dashboard/templates/_stylesheets.html'
 default['openstack']['dashboard']['wsgi_path'] = node['openstack']['dashboard']['dash_path'] + '/wsgi/django.wsgi'
 default['openstack']['dashboard']['wsgi_socket_prefix'] = nil
-default['openstack']['dashboard']['session_backend'] = 'memcached'
+default['openstack']['dashboard']['session_backend'] = 'signed_cookies'
 
 default['openstack']['dashboard']['ssl_offload'] = false
 default['openstack']['dashboard']['plugins'] = nil
