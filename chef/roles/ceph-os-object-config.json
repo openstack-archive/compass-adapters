@@ -1,0 +1,16 @@
+{
+  "name": "ceph-os-object-config",
+  "description": "Ceph-OpenStack object storage config role",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+  },
+  "chef_type": "role",
+  "run_list": [
+    "recipe[openstack-object-storage::swift-config-ceph]",
+    "recipe[openstack-object-storage::swiftclient-patch]"
+  ],
+  "env_run_lists": {
+  }
+}
