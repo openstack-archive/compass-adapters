@@ -105,6 +105,8 @@ def kairosdb_config(c):
             postfix = child.values[0]
         elif child.key == 'HostSeparator':
             host_separator = child.values[0]
+        elif child.key == 'LowercaseMetricNames':
+            lowercase_metric_names = child.values[0]
         elif child.key == 'MetricSeparator':
             metric_separator = child.values[0]
         elif child.key == 'KairosDBProtocol':

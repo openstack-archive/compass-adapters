@@ -56,6 +56,7 @@ default[:collectd][:collectd_web][:path] = "/srv/collectd_web"
 default[:collectd][:collectd_web][:hostname] = "collectd"
 
 default[:collectd][:plugins] = {"cpu"=>{},
+                                "cpulinux"=>"",
                                 "syslog"=>"",
                                 "disk"=>{"Disk"=>"/^[hsv]d[a-f][0-9]?$/", "IgnoreSelected"=>false},
                                 "interface"=>"",
@@ -67,4 +68,7 @@ default[:collectd][:included_plugins] = {"kairosdb"=>{}}
 default[:collectd][:server][:host] = "metrics"
 default[:collectd][:server][:port] = "4242"
 default[:collectd][:server][:protocol] = "tcp"
+default[:collectd][:server][:lcmetric_names] = "true"
+default[:collectd][:server][:diffn_values] = "true"
+default[:collectd][:server][:diffn_values_over_time] = "true"
 default[:collectd][:mq][:vhost] = "/"
