@@ -1,0 +1,15 @@
+{
+  "name": "ceph-os-image-config",
+  "description": "Ceph-OpenStack image config role",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+  },
+  "chef_type": "role",
+  "run_list": [
+    "recipe[openstack-image::glance-config-ceph]"
+  ],
+  "env_run_lists": {
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "openstack_config_radosgw",
+  "description": "openstack_config_radosgw",
+  "run_list": [
+    "recipe[ceph::repo]",
+    "recipe[ceph::openstack_config_radosgw]"
+  ]
+}

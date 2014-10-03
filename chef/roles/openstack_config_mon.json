@@ -1,0 +1,8 @@
+{
+  "name": "openstack_config_mon",
+  "description": "openstack_config_mon",
+  "run_list": [
+    "recipe[ceph::repo]",
+    "recipe[ceph::openstack_config_mon]"
+  ]
+}
