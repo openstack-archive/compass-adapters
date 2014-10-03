@@ -15,7 +15,7 @@
     "role[os-compute-api]",
     "role[os-compute-cert]",
     "role[os-compute-vncproxy]",
-    "role[os-compute-api-metadata]""
+    "role[os-compute-api-metadata]"
   ],
   "env_run_lists": {
   }
