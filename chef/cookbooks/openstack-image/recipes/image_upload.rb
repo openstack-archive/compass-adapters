@@ -26,7 +26,7 @@ if node['openstack']['image']['syslog']['use']
   include_recipe 'openstack-common::logging'
 end
 
-if node['local_repo'] != ""
+unless node['local_repo'].nil? or node['local_repo'] == ""
   node.override['openstack']['image']['upload_image']['cirros'] = "#{node['local_repo']}/cirros-0.3.2-x86_64-disk.img"
 end
 

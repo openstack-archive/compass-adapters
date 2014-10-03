@@ -31,7 +31,7 @@ def whyrun_supported?
 end
 
 action :create  do
-  if node['local_repo'] == ""
+  if node['local_repo'].nil? or node['local_repo'] == ""
     # Hack around the lack of "use_inline_resources" before Chef 11 by
     # uniquely naming the execute[yum-makecache] resources. Set the
     # notifies timing to :immediately for the same reasons. Remove both
