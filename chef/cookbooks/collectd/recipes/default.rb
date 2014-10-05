@@ -31,6 +31,12 @@ when "rhel"
     command "yum -y update"
     action :run
   end
+when "debian"
+  execute "apt-update" do
+    command "apt-get update"
+    ignore_failure true
+    action :run
+  end
 end
 
 node[:collectd][:package_name].each do |pkg|
