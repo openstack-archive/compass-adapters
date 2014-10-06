@@ -1,0 +1,9 @@
+{
+  "name": "ceph-os-mon",
+  "description": "Ceph Monitor compatiable with OpenStack Icehouse",
+  "run_list": [
+    "recipe[ceph::repo]",
+    "recipe[ceph::mon]",
+    "recipe[ceph::openstack_config_mon]"
+  ]
+}

@@ -11,7 +11,7 @@
     "role[os-image-api]",
     "role[os-image-registry]",
     "recipe[openstack-image::identity_registration]",
-    "role[ceph-os-image-config]",
+    "recipe[openstack-image::glance-config-ceph]",
     "role[os-image-upload]"
   ],
   "env_run_lists": {
