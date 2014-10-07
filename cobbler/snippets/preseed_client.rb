@@ -10,11 +10,12 @@ echo "ENV['http_proxy'] = '$proxy'" >> /target/etc/chef/client.rb; \
 echo "ENV['https_proxy'] = '$proxy'" >> /target/etc/chef/client.rb; \
 echo "ENV['HTTP_PROXY'] = '$proxy'" >> /target/etc/chef/client.rb; \
 echo "ENV['HTTPS_PROXY'] = '$proxy'" >> /target/etc/chef/client.rb; \
-#end if
-#if $getVar('ignore_proxy', '') != ""
+    #if $getVar('ignore_proxy', '') != ""
+        #set ignore_proxy = ','.join([proxy.strip() for proxy in $ignore_proxy.split(',') if proxy.strip()])
 echo "no_proxy         '$ignore_proxy'" >> /target/etc/chef/client.rb; \
 echo "ENV['no_proxy'] = '$ignore_proxy'" >> /target/etc/chef/client.rb; \
 echo "ENV['NO_PROXY'] = '$ignore_proxy'" >> /target/etc/chef/client.rb; \
+    #end if
 #end if
 #if $getVar('chef_node_name', '') != ""
 echo "node_name        '$chef_node_name'" >> /target/etc/chef/client.rb; \
