@@ -9,7 +9,7 @@ end
 
 def mon_nodes
   if crowbar?
-    mon_roles = search(:role, 'name:crowbar-* AND run_list:role\[ceph-mon\]')
+    mon_roles = search(:role, 'name:crowbar-* AND run_list:role\[ceph*-mon\]')
     unless mon_roles.empty?
       search_string = mon_roles.map { |role_object| 'roles:' + role_object.name }.join(' OR ')
       search_string = "(#{search_string}) AND ceph_config_environment:#{node['ceph']['config']['environment']}"
@@ -121,12 +121,14 @@ def pg_creating?
 end
 
 def mon_master
-  search_string2 = "run_list:role\\[ceph-mon\\] AND chef_environment:#{node.chef_environment} AND tags:mon_master"
+  search_string2 = "run_list:role\\[ceph*-mon\\] AND chef_environment:#{node.chef_environment} AND tags:mon_master"
   mon_master_node = search(:node, search_string2)
   if mon_master_node.empty?
-    search_string2 = "run_list:role\\[ceph-mon\\] AND chef_environment:#{node.chef_environment}"
+    search_string2 = "run_list:role\\[ceph*-mon\\] AND chef_environment:#{node.chef_environment}"
     all_mons = search(:node, search_string2)
-    mons_sort = all_mons.sort_by { |a| a['hostname']}
+
+    # TODO(weidong): should add empty? checking later.
+    mons_sort = all_mons.sort_by { |a| a.name }
     if mons_sort[0].name == node.name
       node.tags << 'mon_master' unless node.tags.include?("mon_master")
       node.save
@@ -138,9 +140,9 @@ def mon_master
 end
 
 def mon_init_member
-  search_string3 = "run_list:role\\[ceph-mon\\] AND chef_environment:#{node.chef_environment}"
+  search_string3 = "run_list:role\\[ceph*-mon\\] AND chef_environment:#{node.chef_environment}"
   all_mons = search(:node, search_string3)
-  mons_sort = all_mons.sort_by { |a| a['hostname']}
+  mons_sort = all_mons.sort_by { |a| a.name }
 end
 
 def mon_init_member_name
