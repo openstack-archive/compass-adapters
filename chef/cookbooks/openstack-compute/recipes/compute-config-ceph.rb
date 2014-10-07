@@ -38,8 +38,14 @@ if node['openstack']['block-storage']['volume']['driver'] == 'cinder.volume.driv
     end
   end
 
-  execute "rpm -Uvh --force #{node['ceph']['rhel']['extras']['repository']}/qemu-kvm-0.12.1.2-2.415.el6.3ceph.x86_64.rpm #{node['ceph']['rhel']['extras']['repository']}/qemu-img-0.12.1.2-2.415.el6.3ceph.x86_64.rpm" do
-    not_if "rpm -qa | grep qemu | grep ceph"
+  if node['local_repo'].nil? or node['local_repo'].empty?
+    execute "rpm -Uvh --force #{node['ceph']['rhel']['extras']['repository']}/qemu-kvm-0.12.1.2-2.415.el6.3ceph.x86_64.rpm #{node['ceph']['rhel']['extras']['repository']}/qemu-img-0.12.1.2-2.415.el6.3ceph.x86_64.rpm" do
+      not_if "rpm -qa | grep qemu | grep ceph"
+    end
+  else
+    execute "rpm -Uvh --force #{node['local_repo'}/compass_repo/qemu-kvm-0.12.1.2-2.415.el6.3ceph.x86_64.rpm  #{node['local_repo'}/compass_repo/qemu-img-0.12.1.2-2.415.el6.3ceph.x86_64.rpm" do
+      not_if "rpm -qa | grep qemu | grep ceph"
+    end
   end
 
   secret_uuid = node['openstack']['block-storage']['rbd_secret_uuid']
