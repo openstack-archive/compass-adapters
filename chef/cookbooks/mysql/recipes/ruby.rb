@@ -44,7 +44,7 @@ node['mysql']['client']['packages'].each do |name|
   resources("package[#{name}]").run_action(:install)
 end
 
-if node['local_repo'].nil? or node['local_repo'] == ""
+if node['local_repo'].nil? or node['local_repo'].empty?
   chef_gem 'mysql'
 else
   gem_package 'mysql' do
