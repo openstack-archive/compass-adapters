@@ -40,6 +40,7 @@ if node['openstack']['block-storage']['volume']['driver'] == 'cinder.volume.driv
 
   unless node['local_repo'].nil? or node['local_repo'].empty?
     node.override['ceph']['rhel']['extras']['repository'] = "#{node['local_repo']}/compass_repo"
+  end
 
   execute "rpm -Uvh --force #{node['ceph']['rhel']['extras']['repository']}/qemu-kvm-0.12.1.2-2.415.el6.3ceph.x86_64.rpm #{node['ceph']['rhel']['extras']['repository']}/qemu-img-0.12.1.2-2.415.el6.3ceph.x86_64.rpm" do
     not_if "rpm -qa | grep qemu | grep ceph"
