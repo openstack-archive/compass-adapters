@@ -1,0 +1,19 @@
+{
+  "name": "os-ceph-block-storage-controller",
+  "description": "Configures OpenStack block storage controller compatiable with Ceph, configured by attributes.",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[os-base]",
+    "role[os-block-storage-api]",
+    "role[os-block-storage-scheduler]",
+    "recipe[openstack-block-storage::identity_registration]",
+    "recipe[openstack-block-storage::cinder-config-ceph]"
+  ],
+  "env_run_lists": {
+  }
+}
