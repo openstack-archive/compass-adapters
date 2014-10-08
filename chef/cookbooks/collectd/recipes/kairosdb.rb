@@ -34,6 +34,7 @@ collectd_python_plugin "kairosdb_writer" do
               "KairosDBProtocol"=>node['collectd']['server']['protocol'],
               "Tags" => "host=#{node['fqdn']}\" \"role=OSROLE\" \"location=China.Beijing.TsingHua\" \"cluster=#{node['cluster']}",
               "TypesDB" => node['collectd']['types_db'],
+              "LowercaseMetricNames"=>"true"
              }
   options(opts)
 end
