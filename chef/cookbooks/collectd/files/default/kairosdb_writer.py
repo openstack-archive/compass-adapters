@@ -21,6 +21,7 @@ from traceback import format_exc
 
 host = None
 port = None
+lowercase_metric_names = False
 prefix = None
 types = {}
 postfix = None
