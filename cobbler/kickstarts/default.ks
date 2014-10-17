@@ -79,7 +79,6 @@ chef
 ntp
 openssh-clients
 wget
-yum-plugin-priorities
 json-c
 libestr
 libgt
