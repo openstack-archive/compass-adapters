@@ -96,8 +96,7 @@ chkconfig ip6tables off
 
 $SNIPPET('kickstart_yum.conf')
 #if $getVar('local_repo', '') != ''
-    #set $kickstart_local_repo = "kickstart_%s" % $local_repo
-$SNIPPET($kickstart_local_repo)
+    $SNIPPET('kickstart_local_repo')
 #end if
 $SNIPPET('kickstart_ssh')
 $SNIPPET('kickstart_ntp')
