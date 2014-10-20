@@ -1,7 +1,8 @@
 #
 # Author:: Seth Chisamore (<schisamo@opscode.com>)
-# Copyright:: Copyright (c) 2011 Opscode, Inc.
-# License:: Apache License, Version 2.0
+# Author:: Sean OMeara (<schisamo@opscode.com>)
+#
+# Copyright:: Copyright (c) 2011-2013 Opscode, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,16 +19,27 @@
 
 module Opscode
   module Mysql
+    # Opscode Mysql Helpers
     module Helpers
-
       def debian_before_squeeze?
-        (node['platform'] == "debian") && (node['platform_version'].to_f < 6.0)
+        (node['platform'] == 'debian') && (node['platform_version'].to_f < 6.0)
       end
 
       def ubuntu_before_lucid?
-        (node['platform'] == "ubuntu") && (node['platform_version'].to_f < 10.0)
+        (node['platform'] == 'ubuntu') && (node['platform_version'].to_f < 10.0)
       end
 
+      def assign_root_password_cmd
+        str = '/usr/bin/mysqladmin'
+        str << ' -u root password '
+        str << node['mysql']['server_root_password']
+      end
+
+      def install_grants_cmd
+        str = '/usr/bin/mysql'
+        str << ' -u root '
+        node['mysql']['server_root_password'].empty? ? str << ' < /etc/mysql_grants.sql' : str << " -p#{node['mysql']['server_root_password']} < /etc/mysql_grants.sql"
+      end
     end
   end
 end

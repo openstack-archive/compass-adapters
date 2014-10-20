@@ -1,0 +1,24 @@
+{
+  "name": "os-block-storage-volume",
+  "description": "OpenStack Block Storage volume service",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {"ProcessMatch": ["cinder-volume\" \"cinder-volume", "iscsid\" \"iscsid", 
+                                        "multipathd\" \"multipathd"]}
+        }
+      }
+    }
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[os-base]",
+    "recipe[openstack-block-storage::volume]"
+  ],
+  "env_run_lists": {
+  }
+}

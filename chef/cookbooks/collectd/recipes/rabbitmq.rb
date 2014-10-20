@@ -17,24 +17,9 @@
 # limitations under the License.
 #
 
-defaultbag = "openstack"
-if !Chef::DataBag.list.key?(defaultbag)
-    Chef::Application.fatal!("databag '#{defaultbag}' doesn't exist.")
-    return
-end
-
-myitem = node.attribute?('cluster')? node['cluster']:"env_default"
-
-if !search(defaultbag, "id:#{myitem}")
-    Chef::Application.fatal!("databagitem '#{myitem}' doesn't exist.")
-    return
-end
-
 package "python-requests" do
   action :install
 end
-
-mydata = data_bag_item(defaultbag, myitem)
 
 cookbook_file File.join(node['collectd']['plugin_dir'], "rabbitmq_info.py") do
   source "rabbitmq_info.py"
@@ -44,13 +29,13 @@ cookbook_file File.join(node['collectd']['plugin_dir'], "rabbitmq_info.py") do
   notifies :restart, resources(:service => "collectd")
 end
 
-node.override["collectd"]["mq"]["vhost"] = mydata["mq"]["rabbitmq"]["vhost"]
+node.override["collectd"]["mq"]["vhost"] = node["openstack"]["mq"]["vhost"]
 
 collectd_python_plugin "rabbitmq_info" do
   opts = { "Vhost" => node["collectd"]["mq"]["vhost"],
            "Api" => "http://localhost:15672/api/queues",
-           "User" => "#{mydata["credential"]["mq"]["rabbitmq"]["username"]}",
-           "Pass" => "#{mydata["credential"]["mq"]["rabbitmq"]["password"]}"
+           "User" => "#{node["openstack"]["mq"]["user"]}",
+           "Pass" => "#{node["openstack"]["mq"]["password"]}"
          }
   options(opts)
 end

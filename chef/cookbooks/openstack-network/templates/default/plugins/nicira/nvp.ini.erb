@@ -19,7 +19,7 @@
 
 [DEFAULT]
 # User name for NVP controller
-nvp_user = admin <%= node["openstack"]["network"]["nicira"]["nvp_user"] %>
+nvp_user = <%= node["openstack"]["network"]["nicira"]["nvp_user"] %>
 
 # Password for NVP controller
 nvp_password = <%= node["openstack"]["network"]["nicira"]["nvp_password"] %>
@@ -42,8 +42,8 @@ redirects = <%= node["openstack"]["network"]["nicira"]["redirects"] %>
 nvp_controllers = <%= node["openstack"]["network"]["nicira"]["nvp_controllers"] %>
 
 # UUID of the pre-existing default NVP Transport zone to be used for creating
-# tunneled isolated "Quantum" networks. This option MUST be specified, e.g.:
-default_tz_uuid = <%= node["openstack"]["network"]["nicira"]["default_tx_uuid"] %>
+# tunneled isolated "Neutron" networks. This option MUST be specified, e.g.:
+default_tz_uuid = <%= node["openstack"]["network"]["nicira"]["default_tz_uuid"] %>
 
 # (Optional) UUID of the cluster in NVP.  It can be retrieved from NVP management
 # console "admin" section.
@@ -63,35 +63,6 @@ default_l2_gw_service_uuid = <%= node["openstack"]["network"]["nicira"]["default
 default_iface_name = <%= node["openstack"]["network"]["nicira"]["default_iface_name"] %>
 
 
-[DATABASE]
-# This line MUST be changed to actually run the plugin.
-# Example:
-# sql_connection = mysql://root:quantum@127.0.0.1:3306/nvp_quantum
-# Replace 127.0.0.1 above with the IP address of the database used by the
-# main quantum server. (Leave it as is if the database runs on this host.)
-sql_connection = <%= @sql_connection %>
-
-# Number of reconnection attempts to the DB; Set to -1 to try indefinitely
-# sql_max_retries = 10
-
-# Period between reconnection attempts to the DB
-# reconnect_interval = 2
-
-# Enable the use of eventlet's db_pool for MySQL. The flags sql_min_pool_size,
-# sql_max_pool_size and sql_idle_timeout are relevant only if this is enabled.
-
-# sql_dbpool_enable = False
-
-# Minimum number of SQL connections to keep open in a pool
-# sql_min_pool_size = 1
-
-# Maximum number of SQL connections to keep open in a pool
-# sql_max_pool_size = 5
-
-# Timeout in seconds before idle sql connections are reaped
-# sql_idle_timeout = 3600
-
-
 [QUOTAS]
 # number of network gateways allowed per tenant, -1 means unlimited
 quota_network_gateway = <%= node["openstack"]["network"]["nicira"]["quota_network_gateway"] %>
@@ -109,7 +80,7 @@ concurrent_connections = <%= node["openstack"]["network"]["nicira"]["concurrent_
 
 # Acceptable values for 'metadata_mode' are:
 #   - 'access_network': this enables a dedicated connection to the metadata
-#     proxy for metadata server access via Quantum router.
+#     proxy for metadata server access via Neutron router.
 #   - 'dhcp_host_route': this enables host route injection via the dhcp agent.
 # This option is only useful if running on a host that does not support
 # namespaces otherwise access_network should be used.

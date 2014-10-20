@@ -1,3 +1,4 @@
+# encoding: UTF-8
 #
 # Cookbook Name:: openstack-ops-database
 # Recipe:: postgresql-client
@@ -19,9 +20,9 @@
 # limitations under the License.
 #
 
-include_recipe "postgresql::ruby"
-include_recipe "postgresql::client"
+include_recipe 'postgresql::ruby'
+include_recipe 'postgresql::client'
 
-node["openstack"]["db"]["platform"]["postgresql_python_packages"].each do |pkg|
+node['openstack']['db']['platform']['postgresql_python_packages'].each do |pkg|
   package pkg
 end

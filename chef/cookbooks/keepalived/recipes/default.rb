@@ -19,37 +19,25 @@
 
 require 'chef/util/file_edit'
 
-defaultbag = "openstack"
-if !Chef::DataBag.list.key?(defaultbag)
-  Chef::Application.fatal!("databag '#{defaultbag}' doesn't exist.")
-  return
-end
-
-myitem = node.attribute?('cluster')? node['cluster']:"env_default"
-
-if !search(defaultbag, "id:#{myitem}")
-  Chef::Application.fatal!("databagitem '#{myitem}' doesn't exist.")
-  return
-end
-
-mydata = data_bag_item(defaultbag, myitem)
-
-if mydata['ha']['status'].eql?('enable')
-  mydata['ha']['keepalived']['router_ids'].each do |nodename, routerid|
-    node.override['keepalived']['global']['router_ids']["#{nodename}"] = routerid
+# The following code block is trying to automaticly elect master node
+# however it is not polished very well, currently only support two keepalived
+# nodes. If you are going to build a keepalived cluster with 3 and up nodes,
+# either poilish it or use your own recipe to handle the situation.
+master_node = keepalived_master('os-ha', 'keepalived_default_master')
+instance = node.set['keepalived']['instances']['openstack']
+router_ids = node.set['keepalived']['global']['router_ids']
+if node.name.eql?(master_node.name)
+  if instance['states']["#{node.name}"].empty?
+    router_ids["#{node.name}"] = 'lsb01'
+    instance['priorities']["#{node.name}"] = '110'
+    instance['states']["#{node.name}"] = 'MASTER'
   end
-
-  mydata['ha']['keepalived']['instance_name']['priorities'].each do |nodename, priority|
-    node.override['keepalived']['instances']['openstack']['priorities']["#{nodename}"] = priority
+else
+  if instance['states']["#{node.name}"].empty?
+    router_ids["#{node.name}"] = 'lsb02'
+    instance['priorities']["#{node.name}"] = '101'
+    instance['states']["#{node.name}"] = 'BACKUP'
   end
-
-  mydata['ha']['keepalived']['instance_name']['states'].each do |nodename, status|
-    node.override['keepalived']['instances']['openstack']['states']["#{nodename}"] = status
-  end
-
-  interface = node['keepalived']['instances']['openstack']['interface']
-  node.override['keepalived']['instances']['openstack']['ip_addresses'] = [
-          "#{mydata['ha']['keepalived']['instance_name']['vip']} dev #{interface}" ]
 end
 
 case node["platform_family"]
@@ -86,7 +74,6 @@ if node['keepalived']['shared_address']
       block do
         fe = Chef::Util::FileEdit.new('/etc/sysctl.conf')
         fe.search_file_delete_line(/^net.ipv4.ip_nonlocal_bind\s*=\s*0/)
-        fe.write_file
         fe.insert_line_if_no_match(/^net.ipv4.ip_nonlocal_bind\s*=s*1/,
                                    "net.ipv4.ip_nonlocal_bind = 1")
         fe.write_file

@@ -1,3 +1,4 @@
+# encoding: UTF-8
 #
 # Cookbook Name:: openstack-compute
 # Recipe:: compute
@@ -18,40 +19,32 @@
 # limitations under the License.
 #
 
-class ::Chef::Recipe
+class ::Chef::Recipe # rubocop:disable Documentation
   include ::Openstack
 end
 
-include_recipe "openstack-compute::nova-common"
-# include_recipe "openstack-compute::api-metadata"
-unless node.run_list.include? "openstack-network::server"
-  include_recipe "openstack-compute::network"
+include_recipe 'openstack-compute::nova-common'
+if node['openstack']['compute']['enabled_apis'].include?('metadata')
+  include_recipe 'openstack-compute::api-metadata'
 end
+include_recipe 'openstack-compute::network'
 
-platform_options = node["openstack"]["compute"]["platform"]
-# Note(maoy): Make sure compute_compute_packages is not a node object.
-# so that this is compatible with chef 11 when being changed later.
-compute_compute_packages = Array.new(platform_options["compute_compute_packages"])
+platform_options = node['openstack']['compute']['platform']
 
-if platform?(%w(ubuntu))
-  if node["openstack"]["compute"]["libvirt"]["virt_type"] == "kvm"
-    compute_compute_packages << "nova-compute-kvm"
-  elsif node["openstack"]["compute"]["libvirt"]["virt_type"] == "qemu"
-    compute_compute_packages << "nova-compute-qemu"
-  end
-end
-
-if platform?(%w(centos, redhat, fedora))
-  if node["openstack"]["compute"]["libvirt"]["virt_type"] == "qemu"
-    compute_compute_packages << "qemu-kvm"
-  elsif node["openstack"]["compute"]["libvirt"]["virt_type"] == "kvm"
-    compute_compute_packages << "qemu-kvm"
-  end
-end
-
-compute_compute_packages.each do |pkg|
+platform_options['compute_compute_packages'].each do |pkg|
   package pkg do
-    options platform_options["package_overrides"]
+    options platform_options['package_overrides']
+
+    action :upgrade
+  end
+end
+
+virt_type = node['openstack']['compute']['libvirt']['virt_type']
+
+platform_options["#{virt_type}_compute_packages"].each do |pkg|
+  package pkg do
+    options platform_options['package_overrides']
+
     action :upgrade
   end
 end
@@ -59,34 +52,34 @@ end
 # Installing nfs client packages because in grizzly, cinder nfs is supported
 # Never had to install iscsi packages because nova-compute package depends it
 # So volume-attach 'just worked' before - alop
-platform_options["nfs_packages"].each do |pkg|
+platform_options['nfs_packages'].each do |pkg|
   package pkg do
-    options platform_options["package_overrides"]
+    options platform_options['package_overrides']
 
     action :upgrade
   end
 end
 
-directory "/var/lock/nova" do
-  owner node["openstack"]["compute"]["user"]
-  group node["openstack"]["compute"]["group"]
-  mode  00700
-  action :create
-end
-
-cookbook_file "/etc/nova/nova-compute.conf" do
-  source "nova-compute.conf"
+cookbook_file '/etc/nova/nova-compute.conf' do
+  source 'nova-compute.conf'
   mode   00644
-  retries 5
+
   action :create
 end
 
-service "nova-compute" do
-  service_name platform_options["compute_compute_service"]
-  supports :status => true, :restart => true
-  subscribes :restart, resources("template[/etc/nova/nova.conf]")
+service 'nova-compute' do
+  service_name platform_options['compute_compute_service']
+  supports status: true, restart: true
+  subscribes :restart, resources('template[/etc/nova/nova.conf]')
 
-  action [ :enable, :restart ]
+  action [:enable, :start]
 end
 
-include_recipe "openstack-compute::libvirt"
+directory node['openstack']['compute']['instances_path'] do
+  owner node['openstack']['compute']['user']
+  group node['openstack']['compute']['group']
+  mode 00755
+  recursive true
+end
+
+include_recipe 'openstack-compute::libvirt'

@@ -1,5 +1,7 @@
-Description
-===========
+apache2 Cookbook
+================
+[![Build Status](https://secure.travis-ci.org/opscode-cookbooks/apache2.png?branch=master)](http://travis-ci.org/opscode-cookbooks/apache2)
+
 
 This cookbook provides a complete Debian/Ubuntu style Apache HTTPD
 configuration. Non-Debian based distributions such as Red Hat/CentOS,
@@ -150,6 +152,8 @@ attributes are determined based on the node's platform. See the
 attributes/default.rb file for default values in the case statement at
 the top of the file.
 
+* `node['apache']['package']` - Package name for Apache2
+* `node['apache']['perl_pkg']` - Package name for Perl
 * `node['apache']['dir']` - Location for the Apache configuration
 * `node['apache']['log_dir']` - Location for Apache logs
 * `node['apache']['error_log']` - Location for the default error log
@@ -157,11 +161,13 @@ the top of the file.
 * `node['apache']['user']` - User Apache runs as
 * `node['apache']['group']` - Group Apache runs as
 * `node['apache']['binary']` - Apache httpd server daemon
+* `node['apache']['docroot_dir']` - Location for docroot
+* `node['apache']['cgibin_dir']` - Location for cgi-bin
 * `node['apache']['icondir']` - Location for icons
 * `node['apache']['cache_dir']` - Location for cached files used by Apache itself or recipes
 * `node['apache']['pid_file']` - Location of the PID file for Apache httpd
 * `node['apache']['lib_dir']` - Location for shared libraries
-* `node['apache']['default_site_enabled']` - Default site enabled. Defaults to true on redhat-family platforms
+* `node['apache']['default_site_enabled']` - Default site enabled. Default is false.
 * `node['apache']['ext_status']` - if true, enables ExtendedStatus for `mod_status`
 
 General settings
@@ -170,12 +176,14 @@ General settings
 These are general settings used in recipes and templates. Default
 values are noted.
 
+* `node['apache']['listen_addresses']` - Addresses that httpd should listen on. Default is any ("*").
 * `node['apache']['listen_ports']` - Ports that httpd should listen on. Default is port 80.
 * `node['apache']['contact']` - Value for ServerAdmin directive. Default "ops@example.com".
 * `node['apache']['timeout']` - Value for the Timeout directive. Default is 300.
 * `node['apache']['keepalive']` - Value for the KeepAlive directive. Default is On.
 * `node['apache']['keepaliverequests']` - Value for MaxKeepAliveRequests. Default is 100.
 * `node['apache']['keepalivetimeout']` - Value for the KeepAliveTimeout directive. Default is 5.
+* `node['apache']['sysconfig_additional_params']` - Additionals variables set in sysconfig file. Default is empty.
 * `node['apache']['default_modules']` - Array of module names. Can take "mod_FOO" or "FOO" as names, where FOO is the apache module, e.g. "`mod_status`" or "`status`".
 
 The modules listed in `default_modules` will be included as recipes in `recipe[apache::default]`.
@@ -413,13 +421,14 @@ the definition is used. See __Examples__.
 ### Parameters:
 
 * `name` - Name of the module enabled or disabled with the `a2enmod` or `a2dismod` scripts.
+* `identifier` - String to identify the module for the `LoadModule` directive. Not typically needed, defaults to `#{name}_module`
 * `enable` - Default true, which uses `a2enmod` to enable the module. If false, the module will be disabled with `a2dismod`.
 * `conf` - Default false. Set to true if the module has a config file, which will use `apache_conf` for the file.
 * `filename` - specify the full name of the file, e.g.
 
 ### Examples:
 
-Enable the ssl module, which also has a configuration template in `templates/default/ssl.conf.erb`.
+Enable the ssl module, which also has a configuration template in `templates/default/mods/ssl.conf.erb`.
 
     apache_module "ssl" do
       conf true

@@ -1,8 +1,10 @@
+# encoding: UTF-8
 #
 # Cookbook Name:: openstack-image
 # Provider:: image
 #
 # Copyright 2012, Rackspace US, Inc.
+# Copyright 2013, Opscode, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +19,8 @@
 # limitations under the License.
 #
 
+include ::Openstack
+
 action :upload do
   @user = new_resource.identity_user
   @pass = new_resource.identity_pass
@@ -25,45 +29,47 @@ action :upload do
 
   name = new_resource.image_name
   url = new_resource.image_url
+
+  ep = endpoint 'image-api'
+  api = ep.to_s.gsub(ep.path, '') # remove trailing /v2
+
   type = new_resource.image_type
-  if type == "unknown"
-    type = _determine_type(url)
-  end
-  _upload_image(type, name, url)
+  type = _determine_type(url) if type == 'unknown'
+  _upload_image(type, name, api, url)
   new_resource.updated_by_last_action(true)
 end
 
 private
+
 def _determine_type(url)
   # Lets do our best to determine the type from the file extension
   case ::File.extname(url)
-  when ".gz", ".tgz"
-    return "ami"
-  when ".qcow2", ".img"
-    return "qcow"
+  when '.gz', '.tgz'
+    return 'ami'
+  when '.qcow2', '.img'
+    return 'qcow'
   end
 end
 
-private
-def _upload_image(type, name, url)
+def _upload_image(type, name, api, url)
   case type
   when 'ami'
-    _upload_ami(name, url)
+    _upload_ami(name, api, url)
   when 'qcow'
-    _upload_qcow(name, url)
+    _upload_qcow(name, api, url)
   end
 end
 
-private
-def _upload_qcow(name, url)
-  glance_cmd = "glance --insecure -I #{@user} -K #{@pass} -T #{@tenant} -N #{@ks_uri}"
-  c_fmt = "--container-format bare"
-  d_fmt = "--disk-format qcow2"
+def _upload_qcow(name, api, url)
+  glance_cmd = "glance --insecure --os-username #{@user} --os-password #{@pass} --os-tenant-name #{@tenant} --os-image-url #{api} --os-auth-url #{@ks_uri}"
+  c_fmt = '--container-format bare'
+  d_fmt = '--disk-format qcow2'
   img_file_name = ::File.basename(url)
   remote_file "#{Chef::Config[:file_cache_path]}/#{img_file_name}" do
     source "#{url}"
     action :create_if_missing
   end
+
   execute "Uploading QCOW2 image #{name}" do
     cwd Chef::Config[:file_cache_path]
     command "#{glance_cmd} image-create --name #{name} \
@@ -72,16 +78,16 @@ def _upload_qcow(name, url)
   end
 end
 
-private
-def _upload_ami(name, url)
-  glance_cmd = "glance --insecure -I #{@user} -K #{@pass} -T #{@tenant} -N #{@ks_uri}"
-  aki_fmt = "--container-format aki --disk-format aki"
-  ari_fmt = "--container-format ari --disk-format ari"
-  ami_fmt = "--container-format ami --disk-format ami"
+# TODO(chrislaco) This refactor is in the works via Craig Tracey
+def _upload_ami(name, api, url) # rubocop:disable MethodLength
+  glance_cmd = "glance --insecure --os-username #{@user} --os-password #{@pass} --os-tenant-name #{@tenant} --os-image-url #{api} --os-auth-url #{@ks_uri}"
+  aki_fmt = '--container-format aki --disk-format aki'
+  ari_fmt = '--container-format ari --disk-format ari'
+  ami_fmt = '--container-format ami --disk-format ami'
 
   bash "Uploading AMI image #{name}" do
-    cwd "/tmp"
-    user "root"
+    cwd '/tmp'
+    user 'root'
     code <<-EOH
         set -x
         mkdir -p images/#{name}

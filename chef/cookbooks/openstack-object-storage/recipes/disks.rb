@@ -1,5 +1,6 @@
+# encoding: UTF-8
 #
-# Cookbook Name:: swift
+# Cookbook Name:: openstack-object-storage
 # Recipe:: disks
 #
 # Copyright 2012, Rackspace US, Inc.
@@ -19,32 +20,34 @@
 # Author: Ron Pedde <ron.pedde@rackspace.com>
 # Inspired by: Andi Abes @ Dell
 
-class Chef::Recipe
+class Chef::Recipe # rubocop:disable Documentation
   include IPUtils
+  include DriveUtils
 end
 
+platform_options = node['openstack']['object-storage']['platform']
 
-platform_options = node["swift"]["platform"]
-
-package "xfsprogs" do
-  action :install
+package 'xfsprogs' do
+  options platform_options['package_overrides']
+  action :upgrade
   only_if { platform?(%w{ubuntu debian fedora centos}) }
 end
 
 %w(parted util-linux).each do |pkg|
   package pkg do
-    action :install
+    options platform_options['package_overrides']
+    action :upgrade
   end
 end
 
-disk_enum_expr = node["swift"]["disk_enum_expr"]
-disk_test_filter = node["swift"]["disk_test_filter"]
+disk_enum_expr = node['openstack']['object-storage']['disk_enum_expr']
+disk_test_filter = node['openstack']['object-storage']['disk_test_filter']
 
 disks = locate_disks(disk_enum_expr, disk_test_filter)
 
 disks.each do |disk|
   openstack_object_storage_disk "/dev/#{disk}" do
-    part [{:type => platform_options["disk_format"] , :size => :remaining}]
+    part [{ type: platform_options['disk_format'] , size: :remaining }]
     action :ensure_exists
   end
 end
@@ -54,13 +57,12 @@ end
 #
 # additionally, there is an implicit assumption that bind ports
 # for all object/container/account services are on the same net
-disk_ip = locate_ip_in_cidr(node["swift"]["network"]["object-cidr"], node)
+disk_ip = locate_ip_in_cidr(node['openstack']['object-storage']['network']['object-cidr'], node)
 
-openstack_object_storage_mounts "/srv/node" do
+openstack_object_storage_mounts '/srv/node' do
   action :ensure_exists
-  publish_attributes "swift/state/devs"
-  devices disks.collect { |x| "#{x}1" }
+  publish_attributes 'swift/state/devs'
+  devices disks.map { |x| "#{x}1" }
   ip disk_ip
-  format platform_options["disk_format"]
+  format platform_options['disk_format']
 end
-

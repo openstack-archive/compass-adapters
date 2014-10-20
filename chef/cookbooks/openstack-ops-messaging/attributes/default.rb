@@ -1,8 +1,10 @@
+# encoding: UTF-8
 #
 # Cookbook Name:: openstack-ops-messaging
 # Recipe:: default
 #
 # Copyright 2013, AT&T Services, Inc.
+# Copyright 2013, Opscode, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,5 +19,8 @@
 # limitations under the License.
 #
 
-default["openstack"]["mq"]["bind_interface"] = "lo"
-default["openstack"]["mq"]["cluster"] = false
+default['openstack']['mq']['cluster'] = false
+
+if platform_family?('debian', 'suse')
+  override['rabbitmq']['use_distro_version'] = true
+end

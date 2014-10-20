@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 
-#default['build_essential']['compiletime'] = false
 default['build_essential']['compiletime'] = true
 
 case node['platform_family']

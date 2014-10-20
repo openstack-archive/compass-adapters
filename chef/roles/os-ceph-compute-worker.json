@@ -1,0 +1,25 @@
+{
+  "name": "os-ceph-compute-worker",
+  "description": "The compute node compatiable with Ceph, most likely with a hypervisor.",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {"ProcessMatch": ["nova-compute\" \"nova-compute"]}
+        }
+      }
+    }
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[os-base]",
+    "recipe[openstack-compute::compute]",
+    "recipe[openssh::passwordless]",
+    "recipe[openstack-compute::compute-config-ceph]"
+  ],
+  "env_run_lists": {
+  }
+}

@@ -3,6 +3,45 @@ rabbitmq Cookbook CHANGELOG
 This file is used to list changes made in each version of the rabbitmq cookbook.
 
 
+v3.0.4 (2014-03-19)
+-------------------
+- [COOK-4431] - RPM / DEB package installs now use the rabbit version you specify
+- [COOK-4438] - rabbitmq_policy resource breaks if you use rabbitmq version >= 3.2
+
+
+v3.0.2 (2014-02-27)
+-------------------
+- [COOK-4384] Add ChefSpec Custom Matchers for LWRPs
+
+
+v3.0.0 (2014-02-27)
+-------------------
+[COOK-4369] - use_inline_resources
+
+
+v2.4.2 (2014-02-27)
+-------------------
+[COOK-4280] Upstart script properly waits until the server is started
+
+
+v2.4.0 (2014-02-14)
+-------------------
+- [COOK-4050] - Do not force failure in rabbitmq_user
+- [COOK-4088] - Update rabbitmq.config for port ranges
+- Updating test harness. Fixing style cops
+
+
+v2.3.2
+------
+### Bug
+- **[COOK-3678](https://tickets.opscode.com/browse/COOK-3678)** - Fix an issue where a RabbitMQ policy resource with vhost arguments emits unexpected restart notification
+- **[COOK-3606](https://tickets.opscode.com/browse/COOK-3606)** - Fix erlang cookie comparison
+- **[COOK-3512](https://tickets.opscode.com/browse/COOK-3512)** - Define rabbitmq service on SUSE
+
+### New Feature
+- **[COOK-3538](https://tickets.opscode.com/browse/COOK-3538)** - Configure web management console to use SSL
+
+
 v2.3.0
 ------
 ### Improvement

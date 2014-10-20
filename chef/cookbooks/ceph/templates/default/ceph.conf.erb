@@ -1,0 +1,59 @@
+[global]
+  fsid = <%= node["ceph"]["config"]["fsid"] %>
+  mon initial members = <%= node["ceph"]["config"]["mon_initial_members"] %>
+  mon host = <%= @mon_addresses.sort.join(', ') %>
+<% if (! node['ceph']['config']['global'].nil?) -%>
+  <% node['ceph']['config']['global'].sort.each do |k, v| %>
+  <%= k %> = <%= v %>
+  <% end %>
+<% end -%>
+
+<% if (! node['ceph']['config']['osd'].nil?) -%>
+[osd]
+  <% node['ceph']['config']['osd'].sort.each do |k, v| %>
+        <% if ssd_device%>
+        <% end %>
+  <%= k %> = <%= v %>
+  <% end %>
+<% end -%>
+
+<% if (! node['ceph']['config']['mon'].nil?) -%>
+[mon]
+  <% node['ceph']['config']['mon'].sort.each do |k, v| %>
+  <%= k %> = <%= v %>
+  <% end %>
+<% end -%>
+
+<% if (! node['ceph']['config']['mds'].nil?) -%>
+[mds]
+  <% node['ceph']['config']['mds'].sort.each do |key, value| -%>
+  <%= key %> = <%= value %>
+  <%   end -%>
+<% end -%>
+
+<% if (@is_rgw) -%>
+[client.radosgw.<%= node['hostname'] %>]
+  host = <%= node['hostname'] %>
+  rgw socket path = /var/run/ceph/radosgw.<%= node['hostname'] %>
+  keyring = /etc/ceph/ceph.client.radosgw.<%= node['hostname'] %>.keyring
+  log file = /var/log/ceph/radosgw.log
+<% if (! node['ceph']['config']['rgw'].nil?) -%>
+  <% node['ceph']['config']['rgw'].sort.each do |k, v| %>
+  <%= k %> = <%= v %>
+  <% end %>
+<% end -%>
+<% if (@is_keystone_integration) -%>
+<% if (! node['ceph']['config']['keystone'].nil?) -%>
+  <% node['ceph']['config']['keystone'].sort.each do |k, v| %>
+  <%= k %> = <%= v %>
+  <% end %>
+<% end -%>
+<% end -%>
+<% end -%>
+
+<% node['ceph']['config-sections'].sort.each do |name, sect| %>
+[<%= name %>]
+  <% sect.sort.each do |k, v| %>
+  <%= k %> = <%= v %>
+  <% end %>
+<% end %>

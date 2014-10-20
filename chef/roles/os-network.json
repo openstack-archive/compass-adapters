@@ -1,0 +1,33 @@
+{
+  "name": "os-network",
+  "description": "Configures OpenStack networking, managed by attribute for either nova-network or neutron.",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {
+            "ProcessMatch":  ["neutron-dhcp-agent\" \"neutron-dhcp-agent",
+                              "neutron-l3-agent\" \"neutron-l3-agent",
+                              "neutron-openvswitch-agent\" \"neutron-openvswitch-agent",
+                              "neutron-metadata-agent\" \"neutron-metadata-agent"]
+          }
+        }
+      }
+    }
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[os-base]",
+    "recipe[openstack-network::identity_registration]",
+    "role[os-network-openvswitch]",
+    "role[os-network-l3-agent]",
+    "role[os-network-dhcp-agent]",
+    "role[os-network-metadata-agent]",
+    "role[os-network-server]"
+  ],
+  "env_run_lists": {
+  }
+}

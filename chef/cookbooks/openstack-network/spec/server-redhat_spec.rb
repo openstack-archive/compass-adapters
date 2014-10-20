@@ -1,28 +1,34 @@
-require_relative "spec_helper"
+# Encoding: utf-8
+require_relative 'spec_helper'
 
 describe 'openstack-network::server' do
-  describe "redhat" do
-    before do
-      quantum_stubs
-      @chef_run = ::ChefSpec::ChefRunner.new ::REDHAT_OPTS
-      @node = @chef_run.node
-      @chef_run.converge "openstack-network::server"
+  describe 'redhat' do
+    let(:runner) { ChefSpec::Runner.new(REDHAT_OPTS) }
+    let(:node) { runner.node }
+    let(:chef_run) do
+      node.set['openstack']['compute']['network']['service_type'] = 'neutron'
+      runner.converge(described_recipe)
     end
 
-    it "installs openstack-quantum packages" do
-      expect(@chef_run).to install_package "openstack-quantum"
+    include_context 'neutron-stubs'
+
+    it 'does not install openstack-neutron when nova networking' do
+      node.override['openstack']['compute']['network']['service_type'] = 'nova'
+
+      expect(chef_run).to_not upgrade_package 'openstack-neutron'
     end
 
-    it "enables openstack-quantum server service" do
-      expect(@chef_run).to enable_service "quantum-server"
+    it 'upgrades openstack-neutron packages' do
+      expect(chef_run).to upgrade_package 'openstack-neutron'
     end
 
-    it "does not install openvswitch package" do
-      opts = ::REDHAT_OPTS.merge(:evaluate_guards => true)
-      chef_run = ::ChefSpec::ChefRunner.new opts
-      chef_run.converge "openstack-network::server"
-      expect(chef_run).not_to install_package "openvswitch"
-      expect(chef_run).not_to enable_service "openstack-quantum-openvswitch-agent"
+    it 'enables openstack-neutron server service' do
+      expect(chef_run).to enable_service 'neutron-server'
+    end
+
+    it 'does not upgrade openvswitch package' do
+      expect(chef_run).not_to upgrade_package 'openvswitch'
+      expect(chef_run).not_to enable_service 'neutron-openvswitch-agent'
     end
   end
 end

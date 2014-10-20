@@ -1,58 +1,42 @@
-require 'spec_helper'
+# encoding: UTF-8
+require_relative 'spec_helper'
 
 describe 'openstack-object-storage::storage-common' do
-
-  #-------------------
-  # UBUNTU
-  #-------------------
-
-  describe "ubuntu" do
-
-    before do
-      swift_stubs
-      @chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS
-      @node = @chef_run.node
-      @node.set['lsb']['code'] = 'precise'
-      @node.set['swift']['authmode'] = 'swauth'
-      @chef_run.converge "openstack-object-storage::storage-common"
+  describe 'ubuntu' do
+    let(:runner) { ChefSpec::Runner.new(UBUNTU_OPTS) }
+    let(:node) { runner.node }
+    let(:chef_run) do
+      runner.converge(described_recipe)
     end
 
-    describe "/var/cache/swift" do
+    include_context 'swift-stubs'
 
-      before do
-        @file = @chef_run.directory "/var/cache/swift"
+    describe '/var/cache/swift' do
+      let(:dir) { chef_run.directory('/var/cache/swift') }
+
+      it 'creates /var/cache/swift' do
+        expect(chef_run).to create_directory(dir.name).with(
+          user: 'swift',
+          group: 'swift',
+          mode: 0700
+        )
       end
-
-      it "has proper owner" do
-        expect(@file).to be_owned_by "swift", "swift"
-      end
-
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "700"
-      end
-
     end
 
-    describe "/etc/swift/drive-audit.conf" do
+    describe '/etc/swift/drive-audit.conf' do
+      let(:file) { chef_run.template('/etc/swift/drive-audit.conf') }
 
-      before do
-        @file = @chef_run.template "/etc/swift/drive-audit.conf"
+      it 'creates drive-audit.conf' do
+        expect(chef_run).to create_template(file.name).with(
+          user: 'swift',
+          group: 'swift',
+          mode: 0600
+        )
       end
 
-      it "has proper owner" do
-        expect(@file).to be_owned_by "swift", "swift"
+      it 'template contents' do
+        pending 'TODO: implement'
       end
-
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "600"
-      end
-
-      it "template contents" do
-        pending "TODO: implement"
-      end
-
     end
-
   end
-
 end

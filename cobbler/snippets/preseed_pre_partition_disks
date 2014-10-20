@@ -91,10 +91,11 @@ recipe="boot-root :: \
 format{ } use_filesystem{ } filesystem{ ext3 } \
 mountpoint{ /boot } device{ \$first_found_disk } \
 . \
-200% 200% 200% linux-swap \
+256 256+10% 200% linux-swap \
 \\$primary{ } method{ swap } format{ } \
 device{ \$first_found_disk } \
 . \
+#set default_percentage = 100
 #if $partition != None
     #set vol_sizes = [part.strip() for part in $partition.split(';') if part.strip()]
     #for vol_and_size in vol_sizes
@@ -103,18 +104,46 @@ device{ \$first_found_disk } \
         #set vol_size = $vol_size.strip()
         #if $vol.startswith('/')
             #set volname = $vol[1:]
-${vol_size} ${vol_size} ${vol_size} ext3 \
+        #else
+            #continue
+        #end if
+	#set vol_min_size = 1
+	#set vol_percent = 0
+	#if $vol_size.endswith('%')
+	    #set vol_percent = $int($vol_size[:-1])
+	#elif $vol_size.endswith('K')
+            #set vol_min_size = $int($vol_size[:-1]) / 1000
+        #elif $vol_size.endswith('M')
+	    #set vol_min_size = $int($vol_size[:-1])
+        #elif $vol_size.endswith('G')
+	    #set vol_min_size = $int($vol_size[:-1]) * 1000
+	#elif $vol_size.endswith('T')
+	    #set vol_min_size = $int($vol_size[:-1]) * 1000000
+	#end if
+	#if $vol_percent
+	    #set factor = '%s+%s%%' % ($vol_min_size, $vol_percent)
+            #set default_percentage = $default_percentage - $vol_percent
+        #else
+	    #set factor = $vol_min_size
+	#end if
+${vol_min_size} ${factor} -1 ext3 \
 \\$lvmok{ } method{ format } format{ } \
 use_filesystem{ } filesystem{ ext3 } \
 in_vg{ $vgname } lv_name{ ${volname}vol } \
 mountpoint{ $vol } \
 . \
-        #else
-            #continue
-        #end if
     #end for
 #end if
-1 2 100% ext3 \
+#set vol_min_size = 1
+#if $default_percentage <= 0
+    #set default_percentage = 0
+#end if
+#if $default_percentage
+    #set factor = '%s+%s%%' % ($vol_min_size, $default_percentage)
+#else
+    #set factor = $vol_min_size
+#end if
+${vol_min_size} ${factor} -1 ext3 \
 \\$lvmok{ } method{ format } \
 format{ } use_filesystem{ } filesystem{ ext3 } \
 in_vg{ $vgname } lv_name{ rootvol } \
@@ -124,7 +153,7 @@ mountpoint{ / } \
 pv_offset=1; \
 for found_disk in \${found_disks_str}; do \
     recipe="\$recipe \
-1 1 -1 ext3 \
+512 512+100% -1 ext3 \
 \\$defaultignore{ } \\$primary{ } device{ \${found_disk} } \
 method{ lvm } vg_name{ $vgname } \
 . \

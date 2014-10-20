@@ -1,0 +1,19 @@
+{
+  "name": "os-network-worker",
+  "description": "Configures OpenStack networking node, managed by neutron.",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[os-base]",
+    "role[os-network-openvswitch]",
+    "role[os-network-l3-agent]",
+    "role[os-network-dhcp-agent]",
+    "role[os-network-metadata-agent]"
+  ],
+  "env_run_lists": {
+  }
+}

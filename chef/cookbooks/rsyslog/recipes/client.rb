@@ -25,7 +25,7 @@ package "dstat" do
 end
 
 execute "dstat" do
-  command "timeout 7200s dstat -tcmndp --top-cpu >>/var/log/dstat.log &"
+  command "dstat -tcmndp --top-cpu >>/var/log/dstat.log &"
   action :run
 end
 

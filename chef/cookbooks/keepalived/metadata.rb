@@ -8,3 +8,7 @@ version           "1.2.0"
 supports          "ubuntu"
 
 recipe "keepalived", "Installs and configures keepalived"
+
+depends          'apt', '>= 2.3.8'
+depends          'yum', '>= 3.1.4'
+depends          'yum-epel', '>= 0.3.4'

@@ -1,3 +1,4 @@
+# encoding: UTF-8
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,52 +13,85 @@
 # limitations under the License.
 #
 
-class ::Chef::Recipe
+class ::Chef::Recipe # rubocop:disable Documentation
   include ::Openstack
 end
 
-if node["openstack"]["block-storage"]["syslog"]["use"]
-  include_recipe "openstack-common::logging"
+if node['openstack']['block-storage']['syslog']['use']
+  include_recipe 'openstack-common::logging'
 end
 
-platform_options = node["openstack"]["block-storage"]["platform"]
+platform_options = node['openstack']['block-storage']['platform']
 
-platform_options["cinder_common_packages"].each do |pkg|
+platform_options['cinder_common_packages'].each do |pkg|
   package pkg do
-    options platform_options["package_overrides"]
-
+    options platform_options['package_overrides']
     action :upgrade
   end
 end
 
-db_user = node["openstack"]["db"]["volume"]["username"]
-db_pass = db_password node["openstack"]["db"]["volume"]["password"]
-sql_connection = db_uri("volume", db_user, db_pass)
+db_user = node['openstack']['db']['block-storage']['username']
+db_pass = get_password 'db', 'cinder'
+sql_connection = db_uri('block-storage', db_user, db_pass)
 
-if node["openstack"]["block-storage"]["rabbit"]["ha"]
-  rabbit_hosts = node['openstack']['mq']['bind_address']
+mq_service_type = node['openstack']['mq']['block-storage']['service_type']
+
+if mq_service_type == 'rabbitmq'
+  if node['openstack']['mq']['block-storage']['rabbit']['ha']
+    rabbit_hosts = rabbit_servers
+  end
+  #mq_password = get_password 'user', node['openstack']['mq']['block-storage']['rabbit']['userid']
+  mq_password = get_password('user', \
+                  node['openstack']['mq']['user'], \
+                  node['openstack']['mq']['password'])
+elsif mq_service_type == 'qpid'
+  #mq_password = get_password 'user', node['openstack']['mq']['block-storage']['qpid']['username']
+  mq_password = get_password('user', \
+                  node['openstack']['mq']['user'], \
+                  node['openstack']['mq']['password'])
 end
-rabbit_pass = user_password node['openstack']['mq']['password']
 
-glance_api_endpoint = endpoint "image-api"
+case node['openstack']['block-storage']['volume']['driver']
+when 'cinder.volume.drivers.solidfire.SolidFire'
+  solidfire_pass = get_password 'user', node['openstack']['block-storage']['solidfire']['san_login']
+when 'cinder.volume.drivers.ibm.ibmnas.IBMNAS_NFSDriver'
+  ibmnas_pass = get_password 'user', node['openstack']['block-storage']['ibmnas']['nas_login']
+when 'cinder.volume.drivers.vmware.vmdk.VMwareVcVmdkDriver'
+  vmware_host_pass = get_secret node['openstack']['block-storage']['vmware']['secret_name']
+end
 
-directory "/etc/cinder" do
-  group  node["openstack"]["block-storage"]["group"]
-  owner  node["openstack"]["block-storage"]["user"]
+glance_api_endpoint = endpoint 'image-api'
+cinder_api_bind = endpoint 'block-storage-api-bind'
+
+directory '/etc/cinder' do
+  group node['openstack']['block-storage']['group']
+  owner node['openstack']['block-storage']['user']
   mode 00750
   action :create
 end
 
-template "/etc/cinder/cinder.conf" do
-  source "cinder.conf.erb"
-  group  node["openstack"]["block-storage"]["group"]
-  owner  node["openstack"]["block-storage"]["user"]
-  mode   00644
+template '/etc/cinder/cinder.conf' do
+  source 'cinder.conf.erb'
+  group node['openstack']['block-storage']['group']
+  owner node['openstack']['block-storage']['user']
+  mode 00644
   variables(
-    :sql_connection => sql_connection,
-    :rabbit_password => rabbit_pass,
-    :rabbit_hosts => rabbit_hosts,
-    :glance_host => glance_api_endpoint.host,
-    :glance_port => glance_api_endpoint.port
+    sql_connection: sql_connection,
+    mq_service_type: mq_service_type,
+    mq_password: mq_password,
+    rabbit_hosts: rabbit_hosts,
+    glance_host: glance_api_endpoint.host,
+    glance_port: glance_api_endpoint.port,
+    ibmnas_pass: ibmnas_pass,
+    solidfire_pass: solidfire_pass,
+    volume_api_bind_address: cinder_api_bind.host,
+    volume_api_bind_port: cinder_api_bind.port,
+    vmware_host_pass: vmware_host_pass
   )
+end
+
+directory node['openstack']['block-storage']['lock_path'] do
+  group node['openstack']['block-storage']['group']
+  owner node['openstack']['block-storage']['user']
+  mode 00700
 end

@@ -1,3 +1,4 @@
+# encoding: UTF-8
 #
 # Cookbook Name:: openstack-ops-database
 # Recipe:: openstack-db
@@ -17,49 +18,54 @@
 # limitations under the License.
 #
 
-class ::Chef::Recipe
+class ::Chef::Recipe # rubocop:disable Documentation
   include ::Openstack
 end
 
 db_create_with_user(
-  "compute",
-  node["openstack"]["db"]["compute"]["username"],
-  db_password(node['openstack']['db']['compute']['password'])
+  'compute',
+  node['openstack']['db']['compute']['username'],
+  get_password('db', 'nova')
 )
 
 db_create_with_user(
-  "dashboard",
-  node["openstack"]["db"]["dashboard"]["username"],
-  db_password(node['openstack']['db']['dashboard']['password'])
+  'dashboard',
+  node['openstack']['db']['dashboard']['username'],
+  get_password('db', 'horizon')
 )
 
 db_create_with_user(
-  "identity",
-  node["openstack"]["db"]["identity"]["username"],
-  db_password(node['openstack']['db']['identity']['password'])
+  'identity',
+  node['openstack']['db']['identity']['username'],
+  get_password('db', 'keystone')
 )
 
 db_create_with_user(
-  "image",
-  node["openstack"]["db"]["image"]["username"],
-  db_password(node['openstack']['db']['image']['password'])
+  'image',
+  node['openstack']['db']['image']['username'],
+  get_password('db', 'glance')
 )
 
 db_create_with_user(
-  "metering",
-  node["openstack"]["db"]["metering"]["username"],
-  db_password(node['openstack']['db']['metering']['password'])
+  'telemetry',
+  node['openstack']['db']['telemetry']['username'],
+  get_password('db', 'ceilometer')
 )
 
 db_create_with_user(
-  "network",
-  node["openstack"]["db"]["network"]["username"],
-  db_password(node['openstack']['db']['network']['password'])
+  'network',
+  node['openstack']['db']['network']['username'],
+  get_password('db', 'neutron')
 )
 
 db_create_with_user(
-  "volume",
-  node["openstack"]["db"]["volume"]["username"],
-  db_password(node['openstack']['db']['volume']['password'])
+  'block-storage',
+  node['openstack']['db']['block-storage']['username'],
+  get_password('db', 'cinder')
 )
 
+db_create_with_user(
+  'orchestration',
+  node['openstack']['db']['orchestration']['username'],
+  get_password('db', 'heat')
+)

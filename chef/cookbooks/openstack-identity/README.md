@@ -20,6 +20,12 @@ The following cookbooks are dependencies:
 Usage
 =====
 
+client
+------
+
+Installs the keystone client packages
+
+
 server
 ------
 
@@ -59,6 +65,7 @@ Register users, tenants, roles, services and endpoints with Keystone
 - api_ver: API Version for Keystone server
  - Accepted values are [ "/v2.0" ]
 - auth_token: Auth Token for communication with Keystone server
+- misc_keystone: Array of strings to be added to the keystone.conf file
 
 ### :create_tenant Specific Attributes
 
@@ -92,7 +99,8 @@ Register users, tenants, roles, services and endpoints with Keystone
 - service_name: Name of service
 - service_description: Description of service
 - service_type: Type of service to create
- - Accepted values are [ "image", "identity", "compute", "storage", "ec2", "volume" ]
+ - Accepted values are [ "image", "identity", "compute", "storage", "ec2", "volume", "object-store", "metering", "network", "orchestration", "cloudformation" ]
+- **NOTE:** call will be skipped if `openstack['identity']['catalog']['backend']` is set to 'templated'
 
 ### :create_endpoint Specific Attributes
 
@@ -102,7 +110,8 @@ Register users, tenants, roles, services and endpoints with Keystone
 - endpoint_publicurl: URL to public endpoint
  - Default is same as endpoint_internalURL
 - service_type: Type of service to create endpoint for
- - Accepted values are [ "image", "identity", "compute", "storage", "ec2", "volume" ]
+ - Accepted values are [ "image", "identity", "compute", "storage", "ec2", "volume", "object-store", "metering", "network", "orchestration", "cloudformation" ]
+- **NOTE:** call will be skipped if `openstack['identity']['catalog']['backend']` is set to 'templated'
 
 ### Examples
 
@@ -224,10 +233,9 @@ Create EC2 credentials for a given user in the specified tenant
 Attributes
 ==========
 
+Please refer to the Common cookbook for more attributes.
+
 * `openstack['identity']['db_server_chef_role']` - The name of the Chef role that knows about the db server
-* `openstack['identity']['bind_interface']` - Interface to bind keystone to
-* `openstack['identity']['service_port']` - Port to listen on for client functions
-* `openstack['identity']['admin_port']` - Port to listen on for admin functions
 * `openstack['identity']['user']` - User keystone runs as
 * `openstack['identity']['group']` - Group keystone runs as
 * `openstack['identity']['db']` - Name of keystone database
@@ -237,24 +245,78 @@ Attributes
 * `openstack['identity']['api_ipaddress']` - IP address for the keystone API to bind to. _TODO_: Rename to bind_address
 * `openstack['identity']['verbose']` - Enables/disables verbose output for keystone API server
 * `openstack['identity']['debug']` - Enables/disables debug output for keystone API server
-* `openstack['identity']['service_port']` - Port for the keystone service API to bind to
-* `openstack['identity']['admin_port']` - Port for the keystone admin service to bind to
 * `openstack['identity']['admin_token']` - Admin token for bootstraping keystone server
 * `openstack['identity']['roles']` - Array of roles to create in the keystone server
 * `openstack['identity']['users']` - Array of users to create in the keystone server
+* `openstack['identity']['pastefile_url']` - Specify the URL for a keystone-paste.ini file that will override the default packaged file
+TODO: Add DB2 support on other platforms
+* `openstack['identity']['platform']['db2_python_packages']` - Array of DB2 python packages, only available on redhat platform
+* `openstack['identity']['token']['expiration']` - Token validity time in seconds
+* `openstack['identity']['catalog']['backend']` - Storage mechanism for the keystone service catalog
+* `openstack['identity']["control_exchange"]` - The AMQP exchange to connect to if using RabbitMQ or Qpid, defaults to openstack
+* `openstack['identity']['rpc_backend']` - The messaging module to use
+* `openstack['identity']['rpc_thread_pool_size']` - Size of RPC thread pool
+* `openstack['identity']['rpc_conn_pool_size']` - Size of RPC connection pool
+* `openstack['identity']['rpc_response_timeout']` - Seconds to wait for a response from call or multicall
+* `openstack['identity']['ldap']['url']` - LDAP host URL (default: 'ldap://localhost')
+* `openstack['identity']['ldap']['user']` - LDAP bind DN (default: 'dc=Manager,dc=example,dc=com')
+* `openstack['identity']['ldap']['password']` - LDAP bind password (default: nil)
+* `openstack['identity']['ldap']['use_tls']` - Use TLS for LDAP (default: false)
+* `openstack['identity']['ldap']['tls_cacertfile']` - Path to CA cert file (default: nil)
+* `openstack['identity']['ldap']['tls_cacertdir']` - Path to CA cert directory (default: nil)
+* `openstack['identity']['ldap']['tls_req_cert']` - CA cert check ('demand', 'allow' or 'never', default: 'demand')
+* `openstack['identity']['misc_keystone']` - **Array of strings to be added to keystone.conf**
+
+Most `openstack['identity']['ldap']` attributes map directly to the corresponding config options in keystone.conf's `[ldap]` backend.  They are primarily used when configuring `openstack['identity']['identity']['backend']` and/or `openstack["identity"]["assignment"]["backend"]` as `ldap` (both default to `sql`).
+
+The `openstack['identity']['ldap']['use_tls']` option should not be used in conjunction with an `ldaps://` url.  When the latter is used (and `openstack['identity']['ldap']['use_tls'] = false`), the certificate path and validation will instead be subject to the OS's LDAP config.
+
+If `openstack['identity']['ldap']['tls_cacertfile']` is set, `openstack['identity']['ldap']['tls_cacertdir']` will be ignored.  Set `openstack['identity']['ldap']['tls_cacertfile']` to `nil` if `openstack['identity']['ldap']['tls_cacertdir']` is desired.
+Values of `openstack['identity']['ldap']['tls_req_cert']` correspond to the standard options permitted by the TLS_REQCERT TLS option (`never` performs no validation of certs, `allow` performs some basic name checks but no thorough CA validation, `demand` requires the certificate chain to be valid for the connection to succeed).
+
+
+The following attributes are defined in attributes/default.rb of the common cookbook, but are documented here due to their relevance:
+
+* `openstack['endpoints']['identity-bind']['host']` - The IP address to bind the identity services to
+* `openstack['endpoints']['identity-bind']['scheme']` - Unused
+* `openstack['endpoints']['identity-bind']['port']` - Unused
+* `openstack['endpoints']['identity-bind']['path']` - Unused
+* `openstack['endpoints']['identity-bind']['bind_interface']` - The interface name to bind the identity services to
+
+If the value of the 'bind_interface' attribute is non-nil, then the identity service will be bound to the first IP address on that interface.  If the value of the 'bind_interface' attribute is nil, then the identity service will be bound to the IP address specified in the host attribute.
+
+
+
+### Token flushing
+When managing tokens with an SQL backend the token database may grow unboundedly as new tokens are issued and expired
+tokens are not disposed of. Expired tokens may need to be kept around in order to allow for auditability.
+
+It is up to deployers to define when their tokens can be safely deleted. Keystone provides a tool to purge expired tokens,
+and the server recipe can create a cronjob to run that tool. By default the cronjob will be configured to run hourly.
+
+The flush tokens cronjob configuration parameters are listed below:
+
+* `openstack['identity']['token_flush_cron']['enabled']` - Boolean indicating whether the flush tokens cronjob is enabled. It is by default enabled if the token backend is 'sql'.
+* `openstack['identity']['token_flush_cron']['log_file']` - The log file for the flush tokens tool.
+* `openstack['identity']['token_flush_cron']['hour']` - The hour at which the flush tokens cronjob should run (values 0 - 23).
+* `openstack['identity']['token_flush_cron']['minute']` - The minute at which the flush tokens cronjob should run (values 0 - 59).
+* `openstack']['identity']['token_flush_cron']['day']` - The day of the month when the flush tokens cronjob should run (values 1 - 31).
+* `openstack['identity']['token_flush_cron']['weekday']` = The day of the week at which the flush tokens cronjob should run (values 0 - 6, where Sunday is 0).
 
 Testing
 =====
 
-This cookbook uses [bundler](http://gembundler.com/), [berkshelf](http://berkshelf.com/), and [strainer](https://github.com/customink/strainer) to isolate dependencies and run tests.
+Please refer to the [TESTING.md](TESTING.md) for instructions for testing the cookbook.
 
-Tests are defined in Strainerfile.
+Berkshelf
+=====
 
-To run tests:
-
-    $ bundle install # install gem dependencies
-    $ bundle exec berks install # install cookbook dependencies
-    $ bundle exec strainer test # run tests
+Berks will resolve version requirements and dependencies on first run and
+store these in Berksfile.lock. If new cookbooks become available you can run
+`berks update` to update the references in Berksfile.lock. Berksfile.lock will
+be included in stable branches to provide a known good set of dependencies.
+Berksfile.lock will not be included in development branches to encourage
+development against the latest cookbooks.
 
 License and Author
 ==================
@@ -271,11 +333,14 @@ Author:: Jay Pipes (<jaypipes@att.com>)
 Author:: John Dewey (<jdewey@att.com>)
 Author:: Sean Gallagher (<sean.gallagher@att.com>)
 Author:: Ionut Artarisi (<iartarisi@suse.cz>)
+Author:: Chen Zhiwei (zhiwchen@cn.ibm.com)
+Author:: Eric Zhou (zyouzhou@cn.ibm.com)
 
 Copyright 2012, Rackspace US, Inc.
 Copyright 2012-2013, Opscode, Inc.
 Copyright 2012-2013, AT&T Services, Inc.
 Copyright 2013, SUSE Linux GmbH
+Copyright 2013-2014, IBM, Corp.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

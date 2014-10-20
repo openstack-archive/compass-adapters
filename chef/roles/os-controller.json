@@ -1,0 +1,21 @@
+{
+  "name": "os-controller",
+  "description": "Roll-up role for all of the OpenStack services on a controller.",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[os-ops-database]",
+    "role[os-ops-messaging]",
+    "role[os-identity]",
+    "role[os-image]",
+    "role[os-dashboard]",
+    "role[os-compute-controller]",
+    "role[os-block-storage-controller]"
+  ],
+  "env_run_lists": {
+  }
+}

@@ -1,34 +1,33 @@
 <%= node["openstack"]["network"]["custom_template_banner"] %>
 
-[composite:quantum]
+[composite:neutron]
 use = egg:Paste#urlmap
-/: quantumversions
-/v2.0: quantumapi_v2_0
+/: neutronversions
+/v2.0: neutronapi_v2_0
 
-[composite:quantumapi_v2_0]
-use = call:quantum.auth:pipeline_factory
-noauth = extensions quantumapiapp_v2_0
-keystone = authtoken keystonecontext extensions quantumapiapp_v2_0
+[composite:neutronapi_v2_0]
+use = call:neutron.auth:pipeline_factory
+noauth = request_id catch_errors extensions neutronapiapp_v2_0
+keystone = request_id catch_errors authtoken keystonecontext extensions neutronapiapp_v2_0
+
+[filter:request_id]
+paste.filter_factory = neutron.openstack.common.middleware.request_id:RequestIdMiddleware.factory
+
+[filter:catch_errors]
+paste.filter_factory = neutron.openstack.common.middleware.catch_errors:CatchErrorsMiddleware.factory
 
 [filter:keystonecontext]
-paste.filter_factory = quantum.auth:QuantumKeystoneContext.factory
+paste.filter_factory = neutron.auth:NeutronKeystoneContext.factory
 
 [filter:extensions]
-paste.filter_factory = quantum.api.extensions:plugin_aware_extension_middleware_factory
+paste.filter_factory = neutron.api.extensions:plugin_aware_extension_middleware_factory
 
-[app:quantumversions]
-paste.app_factory = quantum.api.versions:Versions.factory
+[app:neutronversions]
+paste.app_factory = neutron.api.versions:Versions.factory
 
-[app:quantumapiapp_v2_0]
-paste.app_factory = quantum.api.v2.router:APIRouter.factory
+[app:neutronapiapp_v2_0]
+paste.app_factory = neutron.api.v2.router:APIRouter.factory
 
 [filter:authtoken]
 paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
-auth_host = <%= @identity_endpoint.host %>
-auth_port = <%= @identity_endpoint.port %>
-auth_protocol = <%= @identity_endpoint.scheme %>
-admin_tenant_name = <%= @service_tenant_name %>
-admin_user = <%=@service_user %>
-admin_password = <%= @service_pass %>
 delay_auth_decision = true
-signing_dir = <%= node["openstack"]["network"]["api"]["auth"]["cache_dir"] %>

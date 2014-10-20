@@ -1,3 +1,4 @@
+# Encoding: utf-8
 #
 # Cookbook Name:: openstack-network
 # Recipe:: server
@@ -18,63 +19,62 @@
 # limitations under the License.
 #
 
+['quantum', 'neutron'].include?(node['openstack']['compute']['network']['service_type']) || return
+
+# Make Openstack object available in Chef::Recipe
 class ::Chef::Recipe
   include ::Openstack
 end
 
-include_recipe "openstack-network::common"
+include_recipe 'openstack-network::common'
 
-platform_options = node["openstack"]["network"]["platform"]
-driver_name = node["openstack"]["network"]["interface_driver"].split('.').last.downcase
-main_plugin = node["openstack"]["network"]["interface_driver_map"][driver_name]
-core_plugin = node["openstack"]["network"]["core_plugin"]
+platform_options = node['openstack']['network']['platform']
+core_plugin = node['openstack']['network']['core_plugin']
 
-platform_options = node["openstack"]["network"]["platform"]
-
-platform_options["quantum_server_packages"].each do |pkg|
+platform_options['neutron_server_packages'].each do |pkg|
   package pkg do
-    options platform_options["package_overrides"]
-    action :install
+    options platform_options['package_overrides']
+    action :upgrade
   end
 end
 
-platform_options["quantum_openvswitch_agent_packages"].each do|pkg|
-  package pkg do
-    options platform_options["package_overrides"]
-    action :install
-  end
+# Migrate network database
+# If the database has never migrated, make the current version of alembic_version to Icehouse,
+# else migrate the database to latest version.
+# The node['openstack']['network']['plugin_config_file'] attribute is set in the common.rb recipe
+
+=begin
+bash 'migrate network database' do
+  plugin_config_file = node['openstack']['network']['plugin_config_file']
+  db_stamp = node['openstack']['network']['db_stamp']
+  migrate_command = "neutron-db-manage --config-file /etc/neutron/neutron.conf --config-file #{plugin_config_file}"
+  code <<-EOF
+current_version_line=`#{migrate_command} current 2>&1 | tail -n 1`
+# determine if the $current_version_line ends with ": None"
+if [[ $current_version_line == *:\\ None ]]; then
+  #{migrate_command} stamp #{db_stamp}
+else
+  #{migrate_command} upgrade head
+fi
+EOF
+end
+=end
+
+service 'neutron-server' do
+  service_name platform_options['neutron_server_service']
+  supports status: true, restart: true
+  action :enable
 end
 
-if node['platform_family'] == "rhel"
-  directory "/var/cache/quantum/api" do
-    owner node['openstack']['services']['network']['name']
-    group node['openstack']['services']['network']['name']
-    recursive true
-  end
-
-  template "/etc/init.d/quantum-server" do
-    source "quantum-server.start.erb"
-    owner "root"
-    group "root"
-    mode 00755
-  end
-end
-
-service "quantum-server" do
-  service_name platform_options["quantum_server_service"]
-  supports :status => true, :restart => true
-  action [ :enable, :restart ]
-end
-
-cookbook_file "quantum-ha-tool" do
-  source "quantum-ha-tool.py"
-  path node["openstack"]["network"]["quantum_ha_cmd"]
-  owner "root"
-  group "root"
+cookbook_file 'neutron-ha-tool' do
+  source 'neutron-ha-tool.py'
+  path node['openstack']['network']['neutron_ha_cmd']
+  owner 'root'
+  group 'root'
   mode 00755
 end
 
-if node["openstack"]["network"]["quantum_ha_cmd_cron"]
+if node['openstack']['network']['neutron_ha_cmd_cron']
   # ensure period checks are offset between multiple l3 agent nodes
   # and assumes splay will remain constant (i.e. based on hostname)
   # Generate a uniformly distributed unique number to sleep.
@@ -82,27 +82,27 @@ if node["openstack"]["network"]["quantum_ha_cmd_cron"]
   splay = node['chef_client']['splay'].to_i || 3000
   sleep_time = checksum.to_s.hex % splay
 
-  cron "quantum-ha-healthcheck" do
-    minute node["openstack"]["network"]["cron_l3_healthcheck"]
-    command "sleep #{sleep_time} ; . /root/openrc && #{node["openstack"]["network"]["quantum_ha_cmd"]} --l3-agent-migrate > /dev/null 2>&1"
+  cron 'neutron-ha-healthcheck' do
+    minute node['openstack']['network']['cron_l3_healthcheck']
+    command "sleep #{sleep_time} ; . /root/openrc && #{node["openstack"]["network"]["neutron_ha_cmd"]} --l3-agent-migrate > /dev/null 2>&1"
   end
 
-  cron "quantum-ha-replicate-dhcp" do
-    minute node["openstack"]["network"]["cron_replicate_dhcp"]
-    command "sleep #{sleep_time} ; . /root/openrc && #{node["openstack"]["network"]["quantum_ha_cmd"]} --replicate-dhcp > /dev/null 2>&1"
+  cron 'neutron-ha-replicate-dhcp' do
+    minute node['openstack']['network']['cron_replicate_dhcp']
+    command "sleep #{sleep_time} ; . /root/openrc && #{node["openstack"]["network"]["neutron_ha_cmd"]} --replicate-dhcp > /dev/null 2>&1"
   end
 end
 
 # the default SUSE initfile uses this sysconfig file to determine the
-# quantum plugin to use
-template "/etc/sysconfig/quantum" do
-  only_if { platform? "suse" }
-  source "quantum.sysconfig.erb"
-  owner "root"
-  group "root"
+# neutron plugin to use
+template '/etc/sysconfig/neutron' do
+  only_if { platform_family? 'suse' }
+  source 'neutron.sysconfig.erb'
+  owner 'root'
+  group 'root'
   mode 00644
   variables(
-    :plugin_conf => node["openstack"]["network"]["plugin_conf_map"][driver_name]
+    plugin_conf: node['openstack']['network']['plugin_conf_map'][core_plugin.split('.').last.downcase]
   )
-  notifies :restart, "service[quantum-server]"
+  notifies :restart, 'service[neutron-server]'
 end

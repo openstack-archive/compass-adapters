@@ -1,0 +1,63 @@
+---
+driver_plugin: vagrant
+driver_config:
+  vagrantfile_erb: test/integration/Vagrantfile.erb
+  require_chef_omnibus: true
+
+platforms:
+- name: ubuntu-12.04
+  run_list:
+    - recipe[apt]
+- name: ubuntu-14.04
+  run_list:
+    - recipe[apt]
+- name: debian-7.4
+  run_list:
+    - recipe[apt]
+- name: centos-6.5
+- name: centos-5.10
+- name: fedora-18
+
+provisioner:
+    name: chef_zero
+
+suites:
+- name: default
+  run_list:
+    - "recipe[ceph::repo]"
+    - "recipe[ceph]"
+  attributes: &defaults
+    ceph:
+      config:
+        fsid: ae3f1d03-bacd-4a90-b869-1a4fabb107f2
+        mon_initial_members:
+          - "127.0.0.1"
+- name: osd
+  run_list:
+    - "role[ceph-osd]"
+  attributes: *defaults
+- name: mon
+  run_list:
+    - "role[ceph-mon]"
+  attributes: *defaults
+- name: mds
+  run_list:
+    - "role[ceph-mds]"
+  attributes: *defaults
+- name: radosgw
+  run_list:
+    - "role[ceph-radosgw]"
+  attributes: *defaults
+- name: aio
+  attributes:
+    ceph:
+      config-sections:
+        global:
+          "osd journal size" : 128
+          "osd pool default size": 1
+      osd_devices:
+        - { device: "/dev/sdb" }
+        - { device: "/dev/sdc" }
+        - { device: "/dev/sdd" }
+  run_list:
+    - recipe[ceph::all_in_one]

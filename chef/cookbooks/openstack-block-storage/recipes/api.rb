@@ -1,3 +1,4 @@
+# encoding: UTF-8
 #
 # Cookbook Name:: openstack-block-storage
 # Recipe:: api
@@ -20,75 +21,72 @@
 # limitations under the License.
 #
 
-class ::Chef::Recipe
+class ::Chef::Recipe # rubocop:disable Documentation
   include ::Openstack
 end
 
-include_recipe "openstack-block-storage::cinder-common"
+include_recipe 'openstack-block-storage::cinder-common'
 
-platform_options = node["openstack"]["block-storage"]["platform"]
+platform_options = node['openstack']['block-storage']['platform']
 
-platform_options["cinder_api_packages"].each do |pkg|
+platform_options['cinder_api_packages'].each do |pkg|
   package pkg do
-    options platform_options["package_overrides"]
-
+    options platform_options['package_overrides']
     action :upgrade
   end
 end
 
-db_type = node['openstack']['db']['volume']['db_type']
+db_type = node['openstack']['db']['block-storage']['service_type']
 platform_options["#{db_type}_python_packages"].each do |pkg|
   package pkg do
     action :upgrade
   end
 end
 
-directory ::File.dirname(node["openstack"]["block-storage"]["api"]["auth"]["cache_dir"]) do
-  owner node["openstack"]["block-storage"]["user"]
-  group node["openstack"]["block-storage"]["group"]
+directory ::File.dirname(node['openstack']['block-storage']['api']['auth']['cache_dir']) do
+  owner node['openstack']['block-storage']['user']
+  group node['openstack']['block-storage']['group']
   mode 00700
 end
 
-directory "/var/lock/cinder" do
-  owner node["openstack"]["block-storage"]["user"]
-  group node["openstack"]["block-storage"]["group"]
-  mode 00700
-end
-
-service "cinder-api" do
-  service_name platform_options["cinder_api_service"]
-  supports :status => true, :restart => true
-
+service 'cinder-api' do
+  service_name platform_options['cinder_api_service']
+  supports status: true, restart: true
   action :enable
-  subscribes :restart, "template[/etc/cinder/cinder.conf]"
+  subscribes :restart, 'template[/etc/cinder/cinder.conf]'
 end
 
-identity_admin_endpoint = endpoint "identity-admin"
-service_tenant_name = node['openstack']['identity']['volume']['tenant']
-service_user = node['openstack']['identity']['volume']['username']
-service_pass = service_password node['openstack']['identity']['volume']['password']
+identity_endpoint = endpoint 'identity-api'
+identity_admin_endpoint = endpoint 'identity-admin'
+service_pass = get_password 'service', 'openstack-block-storage'
 
-execute "cinder-manage db sync"
+auth_uri = auth_uri_transform(identity_endpoint.to_s, node['openstack']['block-storage']['api']['auth']['version'])
 
-template "/etc/cinder/api-paste.ini" do
-  source "api-paste.ini.erb"
-  group  node["openstack"]["block-storage"]["group"]
-  owner  node["openstack"]["block-storage"]["user"]
-  mode   00644
+execute 'cinder-manage db sync' do
+  user node['openstack']['block-storage']['user']
+  group node['openstack']['block-storage']['group']
+end
+
+template '/etc/cinder/api-paste.ini' do
+  source 'api-paste.ini.erb'
+  group node['openstack']['block-storage']['group']
+  owner node['openstack']['block-storage']['user']
+  mode 00644
   variables(
-    :identity_admin_endpoint => identity_admin_endpoint,
-    :service_tenant_name => service_tenant_name,
-    :service_user => service_user,
-    :service_pass => service_pass
-  )
+    auth_uri: auth_uri,
+    identity_admin_endpoint: identity_admin_endpoint,
+    service_pass: service_pass
+    )
 
-  notifies :restart, "service[cinder-api]", :immediately
+  notifies :restart, 'service[cinder-api]', :immediately
 end
 
-template "/etc/cinder/policy.json" do
-  source "policy.json.erb"
-  owner  node["openstack"]["block-storage"]["user"]
-  group  node["openstack"]["block-storage"]["group"]
-  mode   00644
-  notifies :restart, "service[cinder-api]"
+if node['openstack']['block-storage']['policyfile_url']
+  remote_file '/etc/cinder/policy.json' do
+    source node['openstack']['block-storage']['policyfile_url']
+    owner node['openstack']['block-storage']['user']
+    group node['openstack']['block-storage']['group']
+    mode 00644
+    notifies :restart, 'service[cinder-api]'
+  end
 end

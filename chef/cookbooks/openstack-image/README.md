@@ -23,15 +23,23 @@ Usage
 
 api
 ------
-- Installs the image-api server
+- Installs the glance-api server
+
+client
+----
+- Install the glance client packages
 
 registry
 --------
-- Installs the image-registry server
+- Installs the glance-registry server
 
 keystone-registration
 ---------------------
 - Registers the API endpoint and glance service Keystone user
+
+image-upload
+------------
+- Upload image to glance. If you want to upload image during openstack installation, you need to add this recipe or the os-image role to the run list in a certain role and ensure before this recipe or the os-image role glance api and glance registry recipes have been executed.
 
 The Glance cookbook currently supports file, swift, and Rackspace Cloud Files (swift API compliant) backing stores.  NOTE: changing the storage location from cloudfiles to swift (and vice versa) requires that you manually export and import your stored images.
 
@@ -48,8 +56,7 @@ Files
         },
         "upload_images": [
             "cirros"
-        ],
-        "image_upload": true
+        ]
     }
 }
 ```
@@ -65,8 +72,7 @@ Swift
         },
         "upload_images": [
             "cirros"
-        ],
-        "image_upload": true
+        ]
     }
 }
 ```
@@ -104,33 +110,86 @@ Attributes for the Image service are in the ['openstack']['image'] namespace.
 * `openstack['image']['service_tenant_name']` - Tenant name used by glance when interacting with keystone - used in the API and registry paste.ini files
 * `openstack['image']['service_user']` - User name used by glance when interacting with keystone - used in the API and registry paste.ini files
 * `openstack['image']['service_role']` - User role used by glance when interacting with keystone - used in the API and registry paste.ini files
+* `openstack['image']['notification_driver']` - Notification driver, default noop.
+* `openstack['image']['api']['workers']` - Set the number of glance api workers.
+* `openstack['image']['api']['show_image_direct_url']` - Allow glance to return URL referencing where data is stored on the backend. Default 'False'
 * `openstack['image']['api']['auth']['cache_dir']` - Defaults to `/var/cache/glance/api`. Directory where `auth_token` middleware writes certificates for glance-api
 * `openstack['image']['registry']['auth']['cache_dir']` - Defaults to `/var/cache/glance/registry`. Directory where `auth_token` middleware writes certificates for glance-registry
-* `openstack['image']['image_upload']` - Toggles whether to automatically upload images in the `openstack['image']['upload_images']` array
 * `openstack['image']['upload_images']` - Default list of images to upload to the glance repository as part of the install
 * `openstack['image']['upload_image']['<imagename>']` - URL location of the `<imagename>` image. There can be multiple instances of this line to define multiple imagess (eg natty, maverick, fedora17 etc)
 --- example `openstack['image']['upload_image']['natty']` - "http://c250663.r63.cf1.rackcdn.com/ubuntu-11.04-server-uec-amd64-multinic.tar.gz"
-* `openstack['image']['api']['default_store']` - Toggles the backend storage type.  Currently supported is "file" and "swift"
+* `openstack['image']['api']['default_store']` - Toggles the backend storage type.  Currently supported is "file", "swift" and "rbd".
 * `openstack['image']['api']['swift']['store_container']` - Set the container used by glance to store images and snapshots.  Defaults to "glance"
 * `openstack['image']['api']['swift']['store_large_object_size']` - Set the size at which glance starts to chunnk files.  Defaults to "200" MB
 * `openstack['image']['api']['swift']['store_large_object_chunk_size']` - Set the chunk size for glance.  Defaults to "200" MB
+* `openstack['image']['api']['swift']['enable_snet']` - Set whether to use ServiceNET to communicate with the Swift Storage servers. (Rackspace specific option)
+* `openstack['image']['api']['swift']['store_region']` -  The region of the swift endpoint to be used for single tenant. This setting is only necessary if the tenant has multiple swift endpoints.
 * `openstack['image']['api']['rbd']['rbd_store_ceph_conf']` - Default location of ceph.conf
 * `openstack['image']['api']['rbd']['rbd_store_user']` - User for connecting to ceph store
 * `openstack['image']['api']['rbd']['rbd_store_pool']` - RADOS pool for images
 * `openstack['image']['api']['rbd']['rbd_store_chunk_size']` - Size in MB of chunks for RADOS Store, should be a power of 2
+* `openstack['image']['api']['rbd']['key_name']` - The data bag item name used for the Cephx key of the rbd_store_user.
+* `openstack['image']['cron']['redirection']` - Redirection of cron output
+TODO: Add DB2 support on other platforms
+* `openstack['image']['platform']['db2_python_packages']` - Array of DB2 python packages, only available on redhat platform
+
+VMWare attributes
+-----------------
+
+* `openstack['image']['api']['vmware']['secret_name']` - VMware databag secret name
+* `openstack['image']['api']['vmware']['vmware_server_host']` - ESX/ESXi or vCenter Server target system. e.g. 127.0.0.1, 127.0.0.1:443, www.vmware-infra.com
+* `openstack['image']['api']['vmware']['vmware_server_username']` - Server username (string value)
+* `openstack['image']['api']['vmware']['vmware_datacenter_path']` - Inventory path to a datacenter (string value)
+* `openstack['image']['api']['vmware']['vmware_datastore_name']` - Datastore associated with the datacenter (string value)
+* `openstack['image']['api']['vmware']['vmware_api_retry_count']` - The number of times we retry on failures (integer value)
+* `openstack['image']['api']['vmware']['vmware_task_poll_interval']` - The interval used for polling remote tasks invoked on VMware ESX/VC server in seconds (integer value)
+* `openstack['image']['api']['vmware']['vmware_store_image_dir']` - Absolute path of the folder containing the images in the datastore (string value)
+* `openstack['image']['api']['vmware']['vmware_api_insecure']` - Allow to perform insecure SSL requests to the target system (boolean value)
+
+MQ attributes
+-------------
+* `openstack['image']['mq']['service_type']` - Select qpid or rabbitmq. default rabbitmq
+* `openstack['image']['mq']['qpid']['host']` - The qpid host to use
+* `openstack['image']['mq']['qpid']['port']` - The qpid port to use
+* `openstack['image']['mq']['qpid']['qpid_hosts']` - Qpid hosts. TODO. use only when ha is specified.
+* `openstack['image']['mq']['qpid']['username']` - Username for qpid connection
+* `openstack['image']['mq']['qpid']['password']` - Password for qpid connection
+* `openstack['image']['mq']['qpid']['sasl_mechanisms']` - Space separated list of SASL mechanisms to use for auth
+* `openstack['image']['mq']['qpid']['reconnect_timeout']` - The number of seconds to wait before deciding that a reconnect attempt has failed.
+* `openstack['image']['mq']['qpid']['reconnect_limit']` - The limit for the number of times to reconnect before considering the connection to be failed.
+* `openstack['image']['mq']['qpid']['reconnect_interval_min']` - Minimum number of seconds between connection attempts.
+* `openstack['image']['mq']['qpid']['reconnect_interval_max']` - Maximum number of seconds between connection attempts.
+* `openstack['image']['mq']['qpid']['reconnect_interval']` - Equivalent to setting qpid_reconnect_interval_min and qpid_reconnect_interval_max to the same value.
+* `openstack['image']['mq']['qpid']['heartbeat']` - Seconds between heartbeat messages sent to ensure that the connection is still alive.
+* `openstack['image']['mq']['qpid']['protocol']` - Protocol to use. Default tcp.
+* `openstack['image']['mq']['qpid']['tcp_nodelay']` - Disable the Nagle algorithm. default disabled.
+
+The following attributes are defined in attributes/default.rb of the common cookbook, but are documented here due to their relevance:
+
+* `openstack['endpoints']['image-api-bind']['host']` - The IP address to bind the api service to
+* `openstack['endpoints']['image-api-bind']['port']` - The port to bind the api service to
+* `openstack['endpoints']['image-api-bind']['bind_interface']` - The interface name to bind the api service to
+
+* `openstack['endpoints']['image-registry-bind']['host']` - The IP address to bind the registry service to
+* `openstack['endpoints']['image-registry-bind']['port']` - The port to bind the registry service to
+* `openstack['endpoints']['image-registry-bind']['bind_interface']` - The interface name to bind the registry service to
+
+If the value of the 'bind_interface' attribute is non-nil, then the image service will be bound to the first IP address on that interface.  If the value of the 'bind_interface' attribute is nil, then the image service will be bound to the IP address specified in the host attribute.
 
 Testing
 =====
 
-This cookbook uses [bundler](http://gembundler.com/), [berkshelf](http://berkshelf.com/), and [strainer](https://github.com/customink/strainer) to isolate dependencies and run tests.
+Please refer to the [TESTING.md](TESTING.md) for instructions for testing the cookbook.
 
-Tests are defined in Strainerfile.
+Berkshelf
+=====
 
-To run tests:
-
-    $ bundle install # install gem dependencies
-    $ bundle exec berks install # install cookbook dependencies
-    $ bundle exec strainer test # run tests
+Berks will resolve version requirements and dependencies on first run and
+store these in Berksfile.lock. If new cookbooks become available you can run
+`berks update` to update the references in Berksfile.lock. Berksfile.lock will
+be included in stable branches to provide a known good set of dependencies.
+Berksfile.lock will not be included in development branches to encourage
+development against the latest cookbooks.
 
 License and Author
 ==================
@@ -147,11 +206,17 @@ Author:: Jay Pipes (<jaypipes@att.com>)
 Author:: John Dewey (<jdewey@att.com>)
 Author:: Craig Tracey (<craigtracey@gmail.com>)
 Author:: Sean Gallagher (<sean.gallagher@att.com>)
+Author:: Mark Vanderwiel (<vanderwl@us.ibm.com>)
+Author:: Salman Baset (<sabaset@us.ibm.com>)
+Author:: Chen Zhiwei (zhiwchen@cn.ibm.com)
+Author:: Eric Zhou (zyouzhou@cn.ibm.com)
+Author:: Jian Hua Geng (gengjh@cn.ibm.com)
 
 Copyright 2012, Rackspace US, Inc.
 Copyright 2012-2013, Opscode, Inc.
 Copyright 2012-2013, AT&T Services, Inc.
 Copyright 2013, Craig Tracey <craigtracey@gmail.com>
+Copyright 2013-2014, IBM Corp.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

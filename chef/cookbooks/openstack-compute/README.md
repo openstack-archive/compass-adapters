@@ -41,6 +41,10 @@ api-os-compute
 - Includes recipe `nova-common`
 - Installs OS API and configures the service and endpoints in keystone
 
+client
+----
+- Install the nova client packages
+
 compute
 ----
 - Includes recipes `nova-common`, `api-metadata`, `network`
@@ -49,6 +53,11 @@ compute
 libvirt
 ----
 - Installs libvirt, used by nova compute for management of the virtual machine environment
+
+libvirt_rbd
+----
+- Prepares the compute node for interaction with a Ceph cluster for block storage (RBD)
+- Depends on `openstack-common::ceph_client` for packages and cluster connectivity (i.e. a proper `/etc/ceph/ceph.conf`)
 
 network
 ----
@@ -63,7 +72,6 @@ nova-common
 ----
 - May include recipe `selinux` (Fedora)
 - Builds the basic nova.conf config file with details of the rabbitmq, mysql, glance and keystone servers
-- Builds a openrc file for root with appropriate environment variables to interact with the nova client CLI
 
 nova-setup
 ----
@@ -89,16 +97,20 @@ Openstack Compute attributes are in the attribute namespace ["openstack"]["compu
 * `openstack["compute"]["user"]` - User nova services run as
 * `openstack["compute"]["group"]` - Group nova services run as
 * `openstack["compute"]["db"]["username"]` - Username for nova database access
-* `openstack["compute"]["rabbit"]["username"]` - Username for nova rabbit access
-* `openstack["compute"]["rabbit"]["vhost"]` - The rabbit vhost to use
-* `openstack["compute"]["rabbit"]["port"]` - The rabbit port to use
-* `openstack["compute"]["rabbit"]["host"]` - The rabbit host to use (must set when `openstack["compute"]["rabbit"]["ha"]` false).
-* `openstack["compute"]["rabbit"]["ha"]` - Whether or not to use rabbit ha
 * `openstack["compute"]["service_tenant_name"]` - Tenant name used by nova when interacting with keystone
 * `openstack["compute"]["service_user"]` - User name used by nova when interacting with keystone
 * `openstack["compute"]["service_role"]` - User role used by nova when interacting with keystone
 * `openstack["compute"]["floating_cmd"]` - Path to the `nova-manage floating create` wrapper script.
+* `openstack["compute"]["ec2_workers"]` - Number of ec2 workers
+* `openstack["compute"]["osapi_compute_workers"]` - Number of api workers
+* `openstack["compute"]["metadata_workers"]` - Number of metadata workders
 * `openstack["compute"]["config"]["volume_api_class"]` - API Class used for Volume support
+* `openstack['compute']['driver'] = Driver to use for controlling virtualization
+* `openstack['compute']['default_ephemeral_format'] = The default format an ephemeral_volume will be formatted with on creation
+* `openstack['compute']['preallocate_images'] = VM image preallocation mode
+* `openstack['compute']['use_cow_images'] = Whether to use cow images
+* `openstack['compute']['vif_plugging_is_fatal'] = Fail instance boot if vif plugging fails
+* `openstack['compute']['vif_plugging_timeout'] = Number of seconds to wait for neutron vif plugging events to arrive before continuing or failing
 * `openstack["compute"]["compute"]["api"]["protocol"]` - Protocol used for the OS API
 * `openstack["compute"]["compute"]["api"]["port"]` - Port on which OS API runs
 * `openstack["compute"]["compute"]["api"]["version"]` - Version of the OS API used
@@ -115,8 +127,44 @@ Openstack Compute attributes are in the attribute namespace ["openstack"]["compu
 * `openstack["compute"]["config"]["snapshot_image_format"]` - Snapshot image format (valid options are : raw, qcow2, vmdk, vdi [we default to qcow2]).
 * `openstack["compute"]["config"]["start_guests_on_host_boot"]` - Whether to restart guests when the host reboots
 * `openstack["compute"]["config"]["resume_guests_state_on_host_boot"]` - Whether to start guests that were running before the host rebooted
+* `openstack["compute"]["config"]["disk_allocation_ratio"]` - Virtual disk to physical disk allocation ratio (default 1.0)
+* `openstack["compute"]["config"]["allow_resize_to_same_host"]` - Allow destination machine to match source for resize. Useful when testing in single-host environments (default is false)
+* `openstack["compute"]["config"]["disk_cachemodes"]` - Cachemodes to use for different disk types e.g: "file=directsync,block=none".  Valid cache values are "default", "none", "writethrough", "writeback", "directsync" and "unsafe".
 * `openstack["compute"]["api"]["signing_dir"]` - Keystone PKI needs a location to hold the signed tokens
 * `openstack["compute"]["api"]["signing_dir"]` - Keystone PKI needs a location to hold the signed tokens
+* `openstack["compute"]["rpc_thread_pool_size"]` - Size of RPC thread pool (default 64)
+* `openstack["compute"]["rpc_conn_pool_size"]` - Size of RPC connection pool (default 30)
+* `openstack["compute"]["rpc_response_timeout"]` - Seconds to wait for a response from call or multicall (default 60)
+TODO: Add DB2 support on other platforms
+* `openstack["compute"]["platform"]["db2_python_packages"]` - Array of DB2 python packages, only available on redhat platform
+* `openstack['compute']['api']['auth']['version']` - Select v2.0 or v3.0. Default v2.0. The auth API version used to interact with identity service.
+* `openstack['compute']['conductor']['workers']` = Number of conductor workers
+
+
+MQ attributes
+-------------
+* `openstack["compute"]["mq"]["service_type"]` - Select qpid or rabbitmq. default rabbitmq
+TODO: move rabbit parameters under openstack["compute"]["mq"]
+* `openstack["compute"]["rabbit"]["username"]` - Username for nova rabbit access
+* `openstack["compute"]["rabbit"]["vhost"]` - The rabbit vhost to use
+* `openstack["compute"]["rabbit"]["port"]` - The rabbit port to use
+* `openstack["compute"]["rabbit"]["host"]` - The rabbit host to use (must set when `openstack["compute"]["rabbit"]["ha"]` false).
+* `openstack["compute"]["rabbit"]["ha"]` - Whether or not to use rabbit ha
+
+* `openstack["compute"]["mq"]["qpid"]["host"]` - The qpid host to use
+* `openstack["compute"]["mq"]["qpid"]["port"]` - The qpid port to use
+* `openstack["compute"]["mq"]["qpid"]["qpid_hosts"]` - Qpid hosts. TODO. use only when ha is specified.
+* `openstack["compute"]["mq"]["qpid"]["username"]` - Username for qpid connection
+* `openstack["compute"]["mq"]["qpid"]["password"]` - Password for qpid connection
+* `openstack["compute"]["mq"]["qpid"]["sasl_mechanisms"]` - Space separated list of SASL mechanisms to use for auth
+* `openstack["compute"]["mq"]["qpid"]["reconnect_timeout"]` - The number of seconds to wait before deciding that a reconnect attempt has failed.
+* `openstack["compute"]["mq"]["qpid"]["reconnect_limit"]` - The limit for the number of times to reconnect before considering the connection to be failed.
+* `openstack["compute"]["mq"]["qpid"]["reconnect_interval_min"]` - Minimum number of seconds between connection attempts.
+* `openstack["compute"]["mq"]["qpid"]["reconnect_interval_max"]` - Maximum number of seconds between connection attempts.
+* `openstack["compute"]["mq"]["qpid"]["reconnect_interval"]` - Equivalent to setting qpid_reconnect_interval_min and qpid_reconnect_interval_max to the same value.
+* `openstack["compute"]["mq"]["qpid"]["heartbeat"]` - Seconds between heartbeat messages sent to ensure that the connection is still alive.
+* `openstack["compute"]["mq"]["qpid"]["protocol"]` - Protocol to use. Default tcp.
+* `openstack["compute"]["mq"]["qpid"]["tcp_nodelay"]` - Disable the Nagle algorithm. default disabled.
 
 Networking Attributes
 ---------------------
@@ -124,10 +172,11 @@ Networking Attributes
 Basic networking configuration is controlled with the following attributes:
 
 * `openstack["compute"]["network"]["network_manager"]` - Defaults to "nova.network.manager.FlatDHCPManager". Set to "nova.network.manager.VlanManager" to configure VLAN Networking.
-* `openstack["compute"]["network"]["fixed_range"]` - The CIDR for the network that VMs will be assigned to. In the case of VLAN Networking, this should be the network in which all VLAN networks that tenants are assigned will fit.
 * `openstack["compute"]["network"]["dmz_cidr"]` - A CIDR for the range of IP addresses that will NOT be SNAT'ed by the nova network controller
-* `openstack["compute"]["network"]["public_interface"]` - Defaults to eth0. Refers to the network interface used for VM addresses in the `fixed_range`.
+* `openstack["compute"]["network"]["public_interface"]` - Defaults to eth0. Refers to the network interface used for VM addresses`.
 * `openstack["compute"]["network"]["vlan_interface"]` - Defaults to eth0. Refers to the network interface used for VM addresses when VMs are assigned in a VLAN subnet.
+* `openstack["compute"]["network"]["auto_assign_floating_ip"]` - Defaults to false. Autoassigning floating ip to VM, this should be only for nova network.
+* `openstack["compute"]["network"]["force_dhcp_release"]` - If True, send a dhcp release on instance termination. (Default is false on "fedora", "redhat", "centos")
 
 You can have the cookbook automatically create networks in Nova for you by adding a Hash to the `openstack["compute"]["networks"]` Array.
 **Note**: The `openstack-compute::nova-setup` recipe contains the code that creates these pre-defined networks.
@@ -166,24 +215,27 @@ By default, the `openstack["compute"]["networks"]` array has two networks:
 * `openstack["compute"]["networks"]["private"]["bridge"]` - Bridge to be created for accessing the VM network (e.g., br200)
 * `openstack["compute"]["networks"]["private"]["bridge_dev"]` - Physical device on which the bridge device should be attached (e.g., eth3)
 
-VNC Configuration Attributes
-----------------------------
-
-Requires [network_addr](https://gist.github.com/jtimberman/1040543) Ohai plugin.
-
-* `openstack["compute"]["xvpvnc_proxy"]["service_port"]` - Port on which XvpVNC runs
-* `openstack["compute"]["xvpvnc_proxy"]["bind_interface"]` - Determine the interface's IP address to bind to
-* `openstack["compute"]["novnc_proxy"]["service_port"]` - Port on which NoVNC runs
-* `openstack["compute"]["novnc_proxy"]["bind_interface"]` - Determine the interface's IP address to bind to
-
 Libvirt Configuration Attributes
 ---------------------------------
 
 * `openstack["compute"]["libvirt"]["virt_type"]` - What hypervisor software layer to use with libvirt (e.g., kvm, qemu)
-* `openstack["compute"]["libvirt"]["bind_interface"]` - Determine the interface's IP address (used for VNC).  IP address on the hypervisor that libvirt listens for VNC requests on, and IP address on the hypervisor that libvirt exposes for VNC requests on.
+* `openstack["compute"]["libvirt"]["volume_backend"]` - What block storage backend to use with libvirt (e.g. rbd)
 * `openstack["compute"]["libvirt"]["auth_tcp"]` - Type of authentication your libvirt layer requires
 * `openstack["compute"]["libvirt"]["ssh"]["private_key"]` - Private key to use if using SSH authentication to your libvirt layer
 * `openstack["compute"]["libvirt"]["ssh"]["public_key"]` - Public key to use if using SSH authentication to your libvirt layer
+* `openstack["compute"]["libvirt"]["max_clients"]` - Maximum number of concurrent client connections to allow over all sockets combined. (default: 20)
+* `openstack["compute"]["libvirt"]["max_workers"]` - Maximum number of workers spawned, typically equal to max_clients. (default: 20)
+* `openstack["compute"]["libvirt"]["max_requests"]` - Total global limit on concurrent RPC calls. Should be at least as large as max_workers. (default: 20)
+* `openstack["compute"]["libvirt"]["max_client_requests"]` - Limit on concurrent requests from a single client connection. (default: 5)
+* `openstack["compute"]["libvirt"]["libvirt_inject_key"]` - Inject the ssh public key at boot time, without an agent. (default: true)
+* `openstack["compute"]["libvirt"]["libvirt_inject_password"]` - Inject the admin password at boot time, without an agent. (default: false)
+* `openstack["compute"]["libvirt"]["images_type"]` - How to store local images (ephemeral disks): raw, qcow2, lvm, rbd, or default
+* `openstack["compute"]["libvirt"]["volume_group"]` - When images_type is lvm: volume group to use
+* `openstack["compute"]["libvirt"]["sparse_logical_volumes"]` - When images_type is lvm: use sparse logical volumes
+* `openstack["compute"]["libvirt"]["images_rbd_pool"]` - When images_type is rbd: use this RBD pool
+* `openstack["compute"]["libvirt"]["images_rbd_ceph_conf"]` - When images_type is rbd: use this ceph.conf
+* `openstack["compute"]["libvirt"]["rbd"]["rbd_user"]` - The cephx user used for accessing the RBD pool used for block storage. (Which pool to use is passed by cinder when nova-compute is instructed to mount a volume.)
+* `openstack["compute"]["libvirt"]["rbd"]["rbd_secret_name"]` - The name of the databag item containing the UUID shared between Cinder and nova-compute.  `libvirt_rbd` will define a libvirt secret with this UUID, containing the `rbd_user`'s password.  The password itself will be retrieved using `get_password` on the service `rbd_block_storage`.  Creating the cephx user in a Ceph cluster has to be done outside of the scope of this cookbook.
 
 Scheduler Configuration Attributes
 ----------------------------------
@@ -204,18 +256,100 @@ OSAPI Compute Extentions
 
 * `openstack["compute"]["plugins"]` - Array of osapi compute exntesions to add to nova
 
+Miscellaneous Options
+---------------------
+
+Arrays whose elements will be copied exactly into the respective config files (contents e.g. ['option1=value1', 'option2=value2']).
+
+* `openstack["compute"]["misc_nova"]` - Array of bare options for `nova.conf`.
+* `openstack["compute"]["misc_paste"]` - Array of bare options for `api-paste.ini`
+
+EC2 Configuration Attributes
+----------------------------
+
+* `openstack["compute"]["enabled_apis"]` - Which apis have been enabled in nova compute
+
+Notification Attributes
+-----------------------
+
+* `openstack["compute"]["metering"]`- Boolean that indicates whether to enable the metering attributes with sensible defaults. Default is false.
+* `openstack["compute"]["config"]["notification_drivers"]`- An array of drivers to handle sending notifications.
+* `openstack["compute"]["config"]["instance_usage_audit"]`- Boolean that indicates whether to generate intance usage audits.
+* `openstack["compute"]["config"]["instance_usage_audit_period"]`- Time period to generate instance usages for.  Time period must be "hour", "day", "month" or "year".
+* `openstack["compute"]["config"]["notify_on_state_change"]`- If set, send compute.instance.update notifications on instance state changes.  Valid values are None, "vm_state" or "vm_and_task_state".
+
+When enabling nova metering with ceilometer, the notification configuration
+properties need to be set to values that are different from the default values
+used when metering is off. In order to facilitate setting all those
+notification properties, the cookbook includes the `openstack["compute"]["metering"]`
+attribute which when set to `true` will automatically set all notification
+properties to the suggested defaults.
+
+One of the notification_drivers that is set when metering is on comes from
+ceilometer. In order for the notification driver to be available, make sure
+the `os-telemetry-agent-compute` role (or the openstack-telemetry::agent-compute recipe)
+are set on this node.
+
+VMware Configuration Attributes
+-------------------------------
+
+* `openstack['compute']['vmware']['secret_name']` - VMware databag secret name
+* `openstack['compute']['vmware']['host_ip']` - URL for connection to VMware ESX/VC host. (string value)
+* `openstack['compute']['vmware']['host_username']` - Username for connection to VMware ESX/VC host. (string value)
+* `openstack['compute']['vmware']['cluster_name']` - Name of a VMware Cluster ComputeResource. Used only if compute_driver is vmwareapi.VMwareVCDriver. (multi valued)
+* `openstack['compute']['vmware']['datastore_regex']` - Regex to match the name of a datastore. (string value)
+* `openstack['compute']['vmware']['task_poll_interval']` - The interval used for polling of remote tasks. (floating point value, default 0.5)
+* `openstack['compute']['vmware']['api_retry_count']` - The number of times we retry on failures, e.g., socket error, etc. (integer value, default 10)
+* `openstack['compute']['vmware']['vnc_port']` - VNC starting port (integer value, default 5900)
+* `openstack['compute']['vmware']['vnc_port_total']` - Total number of VNC ports (integer value, default 10000)
+* `openstack['compute']['vmware']['use_linked_clone']` - Whether to use linked clone (boolean value, default true)
+* `openstack['compute']['vmware']['vlan_interface']` - Physical ethernet adapter name for vlan networking (string value, default vmnic0)
+* `openstack['compute']['vmware']['wsdl_location']` - Optional VIM Service WSDL Location, you must specify this location of the WSDL files when you try to connect vSphere vCenter versions 5.0 and earlier.
+* `openstack['compute']['vmware']['maximum_objects']` - The maximum number of ObjectContent data objects that should be returned in a single result. (integer value, default 100)
+* `openstack['compute']['vmware']['integration_bridge']` - Name of Integration Bridge (string value, default br-int)
+
+
+The following attributes are defined in attributes/default.rb of the common cookbook, but are documented here due to their relevance:
+
+* `openstack['endpoints']['compute-compute api-bind']['host']` - The IP address to bind the compute api service to
+* `openstack['endpoints']['compute-compute api-bind']['port']` - The port to bind the compute api service to
+* `openstack['endpoints']['compute-compute api-bind']['bind_interface']` - The interface name to bind the compute api service to
+
+* `openstack['endpoints']['compute-ec2-api-bind']['host']` - The IP address to bind the ec2 api service to
+* `openstack['endpoints']['compute-ec2-api-bind']['port']` - The port to bind the ec2 api service to
+* `openstack['endpoints']['compute-ec2-api-bind']['bind_interface']` - The interface name to bind the ec2 api service to
+
+* `openstack['endpoints']['compute-ec2-admin-bind']['host']` - The IP address to bind the ec2 admin api service to
+* `openstack['endpoints']['compute-ec2-admin-bind']['port']` - The port to bind the ec2 admin api service to
+* `openstack['endpoints']['compute-ec2-admin-bind']['bind_interface']` - The interface name to bind the ec2 admin api service to
+
+* `openstack['endpoints']['compute-xvpvnc-bind']['host']` - The IP address to bind the xvpvnc service to
+* `openstack['endpoints']['compute-xvpvnc-bind']['port']` - The port to bind the xvpvnc service to
+* `openstack['endpoints']['compute-xvpvnc-bind']['bind_interface']` - The interface name to bind the xvpvnc service to
+
+* `openstack['endpoints']['compute-novnc-bind']['host']` - The IP address to bind the novnc service to
+* `openstack['endpoints']['compute-novnc-bind']['port']` - The port to bind the novnc service to
+* `openstack['endpoints']['compute-novnc-bind']['bind_interface']` - The interface name to bind the novnc service to
+
+* `openstack['endpoints']['compute-vnc-bind']['host']` - The IP address to bind the vnc service to
+* `openstack['endpoints']['compute-vnc-bind']['bind_interface']` - The interface name to bind the vnc service to
+
+If the value of the 'bind_interface' attribute is non-nil, then the service will be bound to the first IP address on that interface.  If the value of the 'bind_interface' attribute is nil, then the service will be bound to the IP address specified in the host attribute.
+
 Testing
 =====
 
-This cookbook uses [bundler](http://gembundler.com/), [berkshelf](http://berkshelf.com/), and [strainer](https://github.com/customink/strainer) to isolate dependencies and run tests.
+Please refer to the [TESTING.md](TESTING.md) for instructions for testing the cookbook.
 
-Tests are defined in Strainerfile.
+Berkshelf
+=====
 
-To run tests:
-
-    $ bundle install # install gem dependencies
-    $ bundle exec berks install # install cookbook dependencies
-    $ bundle exec strainer test # run tests
+Berks will resolve version requirements and dependencies on first run and
+store these in Berksfile.lock. If new cookbooks become available you can run
+`berks update` to update the references in Berksfile.lock. Berksfile.lock will
+be included in stable branches to provide a known good set of dependencies.
+Berksfile.lock will not be included in development branches to encourage
+development against the latest cookbooks.
 
 License and Author
 ==================
@@ -232,16 +366,24 @@ License and Author
 | **Author**           |  Matt Ray (<matt@opscode.com>)                     |
 | **Author**           |  Jay Pipes (<jaypipes@att.com>)                    |
 | **Author**           |  John Dewey (<jdewey@att.com>)                     |
-| **Author**           |  Kevin Bringard (<kbringard@att.com>)                     |
+| **Author**           |  Kevin Bringard (<kbringard@att.com>)              |
 | **Author**           |  Craig Tracey (<craigtracey@gmail.com>)            |
 | **Author**           |  Sean Gallagher (<sean.gallagher@att.com>)         |
 | **Author**           |  Ionut Artarisi (<iartarisi@suse.cz>)              |
+| **Author**           |  JieHua Jin (<jinjhua@cn.ibm.com>)                 |
+| **Author**           |  David Geng (<gengjh@cn.ibm.com>)                  |
+| **Author**           |  Salman Baset (<sabaset@us.ibm.com>)               |
+| **Author**           |  Chen Zhiwei (<zhiwchen@cn.ibm.com>)               |
+| **Author**           |  Mark Vanderwiel (<vanderwl@us.ibm.com>)           |
+| **Author**           |  Eric Zhou (<zyouzhou@cn.ibm.com>)                 |
+| **Author**           |  Mathew Odden (<mrodden@us.ibm.com>)               |
 |                      |                                                    |
 | **Copyright**        |  Copyright (c) 2012-2013, Rackspace US, Inc.       |
 | **Copyright**        |  Copyright (c) 2012-2013, Opscode, Inc.            |
 | **Copyright**        |  Copyright (c) 2012-2013, AT&T Services, Inc.      |
 | **Copyright**        |  Copyright (c) 2013, Craig Tracey                  |
 | **Copyright**        |  Copyright (c) 2013, SUSE Linux GmbH               |
+| **Copyright**        |  Copyright (c) 2013-2014, IBM, Corp.               |
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

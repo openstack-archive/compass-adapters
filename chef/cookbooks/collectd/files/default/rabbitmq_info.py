@@ -53,7 +53,7 @@ def get_stats():
     # call http api instead of rabbitmqctl to collect statistics due to issue:
     #  https://github.com/phrawzty/rabbitmq-collectd-plugin/issues/5
     try:
-        r = requests.get('%s/%s' % (RABBITMQ_API, VHOST),
+        r = requests.get('%s' % RABBITMQ_API,
                          auth=('%s' % USER, '%s' % PASS))
 #        p = subprocess.Popen([RABBITMQCTL_BIN, '-q', '-p', VHOST,
 #            'list_queues', 'name', 'messages', 'memory', 'consumers'],
@@ -83,13 +83,16 @@ def get_stats():
         logger('err', 'No result found for this vhost')
         return None
     for i in resp:
-        if "messages" in i:
-            stats['ctl_messages'] += i['messages']
-            stats['ctl_memory'] += i['memory']
-            stats['ctl_consumers'] += i['consumers']
-            stats['ctl_messages_%s' % i['name']] = i['messages']
-            stats['ctl_memory_%s' % i['name']] = i['memory']
-            stats['ctl_consumers_%s' % i['name']] = i['consumers']
+        if i['vhost'] == VHOST:
+            if "messages" in i:
+                stats['ctl_messages'] += i['messages']
+                stats['ctl_messages_%s' % i['name']] = i['messages']
+            if "memory" in i:
+                stats['ctl_memory'] += i['memory']
+                stats['ctl_memory_%s' % i['name']] = i['memory']
+            if "consumers" in i:
+                stats['ctl_consumers'] += i['consumers']
+                stats['ctl_consumers_%s' % i['name']] = i['consumers']
     if not stats['ctl_memory'] > 0:
         logger('warn', '%s reports 0 memory usage. This is probably incorrect.'
                % RABBITMQ_API)

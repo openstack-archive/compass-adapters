@@ -1,0 +1,23 @@
+{
+  "name": "os-block-storage-api",
+  "description": "OpenStack Block Storage API service",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {"ProcessMatch": ["cinder-api\" \"cinder-api"]}
+        }
+      }
+    }
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[os-base]",
+    "recipe[openstack-block-storage::api]"
+  ],
+  "env_run_lists": {
+  }
+}

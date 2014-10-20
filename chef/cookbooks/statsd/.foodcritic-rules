@@ -1,0 +1,7 @@
+# Foodcritic exclude rules
+#
+# The build will fail on any warning raised, except rules listed in this file.
+# Add one rule per line. Do not prefix rules with a tilde (~).
+#
+FC003
+FC023

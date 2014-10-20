@@ -1,6 +1,105 @@
 # CHANGELOG for cookbook-openstack-common
 
 This file is used to list changes made in each version of cookbook-openstack-common.
+## 9.4.1
+* Fix to allow database connection options for telemetry nosql
+
+## 9.4.0
+* Add durable_queues, auto_delete, and qpid topology version attributes
+
+## 9.3.0
+* Provide an option to specify the password when dev mode equals true
+
+## 9.2.2
+* Fixed openrc failure on role search
+
+## 9.2.1
+* Fix package action to allow updates
+
+## 9.2.0
+* Add recipe for openrc file (moved from compute cookbook)
+
+## 9.1.2
+* Make PKI tokens the new default
+
+## 9.1.1
+* Add new library method for making cli calls and one for getting uuids
+
+## 9.1.0
+* Added python-openstackclient support
+
+## 9.0.2
+* Allow address_for family default to be overridden
+
+## 9.0.1
+### Bug
+* Fix the depends cookbook version issue in metadata.rb
+
+## 9.0.0
+* Upgrading to Icehouse
+
+## 8.5.0
+* Add get_secret library method which allows one to specify a secrets_data_bag in attributes.
+
+## 8.4.2
+* Adjust image service endpoint path from /v2 to /
+
+## 8.4.1
+* Fix a renaming openstack-metering issue, change `metering` to `telemetry` in db_uri function.
+
+## 8.4.0
+* Rename openstack-metering to openstack-telemetry
+
+## 8.3.0
+### Blueprint
+* use-data-bag-for-qpid-password: have qpid use get_password method rather than
+  using a password attribute
+
+## 8.2.1
+### Bug
+* Add notification_topics attribute to network attributes
+
+## 8.2.0
+* Update and add new attributes for openstack-network cookbook
+
+## 8.1.1
+### Bug
+* Adjust metering service endpoint path from /v1 to /
+
+## 8.1.0
+### Blueprint:
+* yum-cookbook-v3-support: Update this cookbook to be compatible with version 3 of the yum cookbook.
+
+## 8.0.1:
+### Bug
+* Add sleep to search_for function, so that node can be searched
+* Add CentOS/RHEL support
+
+## 8.0.0:
+* Upgrading to Havana
+* Upgrading gems
+  * ChefSpec -> 3.0.2
+  * Foodcritic -> 3.0.3
+  * Berkshelf -> 2.0.10
+
+## 0.4.7:
+### Bug
+* Change `#db_uri` to hand out UTF8 MySQL URIs; i.e. append '?charset=utf8' to mysql URIs
+
+## 0.4.6:
+### Bug
+* Ensuring `#db_uri` returns a valid sqlite connection string
+  * relative path example: 'path' = 'path/to/foo.db' -- will return sqlite:///foo.db
+  * absolute path example: 'path' = '/path/to/foo.db' -- will return sqlite:////foo.db
+
+## 0.4.5:
+* Added `openstack-common::set_endpoints_by_interface` to enable using
+  `bind_interface` with endpoints rather than hard-code the IP addresses in an
+  Environment.
+
+## 0.4.4:
+* Add support for openstack-common::sysctl and managing sysctl settings via the
+  node['openstack']['sysctl'] hash, written out to /etc/sysctl.d/60-openstack.conf
 
 ## 0.4.3:
 * Corrected `#search_for` role and recipe queries.

@@ -18,11 +18,13 @@
 #
 
 # node['haproxy']['backend'] to deside where service backend sources come from
-# if 'prefeed', all services' backend info will be choosen from databag
+# if 'prefeed', all services' backend info will be choosen from attribute
 # 'node_mapping'; 'prefeed' is suitable for stable and independent services
 # if 'autofeed', services' backend info will automaticly learn backend info
-# from it's chef server.
-default['haproxy']['choose_backend'] = 'prefeed'
+# from its chef server.
+default['haproxy']['log']['facilities'] = 'local4'
+default['haproxy']['log']['file'] = '/var/log/haproxy.log'
+default['haproxy']['choose_backend'] = 'autofeed'
 default['haproxy']['enable_default_http'] = true
 default['haproxy']['incoming_address'] = "0.0.0.0"
 default['haproxy']['incoming_port'] = 80
@@ -31,7 +33,8 @@ default['haproxy']['members'] = [{
   "ipaddress" => "127.0.0.1",
   "port" => 4000,
   "ssl_port" => 4000
-}, {
+},
+{
   "hostname" => "localhost",
   "ipaddress" => "127.0.0.1",
   "port" => 4001,
@@ -56,13 +59,15 @@ default['haproxy']['stats_socket_user'] = node['haproxy']['user']
 default['haproxy']['stats_socket_group'] = node['haproxy']['group']
 default['haproxy']['pid_file'] = "/var/run/haproxy.pid"
 
-default['haproxy']['defaults_options'] = ["tcpka", "httpchk", "tcplog", "httplog"]
+default['haproxy']['defaults_options'] = ["tcpka", "httpchk", "tcplog", "httplog", "forceclose", "redispatch"]
 default['haproxy']['x_forwarded_for'] = false
-default['haproxy']['defaults_timeouts']['connect'] = "10s"
-default['haproxy']['defaults_timeouts']['check'] = "10s"
-default['haproxy']['defaults_timeouts']['queue'] = "100s"
-default['haproxy']['defaults_timeouts']['client'] = "100s"
-default['haproxy']['defaults_timeouts']['server'] = "100s"
+default['haproxy']['defaults_timeouts']['connect'] = "30s"
+default['haproxy']['defaults_timeouts']['check'] = "30s"
+#default['haproxy']['defaults_timeouts']['queue'] = "100s"
+default['haproxy']['defaults_timeouts']['client'] = "300s"
+default['haproxy']['defaults_timeouts']['server'] = "300s"
+default['haproxy']['tune']['bufsize'] = 1000000
+default['haproxy']['tune']['maxrewrite'] = 1024
 
 default['haproxy']['cookie'] = nil
 
@@ -70,9 +75,9 @@ default['haproxy']['user'] = "haproxy"
 default['haproxy']['group'] = "haproxy"
 
 default['haproxy']['global_max_connections'] = 8192
-default['haproxy']['member_max_connections'] = 100
-default['haproxy']['frontend_max_connections'] = 2000
-default['haproxy']['frontend_ssl_max_connections'] = 2000
+default['haproxy']['member_max_connections'] = 20000
+default['haproxy']['frontend_max_connections'] = 4096
+default['haproxy']['frontend_ssl_max_connections'] = 4096
 
 default['haproxy']['install_method'] = 'package'
 default['haproxy']['conf_dir'] = '/etc/haproxy'
@@ -88,7 +93,43 @@ default['haproxy']['source']['use_pcre'] = false
 default['haproxy']['source']['use_openssl'] = false
 default['haproxy']['source']['use_zlib'] = false
 
-default['haproxy']['enabled_services'] = []
+default['haproxy']['enabled_services'] = [
+  "dashboard_http",
+  "dashboard_https",
+  "glance_api",
+  "keystone_admin",
+  "keystone_public_internal",
+  "nova_compute_api",
+  "nova_metadata_api",
+  "novncproxy",
+  "cinder_api",
+  "neutron_api"
+]
+
+default['haproxy']['roles'] = {
+  "os-identity" => [
+    "keystone_admin",
+    "keystone_public_internal"
+  ],
+  "os-dashboard" => [
+    "dashboard_http",
+    "dashboard_https"
+  ],
+  "os-compute-controller" => [
+    "nova_compute_api",
+    "nova_metadata_api",
+    "novncproxy"
+  ],
+  "os-block-storage-controller" => [
+    "cinder_api"
+  ],
+  "os-network-server" => [
+    "neutron_api"
+  ],
+  "os-image" => [
+    "glance_api"
+  ]
+}
 
 default['haproxy']['listeners'] = {
   'listen' => {},
@@ -96,118 +137,106 @@ default['haproxy']['listeners'] = {
   'backend' => {}
 }
 
-
 default['haproxy']['services'] = {
   "dashboard_http" => {
-    "role" => "os-compute-single-controller",
+    "role" => "os-dashboard",
     "frontend_port" => "80",
     "backend_port" => "80",
-    "balance" => "source",
     "options" => [ "capture  cookie vgnvisitor= len 32", \
                    "cookie  SERVERID insert indirect nocache", \
                    "mode  http", \
                    "option  forwardfor", \
                    "option  httpchk", \
-                   "option  httpclose", \
+                   "option  http-server-close", \
                    'rspidel  ^Set-cookie:\ IP='
+                  # "appsession csrftoken len 42  timeout 1h"
                  ]
   },
   "dashboard_https" => {
-    "role" => "os-compute-single-controller",
+    "role" => "os-dashboard",
     "frontend_port" => "443",
     "backend_port" => "443",
     "balance" => "source",
     "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
   },
   "glance_api" => {
-    "role" => "os-compute-single-controller",
+    "role" => "os-image-api",
     "frontend_port" => "9292",
     "backend_port" => "9292",
-    "balance" => "source",
-    "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
+    "options" => [ "option tcpka", "option  httpchk", "option  tcplog", "balance leastconn" ]
   },
   "glance_registry_cluster" => {
-    "role" => "os-compute-single-controller",
+    "role" => "os-image-registry",
     "frontend_port" => "9191",
     "backend_port" => "9191",
-    "balance" => "source",
-    "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
+    "options" => [ "option tcpka", "option  httpchk", "option  tcplog", "balance leastconn" ]
   },
   "keystone_admin" => {
-    "role" => "os-compute-single-controller",
+    "role" => "os-identity",
     "frontend_port" => "35357",
     "backend_port" => "35357",
-    "balance" => "source",
-    "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
+    "options" => [ "option tcpka", "option  httpchk", "option  tcplog", "balance leastconn" ]
   },
   "keystone_public_internal" => {
-    "role" => "os-compute-single-controller",
+    "role" => "os-identity",
     "frontend_port" => "5000",
     "backend_port" => "5000",
-    "balance" => "source",
-    "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
+    "options" => [ "option tcpka", "option  httpchk", "option  tcplog", "balance leastconn" ]
   },
   "nova_ec2_api" => {
-    "role" => "os-compute-single-controller",
+    "role" => "os-compute-api",
     "frontend_port" => "8773",
     "backend_port" => "8773",
-    "balance" => "source",
     "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
   },
   "nova_compute_api" => {
-    "role" => "os-compute-single-controller",
+    "role" => "os-compute-api",
     "frontend_port" => "8774",
     "backend_port" => "8774",
-    "balance" => "source",
-    "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
+    "options" => [ "option tcpka", "option  httpchk", "option  tcplog", "balance leastconn"]
   },
   "novncproxy" => {
-    "role" => "os-compute-single-controller",
+    "role" => "os-compute-vncproxy",
     "frontend_port" => "6080",
     "backend_port" => "6080",
-    "balance" => "source",
-    "options" => [ "option tcpka", "option  http-server-close", "option  tcplog"]
+    "balance" => "leastconn",
+    #"balance" => "source",
+    "options" => [ "option tcpka", "option  http-server-close", "option  tcplog", "balance leastconn"]
   },
   "nova_metadata_api" => {
-    "role" => "os-compute-single-controller",
+    "role" => "os-compute-api-metadata",
     "frontend_port" => "8775",
     "backend_port" => "8775",
-    "balance" => "source",
-    "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
+    "options" => [ "option tcpka", "option  httpchk", "option  tcplog", "balance leastconn"]
   },
   "cinder_api" => {
-    "role" => "os-compute-single-controller",
+    "role" => "os-block-storage-api",
     "frontend_port" => "8776",
     "backend_port" => "8776",
-    "balance" => "source",
-    "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
+    "options" => [ "option tcpka", "option  httpchk", "option  tcplog", "balance leastconn"]
   },
   "ceilometer_api" => {
     "role" => "os-compute-single-controller",
     "frontend_port" => "8777",
     "backend_port" => "8777",
-    "balance" => "source",
     "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
   },
   "spice" => {
     "role" => "os-compute-single-controller",
     "frontend_port" => "6082",
     "backend_port" => "6082",
-    "balance" => "source",
     "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
   },
   "neutron_api" => {
-    "role" => "os-compute-single-controller",
+    "role" => "os-network-server",
     "frontend_port" => "9696",
     "backend_port" => "9696",
-    "balance" => "source",
-    "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
+    "options" => [ "option tcpka", "option  httpchk", "option  tcplog", "balance leastconn"]
   },
   "swift_proxy" => {
     "role" => "os-compute-single-controller",
     "frontend_port" => "8080",
     "backend_port" => "8080",
-    "balance" => "source",
     "options" => [ "option tcpka", "option  httpchk", "option  tcplog"]
   }
 }

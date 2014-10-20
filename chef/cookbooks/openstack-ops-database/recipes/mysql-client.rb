@@ -1,8 +1,10 @@
+# encoding: UTF-8
 #
 # Cookbook Name:: openstack-ops-database
 # Recipe:: mysql-client
 #
 # Copyright 2013, Opscode, Inc.
+# Copyright 2013, AT&T Services, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +19,9 @@
 # limitations under the License.
 #
 
-include_recipe "mysql::ruby"
-include_recipe "mysql::client"
+include_recipe 'mysql::ruby'
+include_recipe 'mysql::client'
 
-node.default['openstack']['packages']['ops-database::mysql-client'] = node['openstack']['database']['platform']['mysql_python_packages']
+node['openstack']['db']['platform']['mysql_python_packages'].each do |pkg|
+  package pkg
+end

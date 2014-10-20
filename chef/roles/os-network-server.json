@@ -1,0 +1,26 @@
+{
+  "name": "os-network-server",
+  "description": "OpenStack network server service",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {
+            "ProcessMatch": ["neutron-server\" \"neutron-server"]
+          }
+        }
+      }
+    }
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[os-base]",
+    "recipe[openstack-network::identity_registration]",
+    "recipe[openstack-network::server]"
+  ],
+  "env_run_lists": {
+  }
+}

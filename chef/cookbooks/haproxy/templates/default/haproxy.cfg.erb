@@ -1,12 +1,14 @@
 global
-  #log 127.0.0.1   local0
-  log 127.0.0.1   local4 notice
-  log 127.0.0.1   local4 info
+  log 127.0.0.1   <%= node['haproxy']['log']['facilities'] -%> notice
+  log 127.0.0.1   <%= node['haproxy']['log']['facilities'] -%> info
+  log-send-hostname
   daemon
-  maxconn <%= node['haproxy']['global_max_connections'] %>
-  #debug
-  #quiet
-  spread-checks     5
+  nbproc 8
+  # debug
+  # quiet
+  spread-checks 5
+  tune.bufsize <%= node['haproxy']['tune']['bufsize'] %>
+  tune.maxrewrite <%= node['haproxy']['tune']['maxrewrite'] %>
   user <%= node['haproxy']['user'] %>
   group <%= node['haproxy']['group'] %>
 <% if node['haproxy']['enable_stats_socket'] -%>
@@ -17,6 +19,7 @@ defaults
   log     global
   mode    http
   retries 3
+  maxconn <%= node['haproxy']['member_max_connections'] %>
 <% @defaults_timeouts.sort.map do | value, time | -%>
   timeout <%= value %> <%= time %>
 <% end -%>
@@ -26,6 +29,13 @@ defaults
   balance  <%= node['haproxy']['balance_algorithm'] %>
 
 # Set up application listeners here.
+listen stats 
+    bind 0.0.0.0:8080 
+    mode http
+    stats refresh 10s 
+    stats enable 
+    stats uri / 
+    stats realm Strictly\ Private
 
 <% node['haproxy']['listeners'].each do |type, listeners | %>
 <% listeners.each do |name, listen| %>

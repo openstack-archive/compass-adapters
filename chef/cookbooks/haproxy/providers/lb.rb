@@ -14,7 +14,11 @@ action :create do
 
   listener << "balance #{new_resource.balance}" unless new_resource.balance.nil?
   listener << "mode #{new_resource.mode}" unless new_resource.mode.nil?
-  listener += new_resource.servers.map {|server| "server #{server}" }
+  listener += new_resource.servers.map {|server|
+      if server
+        "server #{server}" 
+      end
+  }
 
   node.default['haproxy']['listeners'][new_resource.type][new_resource.name] = listener
 end

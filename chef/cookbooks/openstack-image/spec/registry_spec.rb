@@ -1,143 +1,177 @@
-require_relative "spec_helper"
+# encoding: UTF-8
+require_relative 'spec_helper'
 
-describe "openstack-image::registry" do
-  before { image_stubs }
-  describe "ubuntu" do
+describe 'openstack-image::registry' do
+  describe 'ubuntu' do
     before do
-      @chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS do |n|
-        n.set["openstack"]["image"]["syslog"]["use"] = true
-      end
-      @chef_run.converge "openstack-image::registry"
+      # Lame we must still stub this, since the recipe contains shell
+      # guards.  Need to work on a way to resolve this.
+      stub_command('glance-manage db_version').and_return(true)
     end
 
-    expect_runs_openstack_common_logging_recipe
-
-    it "doesn't run logging recipe" do
-      chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS
-      chef_run.converge "openstack-image::registry"
-
-      expect(chef_run).not_to include_recipe "openstack-common::logging"
+    let(:runner) { ChefSpec::Runner.new(UBUNTU_OPTS) }
+    let(:node) { runner.node }
+    let(:chef_run) do
+      runner.converge(described_recipe)
     end
 
-    expect_installs_python_keystone
+    include_context 'image-stubs'
+    include_examples 'common-logging-recipe'
+    include_examples 'common-packages'
+    include_examples 'cache-directory'
+    include_examples 'glance-directory'
 
-    expect_installs_curl
+    it 'converges when configured to use sqlite' do
+      node.set['openstack']['db']['image']['service_type'] = 'sqlite'
 
-    it "installs mysql python packages" do
-      expect(@chef_run).to install_package "python-mysqldb"
+      expect { chef_run }.to_not raise_error
     end
 
-    expect_installs_ubuntu_glance_packages
-
-    expect_creates_cache_dir
-
-    it "starts glance registry on boot" do
-      expect(@chef_run).to set_service_to_start_on_boot "glance-registry"
+    it 'upgrades mysql python package' do
+      expect(chef_run).to upgrade_package('python-mysqldb')
     end
 
-    describe "version_control" do
-      before { @cmd = "glance-manage version_control 0" }
+    it 'honors package name and option overrides for mysql python packages' do
+      node.set['openstack']['image']['platform']['package_overrides'] = '-o Dpkg::Options::=\'--force-confold\' -o Dpkg::Options::=\'--force-confdef\' --force-yes'
+      node.set['openstack']['image']['platform']['mysql_python_packages'] = ['my-mysql-py']
 
-      it "versions the database" do
-        opts = ::UBUNTU_OPTS.merge(:evaluate_guards => true)
-        chef_run = ::ChefSpec::ChefRunner.new opts
-        chef_run.stub_command("glance-manage db_version", false)
-        chef_run.converge "openstack-image::registry"
+      expect(chef_run).to upgrade_package('my-mysql-py').with(options: '-o Dpkg::Options::=\'--force-confold\' -o Dpkg::Options::=\'--force-confdef\' --force-yes')
+    end
 
-        expect(chef_run).to execute_command @cmd
-      end
+    %w{db2 postgresql}.each do |service_type|
+      it "upgrades #{service_type} python packages if chosen" do
+        node.set['openstack']['db']['image']['service_type'] = service_type
+        node.set['openstack']['image']['platform']["#{service_type}_python_packages"] = ["my-#{service_type}-py"]
 
-      it "doesn't version when glance-manage db_version false" do
-        opts = ::UBUNTU_OPTS.merge(:evaluate_guards => true)
-        chef_run = ::ChefSpec::ChefRunner.new opts
-        chef_run.stub_command("glance-manage db_version", true)
-        chef_run.converge "openstack-image::registry"
-
-        expect(chef_run).not_to execute_command @cmd
+        expect(chef_run).to upgrade_package("my-#{service_type}-py")
       end
     end
 
-    it "deletes glance.sqlite" do
-      expect(@chef_run).to delete_file "/var/lib/glance/glance.sqlite"
+    it 'starts glance registry on boot' do
+      expect(chef_run).to enable_service('glance-registry')
     end
 
-    expect_creates_glance_dir
+    describe 'version_control' do
+      let(:cmd) { 'glance-manage version_control 0' }
 
-    describe "glance-registry.conf" do
-      before do
-        @file = @chef_run.template "/etc/glance/glance-registry.conf"
+      it 'versions the database' do
+        stub_command('glance-manage db_version').and_return(false)
+
+        expect(chef_run).to run_execute(cmd).with(user: 'glance', group: 'glance')
       end
 
-      it "has proper owner" do
-        expect(@file).to be_owned_by "root", "root"
+      it 'does not version when glance-manage db_version false' do
+        stub_command('glance-manage db_version').and_return(true)
+
+        expect(chef_run).not_to run_execute(cmd)
+      end
+    end
+
+    it 'deletes glance.sqlite' do
+      expect(chef_run).to delete_file('/var/lib/glance/glance.sqlite')
+    end
+
+    it 'does not delete glance.sqlite when configured to use sqlite' do
+      node.set['openstack']['db']['image']['service_type'] = 'sqlite'
+
+      expect(chef_run).not_to delete_file('/var/lib/glance/glance.sqlite')
+    end
+
+    describe 'glance-registry.conf' do
+      let(:file) { chef_run.template('/etc/glance/glance-registry.conf') }
+
+      it 'creates glance-registry.conf' do
+        expect(chef_run).to create_template(file.name).with(
+          user: 'root',
+          group: 'root',
+          mode: 00644
+        )
       end
 
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "644"
+      it 'has bind host when bind_interface not specified' do
+        match = 'bind_host = 127.0.0.1'
+        expect(chef_run).to render_file(file.name).with_content(match)
       end
 
-      it "has bind host when bind_interface not specified" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "bind_host = 127.0.0.1"
+      it 'has bind host when bind_interface specified' do
+        node.set['openstack']['endpoints']['image-registry-bind']['bind_interface'] = 'lo'
+
+        match = 'bind_host = 127.0.1.1'
+        expect(chef_run).to render_file(file.name).with_content(match)
       end
 
-      it "has bind host when bind_interface specified" do
-        chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS do |n|
-          n.set["openstack"]["image"]["registry"]["bind_interface"] = "lo"
+      it 'notifies glance-registry restart' do
+        expect(file).to notify('service[glance-registry]').to(:restart)
+      end
+
+      context 'keystone_authtoken' do
+        it 'has correct authtoken settings' do
+          [
+            'auth_uri = http://127.0.0.1:5000/v2.0',
+            'auth_host = 127.0.0.1',
+            'auth_port = 35357',
+            'auth_protocol = http',
+            'admin_tenant_name = service',
+            'admin_user = glance',
+            'admin_tenant_name = service',
+            'admin_password = glance-pass',
+            'signing_dir = /var/cache/glance/registry'
+          ].each do |line|
+            expect(chef_run).to render_file(file.name).with_content(
+              /^#{Regexp.quote(line)}$/)
+          end
         end
-        chef_run.converge "openstack-image::registry"
 
-        expect(chef_run).to create_file_with_content @file.name,
-          "bind_host = 127.0.1.1"
-      end
-
-      it "notifies image-registry restart" do
-        expect(@file).to notify "service[image-registry]", :restart
-      end
-    end
-
-    describe "db_sync" do
-      before do
-        @cmd = "glance-manage db_sync"
-      end
-
-      it "runs migrations" do
-        expect(@chef_run).to execute_command @cmd
-      end
-
-      it "doesn't run migrations" do
-        opts = ::UBUNTU_OPTS.merge(:evaluate_guards => true)
-        chef_run = ::ChefSpec::ChefRunner.new(opts) do |n|
-          n.set["openstack"]["image"]["db"]["migrate"] = false
+        it 'has no auth_version' do
+          expect(chef_run).not_to render_file(file.name).with_content(
+            /^auth_version = v2.0$/)
         end
-        # Lame we must still stub this, since the recipe contains shell
-        # guards.  Need to work on a way to resolve this.
-        chef_run.stub_command("glance-manage db_version", false)
-        chef_run.converge "openstack-image::registry"
 
-        expect(chef_run).not_to execute_command @cmd
+        it 'has signing_dir' do
+          expect(chef_run).to render_file(file.name).with_content(
+            /^#{Regexp.quote('signing_dir = /var/cache/glance/registry')}$/)
+        end
+
+        it 'has auth_version when auth version is set to v3.0' do
+          chef_run.node.set['openstack']['image']['registry']['auth']['version'] = 'v3.0'
+          expect(chef_run).to render_file(file.name).with_content(
+            /^auth_version = v3.0$/)
+        end
       end
     end
 
-    describe "glance-registry-paste.ini" do
-      before do
-        @file = @chef_run.template "/etc/glance/glance-registry-paste.ini"
+    describe 'db_sync' do
+      let(:cmd)  { 'glance-manage db_sync' }
+
+      it 'runs migrations' do
+        expect(chef_run).to run_execute(cmd).with(user: 'glance', group: 'glance')
       end
 
-      it "has proper owner" do
-        expect(@file).to be_owned_by "root", "root"
+      it 'does not run migrations when openstack/image/db/migrate is false' do
+        node.set['openstack']['db']['image']['migrate'] = false
+        stub_command('glance-manage db_version').and_return(false)
+
+        expect(chef_run).not_to run_execute(cmd)
+      end
+    end
+
+    describe 'glance-registry-paste.ini' do
+      let(:file) { chef_run.template('/etc/glance/glance-registry-paste.ini') }
+
+      it 'creates glance-registry-paste.ini' do
+        expect(chef_run).to create_template(file.name).with(
+          user: 'root',
+          group: 'root',
+          mode: 00644
+        )
       end
 
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "644"
+      it 'template contents' do
+        pending 'TODO: implement'
       end
 
-      it "template contents" do
-        pending "TODO: implement"
-      end
-
-      it "notifies image-registry restart" do
-        expect(@file).to notify "service[image-registry]", :restart
+      it 'notifies glance-registry restart' do
+        expect(file).to notify('service[glance-registry]').to(:restart)
       end
     end
   end

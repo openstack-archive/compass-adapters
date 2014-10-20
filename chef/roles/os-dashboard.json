@@ -1,0 +1,23 @@
+{
+  "name": "os-dashboard",
+  "description": "Horizon server",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {"ProcessMatch": ["httpd\" \"httpd"]}
+        }
+      }
+    }
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[os-base]",
+    "recipe[openstack-dashboard::server]"
+  ],
+  "env_run_lists": {
+  }
+}

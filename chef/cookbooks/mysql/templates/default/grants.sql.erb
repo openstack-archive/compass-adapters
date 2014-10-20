@@ -17,23 +17,23 @@ GRANT ALL ON *.* TO 'root'@'%' IDENTIFIED BY '<%= node['mysql']['server_root_pas
 
 # remove remote access for root user and set password for local root user
 DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
-<% end %>
 UPDATE mysql.user SET Password=PASSWORD('<%= node['mysql']['server_root_password'] %>') WHERE User='root';
-
+<% end %>
 <% if node['mysql']['remove_anonymous_users'] -%>
 
 # Remove anonymous users
 DELETE FROM mysql.user WHERE User='';
 <% end %>
-<% if node['mysql']['remove_test_database']  -%>
 
 # Remove test database and access to it
+<% if node['mysql']['remove_test_database']  -%>
 DROP DATABASE IF EXISTS test;
 DELETE FROM mysql.db WHERE Db='test' OR Db='test\_%';
 <% end %>
 
 # Set the password for root@localhost
 SET PASSWORD FOR 'root'@'localhost' = PASSWORD('<%= node['mysql']['server_root_password'] %>');
+SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('<%= node['mysql']['server_root_password'] %>');
 <% if node['mysql']['root_network_acl'] -%>
 
 # allow root to connect from a remote network if root_network_acl is not nil

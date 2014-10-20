@@ -57,11 +57,23 @@ In really really huge environments, it's possible that the storage
 node will be split into swift-{container,accout}-server nodes and
 swift-object-server nodes.
 
+Recipes
+=======
+
+client
+----
+- Install the swift client packages
 
 Attributes
 ==========
 
  * ```default[:swift][:authmode]``` - "swauth" or "keystone" (default "swauth"). Right now, only swauth is supported (defaults to swauth)
+
+ * ```default[:swift][:swauth_source]``` - "git" or "package"(default). Selects between installing python-swauth from git or system package
+
+ * ```default[:swift][:swauth_repository]``` - Specifies git repo. Default "https://github.com/gholt/swauth.git"
+
+ * ```default[:swift][:swauth_version]``` - Specifies git repo tagged branch. Default "1.0.8"
 
  * ```default[:swift][:swift_secret_databag_name]``` - this cookbook supports an optional secret databag where we will retrieve the following attributes overriding any default attributes below. (defaults to nil)
 
@@ -144,6 +156,38 @@ on storage nodes:
    on the container servers (defaults to 6002)
  * ```default[:swift][:network][:object-cidr]``` - the CIDR network for your object
    servers in order to build the ring (defaults to 10.0.0.0/24)
+
+Proxy Plugins
+=============
+
+Formpost
+-------
+
+ * ```default[:swift][:formpost][:enabled]``` - optionally enable the formpost proxy plugin (defaults to false)
+
+TempURL
+-------
+
+ * ```default[:swift][:tempurl][:enabled]``` - optionally enable the tempurl proxy plugin (defaults to false)
+ * ```default[:swift][:tempurl][:incoming_remove_headers]``` - The headers to remove from incoming requests (defaults to x-timestamp)
+ * ```default[:swift][:tempurl][:incoming_allow_headers]``` - The headers allowed as exceptions to incoming_remove_headers (defaults to empty string)
+ * ```default[:swift][:tempurl][:incoming_allow_headers]``` - The headers allowed as exceptions to incoming_remove_headers (defaults to empty string)
+ * ```default[:swift][:tempurl][:outgoing_remove_headers]``` - The headers to remove from outgoing responses (defaults to x-object-meta-*)
+ * ```default[:swift][:tempurl][:outgoing_allow_headers]``` - The headers allowed as exceptions to outgoing_remove_headers (defaults x-object-meta-public-*)
+
+Domain Remap
+------------
+
+ * ```default[:swift][:domain_remap][:enabled]``` - optionally enable the domain remap proxy plugin (defaults to false)
+ * ```default[:swift][:domain_remap][:storage_domain]``` - The domain remap reseller domain (defaults to example.com)
+ * ```default[:swift][:domain_remap][:root_path]``` - The domain remap root path (defaults to v1)
+ * ```default[:swift][:domain_remap][:reseller_prefixes]``` - The domain remap reseller prefixes (defaults to AUTH)
+
+Staticweb
+----------
+
+ * ```default[:swift][:staticweb][:enabled]``` - optionally enable the staticweb proxy plugin (defaults to false)
+ * ```default[:swift][:staticweb][:cache_timeout]``` - Seconds to cache container x-container-meta-web-* header values (defaults to 300)
 
 Examples
 ========
@@ -229,32 +273,33 @@ Standalone Proxy Server
 Testing
 =======
 
-This cookbook is using [ChefSpec](https://github.com/acrmp/chefspec) for testing. Run the following before commiting. It will run your tests, and check for lint errors.
+Please refer to the [TESTING.md](TESTING.md) for instructions for testing the cookbook.
 
-    $ ./run_tests.bash
+Berkshelf
+=====
 
-There is also a Vagrant test environment that you can launch in order to integration
-test this cookbook. See the <a href="tests/README.md" target="_blank">tests/README.md</a> file for more information on launching the environment.
-
-Testing
-=======
-
-    $ bundle install
-    $ bundle exec berks install
-    $ bundle exec strainer test
+Berks will resolve version requirements and dependencies on first run and
+store these in Berksfile.lock. If new cookbooks become available you can run
+`berks update` to update the references in Berksfile.lock. Berksfile.lock will
+be included in stable branches to provide a known good set of dependencies.
+Berksfile.lock will not be included in development branches to encourage
+development against the latest cookbooks.
 
 License and Author
 ==================
 
 |                      |                                                    |
 |:---------------------|:---------------------------------------------------|
-| **Authors**          |  Alan Meadows (<am240k@att.com>)                   |
-|                      |  Oisin Feely (<of3434@att.com>)                    |
-|                      |  Ron Pedde (<ron.pedde@rackspace.com>)             |
-|                      |  Will Kelly (<will.kelly@rackspace.com>)           |
+| **Author**           |  Alan Meadows (<alan.meadows@gmail.com>)           |
+| **Author**           |  Oisin Feeley (<of3434@att.com>)                   |
+| **Author**           |  Ron Pedde (<ron.pedde@rackspace.com>)             |
+| **Author**           |  Will Kelly (<will.kelly@rackspace.com>)           |
+| **Author**           |  Chen Zhiwei (<zhiwchen@cn.ibm.com>)               |
+| **Author**           |  Mark Vanderwiel (<vanderwl@us.ibm.com>)           |
 |                      |                                                    |
 | **Copyright**        |  Copyright (c) 2013, AT&T, Inc.                    |
-|                      |  Copyright (c) 2012, Rackspace US, Inc.            |
+| **Copyright**        |  Copyright (c) 2012, Rackspace US, Inc.            |
+| **Copyright**        |  Copyright (c) 2013, IBM, Corp.                    |
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

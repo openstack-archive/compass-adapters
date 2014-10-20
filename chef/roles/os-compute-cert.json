@@ -1,0 +1,23 @@
+{
+  "name": "os-compute-cert",
+  "description": "OpenStack Compute Cert service",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {"ProcessMatch": ["nova-cert\" \"nova-cert"]}
+        }
+      }
+    }
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[os-base]",
+    "recipe[openstack-compute::nova-cert]"
+  ],
+  "env_run_lists": {
+  }
+}

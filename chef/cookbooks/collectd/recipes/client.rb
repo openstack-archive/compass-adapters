@@ -18,13 +18,15 @@
 #
 include_recipe "collectd"
 
-if node["collectd"].attribute?("rhel") or node["collectd"].attribute?("debian")
-  case node["platform_family"]
-  when "rhel"
+case node["platform_family"]
+when "rhel"
+  if node["collectd"].attribute?("rhel")
     if not node["collectd"]["rhel"]["plugins"].nil?
       node.override["collectd"]["plugins"]=node["collectd"]["rhel"]["plugins"].to_hash
     end
-  when "debian"
+  end
+when "debian"
+  if node["collectd"].attribute?("debian")
     if not node["collectd"]["debian"]["plugins"].nil?
       node.override["collectd"]["plugins"]=node["collectd"]["debian"]["plugins"].to_hash
     end

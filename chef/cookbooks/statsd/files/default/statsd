@@ -1,3 +1,0 @@
-#!/bin/sh
-
-exec node /usr/local/statsd/stats.js /etc/statsd/config.js

@@ -4,333 +4,332 @@
 #else
     #set promisc_interfaces = []
 #end if
-#if $getVar("system_name","") != ""
-    ## this is being provisioned by system records, not profile records
-    ## so we can do the more complex stuff
-    ## get the list of interface names
-    #set ikeys = $interfaces.keys()
-    #set osversion = $getVar("os_version","")
-    #import re
-    #set $vlanpattern = $re.compile("[a-zA-Z0-9]+[\.:][0-9]+")
-    ## Determine if we should use the MAC address to configure the interfaces first
-    ## Only physical interfaces are required to have a MAC address
-    ## Also determine the number of bonding devices we have, so we can set the
-    ## max-bonds option in modprobe.conf accordingly. -- jcapel
-    #set $configbymac = True
-    #set $numbondingdevs = 0
-    #set $enableipv6 = False
-    ## =============================================================================
-    #for $iname in $ikeys
-        ## look at the interface hash data for the specific interface
-        #set $idata = $interfaces[$iname]
-        ## do not configure by mac address if we don't have one AND it's not for bonding/vlans
-        ## as opposed to a "real" physical interface
-        #if $idata.get("mac_address", "") == "" and not $vlanpattern.match($iname) and not $idata.get("interface_type", "").lower() in ("master","bond","bridge"):
-                ## we have to globally turn off the config by mac feature as we can't
-                ## use it now
-                #set $configbymac = False
-        #end if
-        ## count the number of bonding devices we have.
-        #if $idata.get("interface_type", "").lower() in ("master","bond","bonded_bridge_slave")
-            #set $numbondingdevs += 1
-        #end if
-        ## enable IPv6 networking if we set an ipv6 address or turn on autoconfiguration
-        #if $idata.get("ipv6_address", "") != "" or $ipv6_autoconfiguration == True
-            #set $enableipv6 = True
-        #end if
-    #end for
-    ## end looping through the interfaces to see which ones we need to configure.
-    ## =============================================================================
-    #set $i = 0
-    ## setup bonding if we have to
-    #if $numbondingdevs > 0
 
-# we have bonded interfaces, so set max_bonds
-if [ -f "/etc/modprobe.conf" ]; then
-    echo "options bonding max_bonds=$numbondingdevs" >> /etc/modprobe.conf
-fi
-    #end if
-    ## =============================================================================
-    ## create a staging directory to build out our network scripts into
-    ## make sure we preserve the loopback device
-
-# create a working directory for interface scripts
-mkdir /etc/sysconfig/network-scripts/cobbler
-cp /etc/sysconfig/network-scripts/ifcfg-lo /etc/sysconfig/network-scripts/cobbler/
-    ## =============================================================================
-    ## configure the gateway if set up (this is global, not a per-interface setting)
-    #if $gateway != ""
-
+#if $gateway != ""
 # set the gateway in the network configuration file
 grep -v GATEWAY /etc/sysconfig/network > /etc/sysconfig/network.cobbler
 echo "GATEWAY=$gateway" >> /etc/sysconfig/network.cobbler
 rm -f /etc/sysconfig/network
 mv /etc/sysconfig/network.cobbler /etc/sysconfig/network
-    #end if
-    ## =============================================================================
-    ## Configure the system's primary hostname. This is also passed to anaconda, but
-    ## anaconda doesn't seem to honour it in DHCP-setups.
-    #if $hostname != ""
+#end if
 
+#if $hostname != ""
 # set the hostname in the network configuration file
 grep -v HOSTNAME /etc/sysconfig/network > /etc/sysconfig/network.cobbler
 echo "HOSTNAME=$hostname" >> /etc/sysconfig/network.cobbler
 rm -f /etc/sysconfig/network
 mv /etc/sysconfig/network.cobbler /etc/sysconfig/network
-
-# Also set the hostname now, some applications require it
-# (e.g.: if we're connecting to Puppet before a reboot).
 /bin/hostname $hostname
-    #end if
+#end if
 
 $SNIPPET('kickstart_hosts')
 
-    #if $enableipv6 == True
-grep -v NETWORKING_IPV6 /etc/sysconfig/network > /etc/sysconfig/network.cobbler
-echo "NETWORKING_IPV6=yes" >> /etc/sysconfig/network.cobbler
-rm -f /etc/sysconfig/network
-mv /etc/sysconfig/network.cobbler /etc/sysconfig/network
-        #if $ipv6_autoconfiguration != ""
-grep -v IPV6_AUTOCONF /etc/sysconfig/network > /etc/sysconfig/network.cobbler
-            #if $ipv6_autoconfiguration == True
-echo "IPV6_AUTOCONF=yes" >> /etc/sysconfig/network.cobbler
-            #else
-echo "IPV6_AUTOCONF=no" >> /etc/sysconfig/network.cobbler
-            #end if
-rm -f /etc/sysconfig/network
-mv /etc/sysconfig/network.cobbler /etc/sysconfig/network
-        #end if
-        #if $ipv6_default_device != ""
-grep -v IPV6_DEFAULTDEV /etc/sysconfig/network > /etc/sysconfig/network.cobbler
-echo "IPV6_DEFAULTDEV=$ipv6_default_device" >> /etc/sysconfig/network.cobbler
-rm -f /etc/sysconfig/network
-mv /etc/sysconfig/network.cobbler /etc/sysconfig/network
-        #end if
-    #end if
-    ## =============================================================================
-    ## now create the config file for each interface
-    #for $iname in $ikeys
-
-# Start configuration for $iname
-        ## create lots of variables to use later
-        #set $idata                = $interfaces[$iname]
-        #set $mac                  = $idata.get("mac_address", "").upper()
-        #set $mtu                  = $idata.get("mtu", "")
-        #set $static               = $idata.get("static", "")
-        #set $ip                   = $idata.get("ip_address", "")
-        #set $netmask              = $idata.get("netmask", "")
-        #set $if_gateway           = $idata.get("if_gateway", "")
-        #set $static_routes        = $idata.get("static_routes", "")
-        #set $iface_type           = $idata.get("interface_type", "").lower()
-        #set $iface_master         = $idata.get("interface_master", "")
-        #set $bonding_opts         = $idata.get("bonding_opts", "")
-        #set $bridge_opts          = $idata.get("bridge_opts", "").split(" ")
-        #set $ipv6_address         = $idata.get("ipv6_address", "")
-        #set $ipv6_secondaries     = $idata.get("ipv6_secondaries", "")
-        #set $ipv6_mtu             = $idata.get("ipv6_mtu", "")
-        #set $ipv6_default_gateway = $idata.get("ipv6_default_gateway", "")
-        #set $ipv6_static_routes   = $idata.get("ipv6_static_routes", "")
-        #set $devfile              = "/etc/sysconfig/network-scripts/cobbler/ifcfg-" + $iname
-        #set $routesfile           = "/etc/sysconfig/network-scripts/cobbler/route-" + $iname
-        #set $ipv6_routesfile      = "/etc/sysconfig/network-scripts/cobbler/route6-" + $iname
-        ## determine if this interface is for a VLAN
-        #if $vlanpattern.match($iname)
-            #set $is_vlan = "true"
-        #else
-            #set $is_vlan = "false"
-        #end if
-        ## slave interfaces are assumed to be static
-        #if $iface_type in ("slave","bond_slave","bridge_slave","bonded_bridge_slave")
-            #set $static = 1
-        #end if 
-        ## ===================================================================
-        ## Things every interface get, no matter what
-        ## ===================================================================
-echo "DEVICE=$iname" > $devfile
-echo "ONBOOT=yes" >> $devfile
-            #if $mac != "" and $iface_type not in ("master","bond","bridge","bonded_bridge_slave")
-            ## virtual interfaces don't get MACs
-echo "HWADDR=$mac" >> $devfile
-IFNAME=\$(ip -o link | grep -i '$mac' | sed -e 's/^[0-9]*: //' -e 's/:.*//')
-            ## Rename this interface in modprobe.conf
-            ## FIXME: if both interfaces startwith eth this is wrong
-if [ -f "/etc/modprobe.conf" ] && [ \$IFNAME ]; then
-    grep \$IFNAME /etc/modprobe.conf | sed "s/\$IFNAME/$iname/" >> /etc/modprobe.conf.cobbler
-    grep -v \$IFNAME /etc/modprobe.conf >> /etc/modprobe.conf.new
-    rm -f /etc/modprobe.conf
-    mv /etc/modprobe.conf.new /etc/modprobe.conf
-fi
-            #end if
-        ## ===================================================================
-        ## Actions based on interface_type
-        ## ===================================================================
-        #if $iface_type in ("master","bond","bonded_bridge_slave")
-            ## if this is a bonded interface, configure it in modprobe.conf
-            #if $osversion == "rhel4"
-if [ -f "/etc/modprobe.conf" ]; then
-    echo "install $iname /sbin/modprobe bonding -o $iname $bonding_opts" >> /etc/modprobe.conf.cobbler
-fi
-            #else
-            ## Add required entry to modprobe.conf
-if [ -f "/etc/modprobe.conf" ]; then
-    echo "alias $iname bonding" >> /etc/modprobe.conf.cobbler
-fi
-            #end if
-            #if $bonding_opts != ""
-cat >> $devfile << EOF
-BONDING_OPTS="$bonding_opts"
-EOF
-            #end if
-        #elif $iface_type in ("slave","bond_slave") and $iface_master != ""
-echo "SLAVE=yes" >> $devfile
-echo "MASTER=$iface_master" >> $devfile
-echo "HOTPLUG=no" >> $devfile
-        #end if
-        #if $iface_type == "bridge"
-echo "TYPE=Bridge" >> $devfile
-        #for $bridge_opt in $bridge_opts
-            #if $bridge_opt.strip() != ""
-echo "$bridge_opt" >> $devfile
-            #end if
-        #end for
-        #elif ($iface_type == "bridge_slave" or $iface_type == "bonded_bridge_slave") and $iface_master != ""
-echo "BRIDGE=$iface_master" >> $devfile
-echo "HOTPLUG=no" >> $devfile
-        #end if
-        #if $iface_type != "bridge"
-echo "TYPE=Ethernet" >> $devfile
-        #end if
-        ## ===================================================================
-        ## Actions based on static/dynamic configuration
-        ## ===================================================================
-        #if $static
-            #if $mac == "" and $iface_type == ""
-# WARNING! Configuring interfaces by their names only
-#          is error-prone, and can cause issues if and when
-#          the kernel gives an interface a different name
-#          following a reboot/hardware changes.
-            #end if
-echo "BOOTPROTO=static" >> $devfile
-            #if $ip != "" and $iface_type not in ("slave","bond_slave","bridge_slave","bonded_bridge_slave")
-                ## Only configure static networking if an IP-address is configured
-                ## and if the interface isn't slaved to another interface (bridging or bonding)
-                #if $iname in $promisc_interfaces
-echo "PROMISC=yes" >> $devfile
-                #else
-                    #if $ip != ""
-echo "IPADDR=$ip" >> $devfile
-                    #end if
-                    #if $if_gateway != ""
-echo "GATEWAY=$if_gateway" >> $devfile
-                    #end if
-                    #if $netmask == ""
-                        ## Default to 255.255.255.0?
-                        #set $netmask = "255.255.255.0"
-                    #end if
-echo "NETMASK=$netmask" >> $devfile
-                #end if
-            #end if
-            #if $enableipv6 == True and $ipv6_autoconfiguration == False
-                #if $ipv6_address != ""
-echo "IPV6INIT=yes" >> $devfile
-echo "IPV6ADDR=$ipv6_address" >> $devfile
-                #end if
-                #if $ipv6_secondaries != ""
-                    #set ipv6_secondaries = ' '.join(ipv6_secondaries)
-                    ## The quotes around the ipv6 ip's need to be here
-echo "IPV6ADDR_SECONDARIES=\"$ipv6_secondaries\"" >> $devfile
-                #end if
-                #if $ipv6_mtu != ""
-echo "IPV6MTU=$ipv6_mtu" >> $devfile
-                #end if
-                #if $ipv6_default_gateway != ""
-echo "IPV6_DEFAULTGW=$ipv6_default_gateway" >> $devfile
-                #end if
-            #end if
-        #else
-            ## this is a DHCP interface, much less work to do
-echo "BOOTPROTO=dhcp" >> $devfile
-            #if $len($name_servers) > 0
-echo "PEERDNS=no" >> $devfile
-            #end if
-        #end if
-        ## ===================================================================
-        ## VLAN configuration
-        ## ===================================================================
-        #if $is_vlan == "true"
-echo "VLAN=yes" >> $devfile
-echo "ONPARENT=yes" >> $devfile
-        #end if
-        ## ===================================================================
-        ## Optional configuration stuff
-        ## ===================================================================
-        #if $mtu != ""
-echo "MTU=$mtu" >> $devfile
-        #end if
-        ## ===================================================================
-        ## Non-slave DNS configuration, when applicable
-        ## ===================================================================
-        ## If the interface is anything but a slave then add DNSn entry
-        #if $iface_type.lower() not in ("slave","bond_slave","bridge_slave","bonded_bridge_slave")
-            #set $nct = 0
-            #for $nameserver in $name_servers
-                #set $nct = $nct + 1
-echo "DNS$nct=$nameserver" >> $devfile
-            #end for
-        #end if
-        ## ===================================================================
-        ## Interface route configuration
-        ## ===================================================================
-        #for $route in $static_routes
-            #set routepattern = $re.compile("[0-9/.]+:[0-9.]+")
-            #if $routepattern.match($route)
-                #set $routebits = $route.split(":")
-                #set [$network, $router] = $route.split(":")
-echo "$network via $router" >> $routesfile
-            #else
-# Warning: invalid route "$route"
-            #end if
-        #end for
-        #if $enableipv6 == True
-            #for $route in $ipv6_static_routes
-                #set routepattern = $re.compile("[0-9a-fA-F:/]+,[0-9a-fA-F:]+")
-                #if $routepattern.match($route)
-                    #set $routebits = $route.split(",")
-                    #set [$network, $router] = $route.split(",")
-echo "$network via $router dev $iname" >> $ipv6_routesfile
-                #else
-# Warning: invalid ipv6 route "$route"
-                #end if
-            #end for
-        #end if
-        ## ===================================================================
-        ## Done with this interface
-        ## ===================================================================
-        #set $i = $i + 1
-# End configuration for $iname
-    #end for
-    ## =============================================================================
-    ## Configure name server search path in /etc/resolv.conf
-    #set $num_ns = $len($name_servers)
-    #set $num_ns_search = $len($name_servers_search)
-    #if $num_ns_search > 0
-
+#set $num_ns_search = $len($name_servers_search)
+#if $num_ns_search > 0
 sed -i -e "/^search /d" /etc/resolv.conf
 echo -n "search " >>/etc/resolv.conf
         #for $nameserversearch in $name_servers_search
 echo -n "$nameserversearch " >>/etc/resolv.conf
         #end for
 echo "" >>/etc/resolv.conf
-    #end if
-    ## =============================================================================
-    ## Configure name servers in /etc/resolv.conf
-    #if $num_ns > 0
+#end if
 
+#set $num_ns = $len($name_servers)
+#if $num_ns > 0
 sed -i -e "/^nameserver /d" /etc/resolv.conf
-        #for $nameserver in $name_servers
+    #for $nameserver in $name_servers
 echo "nameserver $nameserver" >>/etc/resolv.conf
+    #end for
+#end if
+
+declare -A physical_interfaces
+set \$(ip -o link | grep -v lo | awk '{print \$2}' | sed 's/://')
+let physical_interface_num=\$#;
+let physical_interface_offset=0
+echo "network interface numbers: \$physical_interface_num" > /tmp/network_log
+while [ \$physical_interface_offset -lt \$physical_interface_num ];
+do
+    physical_interfaces[\$1]=\$1
+    let physical_interface_offset=\$physical_interface_offset+1
+    shift 1
+done
+
+echo "interfaces: \${physical_interfaces[@]}" >> /tmp/network_log
+declare -A physical_interface_mac
+declare -A physical_mac_interface
+for physical_interface in \${physical_interfaces[@]}; do
+    mac=\$(cat /sys/class/net/\${physical_interface}/address)
+    mac=\${mac^^}
+    physical_interface_mac[\${physical_interface}]=\$mac
+    physical_mac_interface[\$mac]=\${physical_interface}
+done
+for key in \${!physical_interface_mac[@]}; do
+    echo "interface to mac: $key => \${physical_interface_mac[\$key]}" >> /tmp/network_log
+done
+for key in \${!physical_mac_interface[@]}; do
+    echo "mac to interface: $key => \${physical_mac_interface[\$key]}" >> /tmp/network_log
+done
+
+declare -A logical_interface_mapping
+declare -A unset_logical_interfaces
+declare -A used_physical_interfaces
+
+#set ikeys = $interfaces.keys()
+#set osversion = $getVar("os_version","")
+#import re
+#set $vlanpattern = $re.compile("([a-zA-Z0-9]+)[\.][0-9]+")
+#set $subinterfacepattern = $re.compile("([a-zA-Z0-9]+)[:][0-9]+")
+#set $numbondingdevs = 0
+#for $iname in $ikeys
+    #set $idata = $interfaces[$iname]
+    #set $mac = $idata.get("mac_address", "").upper()
+    #set $interface_type = $idata.get("interface_type", "").lower()
+    #if $interface_type in ("master","bond","bonded_bridge_slave")
+        #set $numbondingdevs += 1
+    #end if
+    #if $mac != ""
+physical_interface=\${physical_mac_interface[$mac]}
+logical_interface_mapping[$iname]=\$physical_interface
+if [ -n "\$physical_interface" ]; then
+    unset physical_interfaces[\$physical_interface]
+    if [ "\$physical_interface" != "$iname" ]; then
+        used_physical_interfaces[\$physical_interface]=\$physical_interface
+    fi
+fi
+    #else
+logical_interface_mapping[$iname]=""
+unset_logical_interfaces[$iname]=$iname
+    #end if
+#end for
+
+echo "unset logical interfaces: \${unset_logical_interfaces[@]}" >> /tmp/network_log
+
+for logical_interface in \${unset_logical_interfaces[@]}; do
+    if [ -n "\${physical_interfaces[\$logical_interface]}" ]; then
+        logical_interface_mapping[\$logical_interface]=\$logical_interface
+        unset unset_logical_interfaces[\$logical_interface]
+        unset physical_interfaces[\$logical_interface]
+    fi
+done
+
+sorted_physical_interfaces=(\$(printf '%s\n' \${physical_interfaces[@]} | sort))
+echo "sorted physical interfaces: \${sorted_physical_interfaces[@]}" >> /tmp/network_log
+sorted_unset_logical_interfaces=(\$(printf '%s\n' \${unset_logical_interfaces[@]} | sort))
+echo "sorted logical interfaces: \${sorted_unset_logical_interfaces[@]}" >> /tmp/network_log
+
+while [ \${#sorted_physical_interfaces[@]} -gt 0 -a \${#sorted_unset_logical_interfaces[@]} -gt 0 ]; do
+    physical_interface=\${sorted_physical_interfaces[0]}
+    logical_interface=\${sorted_unset_logical_interfaces[0]}
+    unset sorted_physical_interfaces[0]
+    unset sorted_unset_logical_interfaces[0]
+    unset physical_interfaces[\$physical_interface]
+    unset unset_logical_interfaces[\$logical_interface]
+    logical_interface_mapping[\$logical_interface]=\$physical_interface
+done
+
+sorted_used_physical_interfaces=(\$(printf '%s\n' \${used_physical_interfaces[@]} | sort))
+
+while [ \${#sorted_physical_interfaces[@]} -gt 0 -a \${#sorted_used_physical_interfaces[@]} -gt 0 ]; do
+    physical_interface=\${sorted_physical_interfaces[0]}
+    logical_interface=\${sorted_used_physical_interfaces[0]}
+    unset sorted_physical_interfaces[0]
+    unset sorted_used_physical_interfaces[0]
+    unset physical_interfaces[\$physical_interface]
+    unset used_physical_interfaces[\$logical_interface]
+    logical_interface_mapping[\$logical_interface]=\$physical_interface
+done
+
+for key in \${!logical_interface_mapping[@]}; do
+    echo "map logical interface to physical interface: \$key => \${logical_interface_mapping[\$key]}" >> /tmp/network_log
+done
+
+#if $numbondingdevs > 0
+# we have bonded interfaces, so set max_bonds
+if [ -f "/etc/modprobe.conf" ]; then
+    echo "options bonding max_bonds=$numbondingdevs" >> /etc/modprobe.conf
+fi
+#end if
+
+# create a working directory for interface scripts
+mkdir /etc/sysconfig/network-scripts/cobbler
+cp /etc/sysconfig/network-scripts/ifcfg-lo /etc/sysconfig/network-scripts/cobbler/
+
+#for $iname in $ikeys
+# Start configuration for $iname
+    ## create lots of variables to use later
+    #set $idata                = $interfaces[$iname]
+    #set $mac                  = $idata.get("mac_address", "").upper()
+    #set $mtu                  = $idata.get("mtu", "")
+    #set $static               = $idata.get("static", "")
+    #set $ip                   = $idata.get("ip_address", "")
+    #set $netmask              = $idata.get("netmask", "")
+    #set $if_gateway           = $idata.get("if_gateway", "")
+    #set $static_routes        = $idata.get("static_routes", "")
+    #set $iface_type           = $idata.get("interface_type", "").lower()
+    #set $iface_master         = $idata.get("interface_master", "")
+    #set $bonding_opts         = $idata.get("bonding_opts", "")
+    #set $bridge_opts          = $idata.get("bridge_opts", "").split(" ")
+    #set $devfile              = "/etc/sysconfig/network-scripts/cobbler/ifcfg-" + $iname
+    #set $routesfile           = "/etc/sysconfig/network-scripts/cobbler/route-" + $iname
+
+    #if $iface_type in ("slave","bond_slave","bridge_slave","bonded_bridge_slave")
+        #set $static = 1
+    #end if 
+echo "DEVICE=$iname" > $devfile
+echo "ONBOOT=yes" >> $devfile
+
+    #if $iface_type not in ("master","bond","bridge","bonded_bridge_slave")
+        #if $vlanpattern.match(iname)
+            pass
+        #else
+            #set $interface_matched = $subinterfacepattern.match($iname)
+            #if $interface_matched
+                #set $interface_name = $interface_matched.group(1)
+logical_interface=$interface_name
+            #else
+logical_interface=$iname
+            #end if
+physical_interface=\${logical_interface_mapping[\$logical_interface]}
+if [ -n "\$physical_interface" ]; then
+    physical_mac=\${physical_interface_mac[\$physical_interface]}
+fi
+if [ -n "\$physical_mac" ]; then
+    echo "HWADDR=\$physical_mac" >> $devfile
+fi
+            #if not $subinterfacepattern.match($iname)
+if [ -f "/etc/modprobe.conf" ] && [ -n "\$physical_interface" ]; then
+    grep \$physical_interface /etc/modprobe.conf | sed "s/\$physical_interface/$iname/" >> /etc/modprobe.conf.cobbler
+    grep -v \$physical_interface /etc/modprobe.conf >> /etc/modprobe.conf.new
+    rm -f /etc/modprobe.conf
+    mv /etc/modprobe.conf.new /etc/modprobe.conf
+fi
+            #end if
+        #end if
+    #end if
+
+    #if $iface_type in ("master","bond","bonded_bridge_slave")
+        ## if this is a bonded interface, configure it in modprobe.conf
+if [ -f "/etc/modprobe.conf" ]; then
+        #if $osversion == "rhel4"
+    echo "install $iname /sbin/modprobe bonding -o $iname $bonding_opts" >> /etc/modprobe.conf.cobbler
+        #else
+    echo "alias $iname bonding" >> /etc/modprobe.conf.cobbler
+        #end if
+fi
+        #if $bonding_opts != ""
+cat >> $devfile << EOF
+BONDING_OPTS="$bonding_opts"
+EOF
+        #end if
+    #elif $iface_type in ("slave","bond_slave") and $iface_master != ""
+echo "SLAVE=yes" >> $devfile
+echo "MASTER=$iface_master" >> $devfile
+echo "HOTPLUG=no" >> $devfile
+    #end if
+
+    #if $iface_type == "bridge"
+echo "TYPE=Bridge" >> $devfile
+        #for $bridge_opt in $bridge_opts
+            #if $bridge_opt.strip() != ""
+echo "$bridge_opt" >> $devfile
+            #end if
+        #end for
+    #elif $iface_type in ["bridge_slave", "bonded_bridge_slave"] and $iface_master != ""
+echo "BRIDGE=$iface_master" >> $devfile
+echo "HOTPLUG=no" >> $devfile
+    #end if
+
+    #if $iface_type != "bridge"
+echo "TYPE=Ethernet" >> $devfile
+    #end if
+
+    #if $iname in $promisc_interfaces
+echo "PROMISC=yes" >> $devfile
+    #end if 
+
+    #if $static
+echo "BOOTPROTO=static" >> $devfile
+        #if $ip != "" and $iname not in $promisc_interfaces
+echo "IPADDR=$ip" >> $devfile
+        #end if
+
+        #if $if_gateway != ""
+echo "GATEWAY=$if_gateway" >> $devfile
+        #end if
+
+        #if $netmask == ""
+            #set $netmask = "255.255.255.0"
+        #end if
+echo "NETMASK=$netmask" >> $devfile
+    #else
+echo "BOOTPROTO=dhcp" >> $devfile
+        #if $len($name_servers) > 0
+echo "PEERDNS=no" >> $devfile
+        #end if
+    #end if
+
+    #if $vlanpattern.match($iname)
+echo "VLAN=yes" >> $devfile
+echo "ONPARENT=yes" >> $devfile
+    #elif $subinterfacepattern.match($iname)
+echo "ONPARENT=yes" >> $devfile
+    #end if
+
+    #if $mtu != ""
+echo "MTU=$mtu" >> $devfile
+    #end if
+
+    #if $iface_type not in ("slave","bond_slave","bridge_slave","bonded_bridge_slave")
+        #set $nct = 0
+        #for $nameserver in $name_servers
+            #set $nct = $nct + 1
+echo "DNS$nct=$nameserver" >> $devfile
         #end for
     #end if
+
+    #for $route in $static_routes
+        #set routepattern = $re.compile("[0-9/.]+:[0-9.]+")
+        #if $routepattern.match($route)
+            #set $routebits = $route.split(":")
+            #set [$network, $router] = $route.split(":")
+echo "$network via $router" >> $routesfile
+        #else
+# Warning: invalid route "$route"
+        #end if
+    #end for
+#end for
+
+#for $iname in $ikeys
+    #set $interface_matched = $subinterfacepattern.match($iname)
+    #if $interface_matched
+        #set $interface_name = $interface_matched.group(1)
+logical_interface=$interface_name
+    #else
+logical_interface=$iname
+    #end if
+unset logical_interface_mapping[\$logical_interface]
+#end for
+
+for logical_interface in \${!logical_interface_mapping[@]}; do
+    physical_interface=\${logical_interface_mapping[\$logical_interface]}
+    if [ -n "\$physical_interface" ]; then
+        devfile="/etc/sysconfig/network-scripts/cobbler/ifcfg-"\$logical_interface
+        mac=\${physical_interface_mac[\$physical_interface]}
+        echo "DEVICE=\$logical_interface" > \$devfile
+        echo "ONBOOT=yes" >> \$devfile
+        echo "BOOTPROTO=static" >> \$devfile
+        if [ -n "\$mac" ]; then
+            echo "HWADDR=\$mac" >> \$devfile
+        fi
+        echo "TYPE=Ethernet" >> \$devfile
+        if [ -f "/etc/modprobe.conf" ] && [ -n "\$physical_interface" ]; then
+            grep \$physical_interface /etc/modprobe.conf | sed "s/\$physical_interface/\$logical_interface/" >> /etc/modprobe.conf.cobbler
+            grep -v \$physical_interface /etc/modprobe.conf >> /etc/modprobe.conf.new
+            rm -f /etc/modprobe.conf
+            mv /etc/modprobe.conf.new /etc/modprobe.conf
+        fi
+    fi
+done
 
 ## Disable all eth interfaces by default before overwriting
 ## the old files with the new ones in the working directory
@@ -343,8 +342,11 @@ rm -f /etc/sysconfig/network-scripts/ifcfg-*
 mv /etc/sysconfig/network-scripts/cobbler/* /etc/sysconfig/network-scripts/
 rm -r /etc/sysconfig/network-scripts/cobbler
 if [ -f "/etc/modprobe.conf" ]; then
-cat /etc/modprobe.conf.cobbler >> /etc/modprobe.conf
-rm -f /etc/modprobe.conf.cobbler
+    cat /etc/modprobe.conf.cobbler >> /etc/modprobe.conf
+    rm -f /etc/modprobe.conf.cobbler
 fi
-#end if
+if [ -f "/etc/udev/rules.d/70-persistent-net.rules" ]; then
+    rm -f /etc/udev/rules.d/70-persistent-net.rules
+fi
+
 # End post_install_network_config generated code

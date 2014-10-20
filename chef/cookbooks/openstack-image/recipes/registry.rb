@@ -1,3 +1,4 @@
+# encoding: UTF-8
 #
 # Cookbook Name:: openstack-image
 # Recipe:: registry
@@ -17,130 +18,119 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-require "uri"
 
-class ::Chef::Recipe
+class ::Chef::Recipe # rubocop:disable Documentation
   include ::Openstack
 end
 
-if node["openstack"]["image"]["syslog"]["use"]
-  include_recipe "openstack-common::logging"
+if node['openstack']['image']['syslog']['use']
+  include_recipe 'openstack-common::logging'
 end
 
-platform_options = node["openstack"]["image"]["platform"]
+platform_options = node['openstack']['image']['platform']
 
-package "python-keystone" do
-  action :install
+package 'python-keystoneclient' do
+  options platform_options['package_overrides']
+  action :upgrade
 end
 
-#db_user = node['openstack']['db']['image']['username']
-#db_pass = db_password node['openstack']['db']['image']['password']
-db_user = node["openstack"]["db"]["image"]["username"]
-db_pass = node["openstack"]["db"]["image"]["password"]
+db_user = node['openstack']['db']['image']['username']
+db_pass = get_password 'db', 'glance'
+sql_connection = db_uri('image', db_user, db_pass)
 
-sql_connection = db_uri("image", db_user, db_pass)
+identity_endpoint = endpoint 'identity-api'
+identity_admin_endpoint = endpoint 'identity-admin'
+registry_bind = endpoint 'image-registry-bind'
+service_pass = get_password 'service', 'openstack-image'
 
-identity_endpoint = endpoint "identity-admin"
-registry_endpoint = endpoint "image-registry"
-service_tenant_name = node['openstack']['identity']['image']['tenant']
-service_user = node['openstack']['identity']['image']['username']
-service_pass = service_password node['openstack']['identity']['image']['password']
+auth_uri = auth_uri_transform identity_endpoint.to_s, node['openstack']['image']['registry']['auth']['version']
 
-package "curl" do
-  action :install
+glance_user = node['openstack']['image']['user']
+glance_group = node['openstack']['image']['group']
+
+package 'curl' do
+  options platform_options['package_overrides']
+  action :upgrade
 end
 
-db_type = node['openstack']['db']['identity']['db_type']
-platform_options["#{db_type}_python_packages"].each do |pkg|
-  package pkg do
-    action :install
+pkg_key = "#{node['openstack']['db']['image']['service_type']}_python_packages"
+if platform_options.key?(pkg_key)
+  platform_options[pkg_key].each do |pkg|
+    package pkg do
+      action :upgrade
+      options platform_options['package_overrides']
+    end
   end
 end
 
-platform_options["image_packages"].each do |pkg|
+platform_options['image_packages'].each do |pkg|
   package pkg do
     action :upgrade
+    options platform_options['package_overrides']
   end
 end
 
-directory ::File.dirname(node["openstack"]["image"]["registry"]["auth"]["cache_dir"]) do
-  owner node["openstack"]["image"]["user"]
-  group node["openstack"]["image"]["group"]
+directory ::File.dirname(node['openstack']['image']['registry']['auth']['cache_dir']) do
+  owner glance_user
+  group glance_group
   mode 00700
 end
 
-service "image-registry" do
-  service_name platform_options["image_registry_service"]
-  supports :status => true, :restart => true
+service 'glance-registry' do
+  service_name platform_options['image_registry_service']
+  supports status: true, restart: true
 
   action :enable
 end
 
-# Having to manually version the database because of Ubuntu bug
-# https://bugs.launchpad.net/ubuntu/+source/glance/+bug/981111
-execute "glance-manage version_control 0" do
-  not_if "glance-manage db_version"
-  only_if { platform?(%w{ubuntu debian}) }
-end
-
-file "/var/lib/glance/glance.sqlite" do
+file '/var/lib/glance/glance.sqlite' do
   action :delete
+  not_if { node['openstack']['db']['image']['service_type'] == 'sqlite' }
 end
 
-directory "/etc/glance" do
-  owner node["openstack"]["image"]["user"]
-  group node["openstack"]["image"]["group"]
+directory '/etc/glance' do
+  owner glance_user
+  group glance_group
   mode  00700
 end
 
-directory "/var/log/glance" do
-  owner node["openstack"]["image"]["user"]
-  group node["openstack"]["image"]["group"]
-  mode  00700
-end
-
-directory "/var/cache/glance/" do
-  owner node["openstack"]["image"]["user"]
-  group node["openstack"]["image"]["group"]
-  mode  00700
-end
-
-if node["openstack"]["image"]["registry"]["bind_interface"].nil?
-  bind_address = registry_endpoint.host
-else
-  bind_address = address_for node["openstack"]["image"]["registry"]["bind_interface"]
-end
-
-template "/etc/glance/glance-registry.conf" do
-  source "glance-registry.conf.erb"
-  owner  node["openstack"]["image"]["user"]
-  group  node["openstack"]["image"]["group"]
+template '/etc/glance/glance-registry.conf' do
+  source 'glance-registry.conf.erb'
+  owner  'root'
+  group  'root'
   mode   00644
   variables(
-    :registry_bind_address => bind_address,
-    :registry_port => registry_endpoint.port,
+    :registry_bind_address => registry_bind.host,
+    :registry_bind_port => registry_bind.port,
     :sql_connection => sql_connection,
-    "identity_endpoint" => identity_endpoint,
-    "service_pass" => service_pass,
-    "service_tenant_name" => service_tenant_name,
-    "service_user" => service_user
+    :auth_uri => auth_uri,
+    'identity_admin_endpoint' => identity_admin_endpoint,
+    'service_pass' => service_pass
   )
 
-  notifies :restart, "service[image-registry]", :immediately
+  notifies :restart, 'service[glance-registry]', :immediately
 end
 
-execute "glance-manage db_sync" do
-  only_if { node["openstack"]["image"]["db"]["migrate"] }
+# Having to manually version the database because of Ubuntu bug
+# https://bugs.launchpad.net/ubuntu/+source/glance/+bug/981111
+execute 'glance-manage version_control 0' do
+  user glance_user
+  group glance_group
+  not_if 'glance-manage db_version', user: glance_user, group: glance_group
+  only_if { platform_family?('debian') }
 end
 
-template "/etc/glance/glance-registry-paste.ini" do
-  source "glance-registry-paste.ini.erb"
-  owner  node["openstack"]["image"]["user"]
-  group  node["openstack"]["image"]["group"]
+execute 'glance-manage db_sync' do
+  user glance_user
+  group glance_group
+  only_if { node['openstack']['db']['image']['migrate'] }
+end
+
+template '/etc/glance/glance-registry-paste.ini' do
+  source 'glance-registry-paste.ini.erb'
+  owner  'root'
+  group  'root'
   mode   00644
 
-  notifies :restart, "service[image-registry]", :immediately
+  notifies :restart, 'service[glance-registry]', :immediately
 end
-
-identity_endpoint = endpoint "identity-api"
-auth_uri = ::URI.decode identity_endpoint.to_s

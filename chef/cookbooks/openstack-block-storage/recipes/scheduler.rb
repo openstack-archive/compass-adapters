@@ -1,3 +1,4 @@
+# encoding: UTF-8
 #
 # Cookbook Name:: openstack-block-storage
 # Recipe:: scheduler
@@ -20,45 +21,49 @@
 # limitations under the License.
 #
 
-include_recipe "openstack-block-storage::cinder-common"
+include_recipe 'openstack-block-storage::cinder-common'
 
-platform_options = node["openstack"]["block-storage"]["platform"]
+platform_options = node['openstack']['block-storage']['platform']
 
-platform_options["cinder_scheduler_packages"].each do |pkg|
+platform_options['cinder_scheduler_packages'].each do |pkg|
   package pkg do
-    options platform_options["package_overrides"]
+    options platform_options['package_overrides']
 
     action :upgrade
   end
 end
 
-# FIXME this can be removed if/when 1:2013.1-0ubuntu2 makes it into precise
-#if platform?("ubuntu") && (node["platform_version"].to_f == 12.04)
-#  include_recipe "python"
-#  python_pip "stevedore" do
-#    action :upgrade
-#  end
-#end
-
-db_type = node['openstack']['db']['volume']['db_type']
+db_type = node['openstack']['db']['block-storage']['service_type']
 platform_options["#{db_type}_python_packages"].each do |pkg|
   package pkg do
     action :upgrade
   end
 end
 
-service "cinder-scheduler" do
-  service_name platform_options["cinder_scheduler_service"]
-  supports :status => true, :restart => true
-
-  action [ :enable, :start ]
-  subscribes :restart, "template[/etc/cinder/cinder.conf]"
+service 'cinder-scheduler' do
+  service_name platform_options['cinder_scheduler_service']
+  supports status: true, restart: true
+  action [:enable, :start]
+  subscribes :restart, 'template[/etc/cinder/cinder.conf]'
 end
 
-if node["openstack"]["metering"]
-  cron "cinder-volume-usage-audit" do
-    command "cinder-volume-usage-audit > /var/log/cinder/audit.log 2>&1"
-    action :create
-    user node["openstack"]["block-storage"]["user"]
+audit_bin_dir = platform_family?('debian') ? '/usr/bin' : '/usr/local/bin'
+audit_log = node['openstack']['block-storage']['cron']['audit_logfile']
+
+if node['openstack']['telemetry']
+  scheduler_role = node['openstack']['block-storage']['scheduler_role']
+  results = search(:node, "roles:#{scheduler_role}")
+  cron_node = results.map { |a| a.name }.sort[0]
+  Chef::Log.debug("Volume audit cron node: #{cron_node}")
+
+  cron 'cinder-volume-usage-audit' do
+    day node['openstack']['block-storage']['cron']['day'] || '*'
+    hour node['openstack']['block-storage']['cron']['hour'] || '*'
+    minute node['openstack']['block-storage']['cron']['minute']
+    month node['openstack']['block-storage']['cron']['month'] || '*'
+    weekday node['openstack']['block-storage']['cron']['weekday'] || '*'
+    command "#{audit_bin_dir}/cinder-volume-usage-audit > #{audit_log} 2>&1"
+    action cron_node == node.name ? :create : :delete
+    user node['openstack']['block-storage']['user']
   end
 end

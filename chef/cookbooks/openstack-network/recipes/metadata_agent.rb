@@ -1,3 +1,4 @@
+# Encoding: utf-8
 #
 # Cookbook Name:: openstack-network
 # Recipe:: metadata_agent
@@ -17,43 +18,42 @@
 # limitations under the License.
 #
 
-include_recipe "openstack-network::common"
+['quantum', 'neutron'].include?(node['openstack']['compute']['network']['service_type']) || return
 
-platform_options = node["openstack"]["network"]["platform"]
-driver_name = node["openstack"]["network"]["interface_driver"].split('.').last.downcase
-main_plugin = node["openstack"]["network"]["interface_driver_map"][driver_name]
+include_recipe 'openstack-network::common'
 
-identity_endpoint = endpoint "identity-api"
-service_tenant_name = node['openstack']['identity']['network']['tenant']
-service_user = node['openstack']['identity']['network']['username']
-service_pass = service_password node['openstack']['identity']['network']['password']
-metadata_secret = secret "secrets", node["openstack"]["network"]["metadata"]["secret_name"]
+platform_options = node['openstack']['network']['platform']
 
-template "/etc/quantum/metadata_agent.ini" do
-  source "metadata_agent.ini.erb"
-  owner node["openstack"]["network"]["platform"]["user"]
-  group node["openstack"]["network"]["platform"]["group"]
+identity_endpoint = endpoint 'identity-api'
+service_pass = get_password 'service', 'openstack-network'
+metadata_secret = get_secret node['openstack']['network']['metadata']['secret_name']
+compute_api_endpoint = endpoint 'compute-api' || {}
+
+template '/etc/neutron/metadata_agent.ini' do
+  source 'metadata_agent.ini.erb'
+  owner node['openstack']['network']['platform']['user']
+  group node['openstack']['network']['platform']['group']
   mode   00644
   variables(
-    :identity_endpoint => identity_endpoint,
-    :metadata_secret => metadata_secret,
-    :service_tenant_name => service_tenant_name,
-    :service_user => service_user,
-    :service_pass => service_pass
+    identity_endpoint: identity_endpoint,
+    metadata_secret: metadata_secret,
+    nova_metadata_ip: compute_api_endpoint.host,
+    service_pass: service_pass
   )
-  notifies :restart, "service[quantum-metadata-agent]", :immediately
+  notifies :restart, 'service[neutron-metadata-agent]', :immediately
   action :create
 end
 
-platform_options["quantum_metadata_agent_packages"].each do |pkg|
+platform_options['neutron_metadata_agent_packages'].each do |pkg|
   package pkg do
-    action :install
-    options platform_options["package_overrides"]
+    action :upgrade
+    options platform_options['package_overrides']
   end
 end
 
-service "quantum-metadata-agent" do
-  service_name platform_options["quantum_metadata_agent_service"]
-  supports :status => true, :restart => true
+service 'neutron-metadata-agent' do
+  service_name platform_options['neutron_metadata_agent_service']
+  supports status: true, restart: true
   action :enable
+  subscribes :restart, 'template[/etc/neutron/neutron.conf]'
 end

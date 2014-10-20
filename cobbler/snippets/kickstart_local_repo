@@ -1,0 +1,24 @@
+mkdir -p /tmp/repo_backup
+mv /etc/yum.repos.d/* /tmp/repo_back/
+
+cat << EOF > /etc/yum.repos.d/Compass.repo
+[compass_repo]
+name=Compass yum repo
+baseurl=$local_repo/compass_repo/
+enabled=1
+gpgcheck=0
+priority=1
+proxy=_none_
+EOF
+
+cat << EOF > /etc/gemrc
+gem: --no-ri --no-rdoc
+:backtrace: false
+:benchmark: false
+:bulk_threshold: 1000
+:sources:
+- http://gems.rubyforge.org/
+- $local_repo/gem_repo/
+:update_sources: true
+:verbose: true
+EOF

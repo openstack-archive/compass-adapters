@@ -1,90 +1,132 @@
+# Encoding: utf-8
 require_relative 'spec_helper'
 
 describe 'openstack-network::dhcp_agent' do
+  describe 'ubuntu' do
+    let(:runner) { ChefSpec::Runner.new(UBUNTU_OPTS) }
+    let(:node) { runner.node }
+    let(:chef_run) do
+      node.set['openstack']['compute']['network']['service_type'] = 'neutron'
+      runner.converge(described_recipe)
+    end
 
-  describe "ubuntu" do
+    include_context 'neutron-stubs'
 
-    before do
-      quantum_stubs
-      @chef_run = ::ChefSpec::ChefRunner.new ::UBUNTU_OPTS
-      @chef_run.converge "openstack-network::dhcp_agent"
+    it 'does not include recipe openstack-network::comon when nova networking' do
+      node.override['openstack']['compute']['network']['service_type'] = 'nova'
+
+      expect(chef_run).to_not include_recipe('openstack-network::common')
+    end
+
+    it 'subscribes the agent service to neutron.conf' do
+      expect(chef_run.service('neutron-dhcp-agent')).to subscribe_to('template[/etc/neutron/neutron.conf]').delayed
     end
 
     # since our mocked version of ubuntu is precise, our compile
     # utilities should be installed to build dnsmasq
-    it "installs dnsmasq build dependencies" do
-      [ "build-essential", "pkg-config", "libidn11-dev", "libdbus-1-dev", "libnetfilter-conntrack-dev", "gettext" ].each do |pkg|
-        expect(@chef_run).to install_package pkg
+    it 'upgrades dnsmasq build dependencies' do
+      %w(build-essential pkg-config libidn11-dev libdbus-1-dev libnetfilter-conntrack-dev gettext).each do |pkg|
+        expect(chef_run).to upgrade_package pkg
       end
     end
 
-    it "installs quamtum dhcp package" do
-      expect(@chef_run).to install_package "quantum-dhcp-agent"
-    end
+    it 'skips dnsmasq build when asked to' do
+      node.set['openstack']['network']['dhcp']['dnsmasq_compile'] = false
 
-    it "installs plugin packages" do
-      expect(@chef_run).to install_package "quantum-plugin-openvswitch"
-    end
-
-    it "starts the dhcp agent on boot" do
-      expect(@chef_run).to set_service_to_start_on_boot "quantum-dhcp-agent"
-    end
-
-    describe "/etc/quantum/plugins" do
-      before do
-        @file = @chef_run.directory "/etc/quantum/plugins"
-      end
-      it "has proper owner" do
-        expect(@file).to be_owned_by "quantum", "quantum"
-      end
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "700"
+      %w(build-essential pkg-config libidn11-dev libdbus-1-dev libnetfilter-conntrack-dev gettext).each do |pkg|
+        expect(chef_run).to_not upgrade_package pkg
       end
     end
 
-    describe "/etc/quantum/dhcp_agent.ini" do
-      before do
-        @file = @chef_run.template "/etc/quantum/dhcp_agent.ini"
-      end
-      it "has proper owner" do
-        expect(@file).to be_owned_by "quantum", "quantum"
-      end
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "644"
-      end
-      it "uses ovs driver" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "interface_driver = quantum.agent.linux.interface.OVSInterfaceDriver"
-      end
-      it "uses namespaces" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "use_namespaces = True"
-      end
-      it "checks dhcp domain" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          /^dhcp_domain = openstacklocal$/
+    it 'upgrades neutron dhcp package' do
+      expect(chef_run).to upgrade_package 'neutron-dhcp-agent'
+    end
+
+    it 'upgrades plugin package' do
+      expect(chef_run).to upgrade_package 'neutron-plugin-ml2'
+    end
+
+    it 'starts the dhcp agent on boot' do
+      expect(chef_run).to enable_service 'neutron-dhcp-agent'
+    end
+
+    describe '/etc/neutron/plugins' do
+      let(:dir) { chef_run.directory('/etc/neutron/plugins') }
+
+      it 'creates /etc/neutron/plugins' do
+        expect(chef_run).to create_directory(dir.name).with(
+          user: 'neutron',
+          group: 'neutron',
+          mode: 0700
+        )
       end
     end
 
-    describe "/etc/quantum/dnsmasq.conf" do
-      before do
-        @file = @chef_run.template "/etc/quantum/dnsmasq.conf"
+    describe '/etc/neutron/dhcp_agent.ini' do
+      let(:file) { chef_run.template('/etc/neutron/dhcp_agent.ini') }
+
+      it 'creates dhcp_agent.ini' do
+        expect(chef_run).to create_template(file.name).with(
+          user: 'neutron',
+          group: 'neutron',
+          mode: 0644
+        )
       end
-      it "has proper owner" do
-        expect(@file).to be_owned_by "quantum", "quantum"
+
+      it 'uses ovs driver' do
+        expect(chef_run).to render_file(file.name).with_content(
+          'interface_driver = neutron.agent.linux.interface.OVSInterfaceDriver')
       end
-      it "has proper modes" do
-        expect(sprintf("%o", @file.mode)).to eq "644"
+
+      it 'uses namespaces' do
+        expect(chef_run).to render_file(file.name).with_content('use_namespaces = True')
       end
-      it "overrides dhcp options" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          "dhcp-option=26,1454"
+
+      it 'disables ovs_use_veth' do
+        expect(chef_run).to render_file(file.name).with_content('ovs_use_veth = False')
       end
-      it "checks upstream resolvers" do
-        expect(@chef_run).to create_file_with_content @file.name,
-          /^server=209.244.0.3$/
-        expect(@chef_run).to create_file_with_content @file.name,
-          /^server=8.8.8.8$/
+
+      it 'checks dhcp domain' do
+        expect(chef_run).to render_file(file.name).with_content(/^dhcp_domain = openstacklocal$/)
+      end
+
+      it 'has default dnsmasq_lease_max setting' do
+        expect(chef_run).to render_file(file.name).with_content(/^dnsmasq_lease_max = 16777216$/)
+      end
+
+      it 'has configurable dnsmasq_lease_max setting' do
+        node.set['openstack']['network']['dhcp']['dnsmasq_lease_max'] = 16777215
+
+        expect(chef_run).to render_file(file.name).with_content(/^dnsmasq_lease_max = 16777215$/)
+      end
+
+      it 'notifies the dhcp agent service' do
+        expect(file).to notify('service[neutron-dhcp-agent]').to(:restart).immediately
+      end
+    end
+
+    describe '/etc/neutron/dnsmasq.conf' do
+      let(:file) { chef_run.template('/etc/neutron/dnsmasq.conf') }
+
+      it 'creates dnsmasq.conf' do
+        expect(chef_run).to create_template(file.name).with(
+          user: 'neutron',
+          group: 'neutron',
+          mode: 0644
+        )
+      end
+
+      it 'overrides dhcp options' do
+        expect(chef_run).to render_file(file.name).with_content('dhcp-option=26,1454')
+      end
+
+      it 'checks upstream resolvers' do
+        expect(chef_run).to render_file(file.name).with_content(/^server=209.244.0.3$/)
+        expect(chef_run).to render_file(file.name).with_content(/^server=8.8.8.8$/)
+      end
+
+      it 'notifies the dhcp agent service' do
+        expect(file).to notify('service[neutron-dhcp-agent]').to(:restart).delayed
       end
     end
   end

@@ -1,0 +1,25 @@
+{
+  "name": "os-image-registry",
+  "description": "Glance Registry service",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+  },
+  "override_attributes": {
+    "collectd": {
+      "rhel": {
+        "plugins": {
+          "processes": {
+            "ProcessMatch": ["glance-registry\" \"glance-registry"]
+          }
+        }
+      }
+    }
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[os-base]",
+    "recipe[openstack-image::registry]"
+  ],
+  "env_run_lists": {
+  }
+}

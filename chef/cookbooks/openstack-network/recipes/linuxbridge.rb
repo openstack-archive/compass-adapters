@@ -1,3 +1,4 @@
+# Encoding: utf-8
 #
 # Cookbook Name:: openstack-network
 # Recipe:: linuxbridge
@@ -17,19 +18,41 @@
 # limitations under the License.
 #
 
-include_recipe "openstack-network::common"
+['quantum', 'neutron'].include?(node['openstack']['compute']['network']['service_type']) || return
 
-platform_options = node["openstack"]["network"]["platform"]
+include_recipe 'openstack-network::common'
 
-platform_options["quantum_linuxbridge_agent_packages"].each do |pkg|
+platform_options = node['openstack']['network']['platform']
+
+platform_options['neutron_linuxbridge_agent_packages'].each do |pkg|
   package pkg do
-    options platform_options["package_overrides"]
-    action :install
+    options platform_options['package_overrides']
+    action :upgrade
   end
 end
 
-service "quantum-plugin-linuxbridge-agent" do
-  service_name platform_options["quantum_linuxbridge_agent_service"]
-  supports :status => true, :restart => true
+directory '/etc/neutron/plugins/linuxbridge' do
+  recursive true
+  owner node['openstack']['network']['platform']['user']
+  group node['openstack']['network']['platform']['group']
+  mode 00700
+end
+
+linuxbridge_endpoint = endpoint 'network-linuxbridge'
+template '/etc/neutron/plugins/linuxbridge/linuxbridge_conf.ini' do
+  source 'plugins/linuxbridge/linuxbridge_conf.ini.erb'
+  owner node['openstack']['network']['platform']['user']
+  group node['openstack']['network']['platform']['group']
+  mode 00644
+  variables(
+    local_ip: linuxbridge_endpoint.host
+  )
+end
+
+service 'neutron-plugin-linuxbridge-agent' do
+  service_name platform_options['neutron_linuxbridge_agent_service']
+  supports status: true, restart: true
   action :enable
+  subscribes :restart, 'template[/etc/neutron/neutron.conf]'
+  subscribes :restart, 'template[/etc/neutron/plugins/linuxbridge/linuxbridge_conf.ini]'
 end

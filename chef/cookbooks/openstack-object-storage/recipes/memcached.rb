@@ -1,5 +1,6 @@
+# encoding: UTF-8
 #
-# Cookbook Name:: swift
+# Cookbook Name:: openstack-object-storage
 # Recipe:: memcached
 #
 # Copyright 2012, Rackspace US, Inc.
@@ -17,4 +18,4 @@
 # limitations under the License.
 #
 
-include_recipe "memcached"
+include_recipe 'memcached'

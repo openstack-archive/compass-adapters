@@ -1,28 +1,34 @@
 <%= node["openstack"]["dashboard"]["custom_template_banner"] %>
-<VirtualHost *:80>
+
+<% unless node['apache']['listen_ports'].map(&:to_i).uniq.include?(node['openstack']['dashboard']['http_port'].to_i) %>
+Listen *:<%= node['openstack']['dashboard']['http_port'].to_i%>
+NameVirtualHost *:<%= node['openstack']['dashboard']['http_port'].to_i%>
+<% end -%>
+<VirtualHost *:<%= node['openstack']['dashboard']['http_port'] %>>
 <% if node["openstack"]["dashboard"]["server_hostname"] -%>
   ServerName <%= node["openstack"]["dashboard"]["server_hostname"] %>
 <% end -%>
-<% if node["openstack"]["dashboard"]["use_ssl"] %>
+<% if eval(node['openstack']['dashboard']['use_ssl']) -%>
   RewriteEngine On
   RewriteCond %{HTTPS} off
+<%   if node['openstack']['dashboard']['http_port'].to_i != 80 or node['openstack']['dashboard']['https_port'].to_i != 443 %>
+  RewriteRule ^(.*)$ https://%{SERVER_NAME}:<%= node['openstack']['dashboard']['https_port'] %>%{REQUEST_URI} [L,R]
+<%   else -%>
   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R]
+<%   end -%>
 </VirtualHost>
-
-<% if %w{debian ubuntu}.include?(node["platform"]) -%>
-  WSGISocketPrefix /var/run/apache2/wsgi
-<% else -%>
-  WSGISocketPrefix run/wsgi
+<% unless node['apache']['listen_ports'].map(&:to_i).uniq.include?(node['openstack']['dashboard']['https_port'].to_i) %>
+Listen *:<%= node['openstack']['dashboard']['https_port'].to_i%>
+NameVirtualHost *:<%= node['openstack']['dashboard']['https_port'].to_i%>
 <% end -%>
-
-<VirtualHost *:443>
+<VirtualHost *:<%= node['openstack']['dashboard']['https_port'] %>>
 <%   if node["openstack"]["dashboard"]["server_hostname"] -%>
   ServerName <%= node["openstack"]["dashboard"]["server_hostname"] %>
 <%   end -%>
-<% end %>
+<% end -%>
   ServerAdmin <%= node["apache"]["contact"] %>
-  WSGIScriptAlias / <%= node["openstack"]["dashboard"]["wsgi_path"] %>
-  WSGIDaemonProcess dashboard user=<%= node["apache"]["user"] %> group=<%= node["apache"]["group"] %> processes=3 threads=10 python-path=<%= node["openstack"]["dashboard"]["dash_path"] %>
+  WSGIScriptAlias <%= node["openstack"]["dashboard"]["webroot"] %> <%= node["openstack"]["dashboard"]["wsgi_path"] %>
+  WSGIDaemonProcess dashboard user=<%= node['openstack']['dashboard']['horizon_user'] %> group=<%= node['openstack']['dashboard']['horizon_group'] %> processes=3 threads=10 python-path=<%= node["openstack"]["dashboard"]["dash_path"] %>
   WSGIProcessGroup dashboard
 
   DocumentRoot <%= node["openstack"]["dashboard"]["dash_path"] %>/.blackhole/
@@ -47,11 +53,11 @@
       allow from all
   </Directory>
 
-  <% if node["openstack"]["dashboard"]["use_ssl"] %>
+  <% if eval(node['openstack']['dashboard']['use_ssl']) -%>
   SSLEngine on
   SSLCertificateFile <%= @ssl_cert_file %>
   SSLCertificateKeyFile <%= @ssl_key_file %>
-  <% end %>
+  <% end -%>
 
   # Allow custom files to overlay the site (such as logo.png)
   RewriteEngine On
@@ -62,3 +68,7 @@
   LogLevel warn
   CustomLog <%= node["apache"]["log_dir"] %>/<%= node["openstack"]["dashboard"]["access_log"] %> combined
 </VirtualHost>
+
+<% unless node["openstack"]["dashboard"]["wsgi_socket_prefix"].nil? %>
+WSGISocketPrefix <%= node["openstack"]["dashboard"]["wsgi_socket_prefix"] %>
+<% end %>
