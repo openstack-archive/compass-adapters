@@ -11,7 +11,7 @@ priority=1
 proxy=_none_
 EOF
 
-cat << EOF > /etc/gemrc
+cat << EOF > /root/.gemrc
 gem: --no-ri --no-rdoc
 :backtrace: false
 :benchmark: false
