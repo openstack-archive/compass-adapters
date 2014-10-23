@@ -1,5 +1,5 @@
 mkdir -p /tmp/repo_backup
-mv /etc/yum.repos.d/* /tmp/repo_back/
+mv /etc/yum.repos.d/* /tmp/repo_backup/
 
 cat << EOF > /etc/yum.repos.d/Compass.repo
 [compass_repo]
@@ -11,7 +11,7 @@ priority=1
 proxy=_none_
 EOF
 
-cat << EOF > /etc/gemrc
+cat << EOF > /root/.gemrc
 gem: --no-ri --no-rdoc
 :backtrace: false
 :benchmark: false
