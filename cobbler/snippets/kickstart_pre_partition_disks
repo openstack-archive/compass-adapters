@@ -210,6 +210,9 @@ done
 
 partition_size=\${partitions_size[/boot]:-500}
 unset \${partitions_name[/boot]}
+echo "bootloader --location=mbr --boot-drive=\${sorted_disks[0]}" >> /tmp/part-include
+echo "zerombr" >> /tmp/part-include
+echo "part biosboot --fstype=biosboot --size=1 --ondisk=\${sorted_disks[0]}" >> /tmp/part-include
 echo "part /boot --fstype=\${partition_fstype} --size=\${partition_size} --ondisk=\${sorted_disks[0]}  --asprimary" >> /tmp/part-include
 partition_size=\${partitions_size[swap]:-0}
 if [[ "\$partition_size" == "0" ]]; then
