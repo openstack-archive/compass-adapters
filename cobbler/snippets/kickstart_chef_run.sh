@@ -1,3 +1,15 @@
+#set ip_address = ""
+#set ikeys = $interfaces.keys()
+#for $iname in $ikeys
+    #set $idata = $interfaces[$iname]
+    #set $static        = $idata["static"]
+    #set $management    = $idata["management"]
+    #set $ip            = $idata["ip_address"]
+    #if $management and $ip
+        #set $ip_address = $ip
+    #end if
+#end for
+
 cat << EOF > /etc/chef/run.sh
 #!/bin/bash
 touch /tmp/chef.log
@@ -15,13 +27,20 @@ while true; do
         let all_nodes_success=1
         for node in \\$nodes; do
             mkdir -p /var/log/chef/\\$node
-            cat << EOL > /etc/chef/\\$node.json
+	    if [ ! -f /etc/chef/\\$node.json ]; then
+                cat << EOL > /etc/chef/\\$node.json
 #if $getVar("local_repo","") != ""
-{"local_repo": "$local_repo"}
+{
+    "local_repo": "$local_repo",
+    "ip_address": "$ip_address"
+}
 #else
-{}
+{
+    "ip_address": "$ip_address"
+}
 #end if
 EOL
+            fi
             if [ ! -f "/etc/chef/\\$node.pem" ]; then
                 cat << EOL > /etc/rsyslog.d/\\$node.conf
 \\\\$ModLoad imfile
