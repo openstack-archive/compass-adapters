@@ -4,12 +4,6 @@
 # System Authorization
 auth --useshadow --enablemd5
 
-# System Bootloader
-bootloader --location=mbr
-
-# Clear MBR
-zerombr
-
 # Use Text Mode
 text
 
@@ -70,6 +64,7 @@ $SNIPPET('kickstart_pre_partition_disks')
 
 # Enable installation monitoring
 $SNIPPET('kickstart_pre_anamon')
+%end
 
 # Packages
 %packages --nobase
@@ -85,6 +80,7 @@ libestr
 libgt
 liblogging
 rsyslog
+%end
 
 %post --log=/var/log/post_install.log
 $SNIPPET('log_ks_post')
@@ -109,3 +105,4 @@ $SNIPPET($kickstart_tool)
 #end if
 $SNIPPET('kickstart_post_anamon')
 $SNIPPET('kickstart_done')
+%end
