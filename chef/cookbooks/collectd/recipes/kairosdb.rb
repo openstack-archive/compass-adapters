@@ -25,16 +25,17 @@ cookbook_file "#{node['collectd']['plugin_dir']}/kairosdb_writer.py" do
   notifies :restart, resources(:service => "collectd")
 end
 
-if ! node['cluster']
-  node.set['cluster'] = "no_cluster_defined"
+cluster_id = 'no_cluster_defined'
+if node['compass'] and node['compass']['cluster_id']
+  cluster_id = node['compass']['cluster_id']
 end
+
 collectd_python_plugin "kairosdb_writer" do
   opts  =    {"KairosDBHost"=>node['collectd']['server']['host'],
               "KairosDBPort"=>node['collectd']['server']['port'],
               "KairosDBProtocol"=>node['collectd']['server']['protocol'],
-              "Tags" => "host=#{node['fqdn']}\" \"role=OSROLE\" \"location=China.Beijing.TsingHua\" \"cluster=#{node['cluster']}",
+              "Tags" => "host=#{node['fqdn']}\" \"role=OSROLE\" \"location=China.Beijing.TsingHua\" \"cluster=#{cluster_id}",
               "TypesDB" => node['collectd']['types_db'],
-              "LowercaseMetricNames"=>"true"
              }
   options(opts)
 end
