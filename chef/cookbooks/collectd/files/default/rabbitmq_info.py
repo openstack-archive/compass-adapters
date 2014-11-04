@@ -84,15 +84,37 @@ def get_stats():
         return None
     for i in resp:
         if i['vhost'] == VHOST:
+            # AN issue here is that the name has a GUID embedded and this is not a correct
+            # metric name for a time series database. The next lines attempt to remeady this
+            # by removing anything after the first or second character sequence followed by "_".
+
+            iname = str(i['name']).split("_")
+            #logger('warn', 'iname = %s simplified.' % iname)
+            #logger('warn', 'Simplified from i[name] = %s.' % str(i['name']))
+            iname = str(i['name']).split("_")
+            if(len(iname) > 1):
+                if(iname[0] == 'reply'):
+                    mname = iname[0]
+                else:
+                    mname = iname[0] + "_" + iname[1]
+            else:
+                mname = iname[0] 
+
             if "messages" in i:
                 stats['ctl_messages'] += i['messages']
-                stats['ctl_messages_%s' % i['name']] = i['messages']
+                #stats['ctl_messages_%s' % i['name']] = i['messages']
+                stats['ctl_messages_%s' % mname ] = i['messages']
+                #logger('warn', 'ctl_message = %s.' % str(i['messages']))
             if "memory" in i:
                 stats['ctl_memory'] += i['memory']
-                stats['ctl_memory_%s' % i['name']] = i['memory']
+                #stats['ctl_memory_%s' % i['name']] = i['memory']
+                stats['ctl_memory_%s' % mname ] = i['memory']
+                #logger('warn', 'ctl_memory = %s.' % str(i['memory']))
             if "consumers" in i:
                 stats['ctl_consumers'] += i['consumers']
-                stats['ctl_consumers_%s' % i['name']] = i['consumers']
+                #stats['ctl_consumers_%s' % i['name']] = i['consumers']
+                stats['ctl_consumers_%s' % mname ] = i['consumers']
+                #logger('warn', 'ctl_consumers = %s.' % str(i['consumers']))
     if not stats['ctl_memory'] > 0:
         logger('warn', '%s reports 0 memory usage. This is probably incorrect.'
                % RABBITMQ_API)
