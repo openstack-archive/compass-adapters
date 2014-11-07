@@ -57,7 +57,7 @@ install
 reboot
 
 %pre
-$SNIPPET('log_ks_pre')
+$SNIPPET('kickstar_pre_log')
 $SNIPPET('kickstart_start')
 $SNIPPET('kickstart_pre_install_network_config')
 $SNIPPET('kickstart_pre_partition_disks')
@@ -83,17 +83,14 @@ rsyslog
 %end
 
 %post --log=/var/log/post_install.log
-$SNIPPET('log_ks_post')
+$SNIPPET('kickstart_post_log')
 $SNIPPET('kickstart_post_install_kernel_options')
 $SNIPPET('kickstart_post_install_network_config')
 
 chkconfig iptables off
 chkconfig ip6tables off
 
-$SNIPPET('kickstart_yum.conf')
-#if $getVar('local_repo', '') != ''
-    $SNIPPET('kickstart_local_repo')
-#end if
+$SNIPPET('kickstart_yum')
 $SNIPPET('kickstart_ssh')
 $SNIPPET('kickstart_ntp')
 $SNIPPET('kickstart_limits.conf')

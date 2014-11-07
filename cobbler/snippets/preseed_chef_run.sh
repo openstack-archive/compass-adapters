@@ -29,10 +29,10 @@ while true; do
         USER=root HOME=/root knife search node "name:\\$HOSTNAME.*" -i -a name &>> /tmp/chef.log
         nodes=\\$(USER=root HOME=/root knife search node "name:\\$HOSTNAME.*" -i -a name | grep 'name: ' | awk '{print \\$2}')
         echo "found nodes \\$nodes" &>> /tmp/chef.log
-        let all_nodes_success=1
+        all_nodes_success=1
         for node in \\$nodes; do
             mkdir -p /var/log/chef/\\$node
-	    if [ ! -f /etc/chef/\\$node.json ]; then
+            if [ ! -f /etc/chef/\\$node.json ]; then
                 cat << EOL > /etc/chef/\\$node.json
 #if $getVar("local_repo","") != ""
 {
@@ -69,7 +69,7 @@ EOL
             fi
             if [ "\\$?" != "0" ]; then
                 echo "chef-client --node-name \\$node run failed"  &>> /tmp/chef.log
-                let all_nodes_success=0
+                all_nodes_success=0
             else
                 echo "chef-client --node-name \\$node run success" &>> /tmp/chef.log
                 touch /etc/chef/\\$node.done
@@ -84,4 +84,3 @@ EOL
 done
 EOF
 chmod +x /etc/chef/chef_client_run.sh
-

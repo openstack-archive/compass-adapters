@@ -5,21 +5,21 @@ d-i apt-setup/use_mirror boolean false
 #set $cur=0
 #set $repo_data = $getVar("repo_data",[])
 #for $repo in $repo_data
- #for $dist in $repo.apt_dists
- #set $comps = " ".join($repo.apt_components)
+    #for $dist in $repo.apt_dists
+    #set $comps = " ".join($repo.apt_components)
 d-i apt-setup/local${cur}/repository string \
- #if $repo.mirror_locally
+    #if $repo.mirror_locally
 deb http://$http_server/cobbler/repo_mirror/${repo.name} $dist $comps
- #else
+    #else
 deb ${repo.mirror} $dist $comps
- #end if
- #if $repo.comment != ""
+    #end if
+    #if $repo.comment != ""
 d-i apt-setup/local${cur}/comment string ${repo.comment}
- #end if
- #if $repo.breed == "src"
+    #end if
+    #if $repo.breed == "src"
 # Enable deb-src lines
 d-i apt-setup/local${cur}/source boolean false
- #end if
- #set $cur=$cur+1
- #end for
+    #end if
+    #set $cur=$cur+1
+    #end for
 #end for

@@ -1,15 +1,37 @@
 #if $getVar("system_name","") != ""
-mac_exists() { \
-    ip -o link | grep -i "$1" 2>/dev/null >/dev/null; \
-    return $?; \
-}; \
-get_ifname() { \
-    IFNAME=\$(ip -o link | grep -i "$1" | sed -e 's/^[0-9]*: //' -e 's/:.*//'); \
-}; \
+    #if $getVar('management_nic', '') == ""
+        #set $management_nic=''
+    #end if
+echo "generate pre network config" > /tmp/network_log
+# Start pre_install_network_config generated code
+#raw
+# generic functions to be used later for discovering NICs
+mac_exists() {
+    if [ -f /bin/ip ]; then
+        ip -o link | grep -i "$1" 2>/dev/null >/dev/null
+        return $?
+    elif [ -f /bin/esxcfg-nics ]; then
+        esxcfg-nics -l | grep -i "$1" 2>/dev/null >/dev/null
+        return $?
+    else
+        ifconfig -a | grep -i "$1" 2>/dev/null >/dev/null
+        return $?
+    fi
+}
+get_ifname() {
+    if [ -f /bin/ip ]; then
+        IFNAME=$(ip -o link | grep -i "$1" | sed -e 's/^[0-9]*: //' -e 's/:.*//')
+    elif [ -f /bin/esxcfg-nics ]; then
+        IFNAME=$(esxcfg-nics -l | grep -i "$1" | cut -d " " -f 1)
+    else
+        IFNAME=$(ifconfig -a | grep -i "$1" | cut -d " " -f 1)
+        if [ -z $IFNAME ]; then
+            IFNAME=$(ifconfig -a | grep -i -B 2 "$1" | sed -n '/flags/s/:.*$//p')
+        fi
+    fi
+}
+#end raw
     #set ikeys = $interfaces.keys()
-    #import re
-    #set $vlanpattern = $re.compile("[a-zA-Z0-9]+[\.:][0-9]+")
-    #set $routepattern = $re.compile("[0-9/.]+:[0-9.]+")
     #for $iname in $ikeys
         #set $idata         = $interfaces[$iname]
         #set $mac           = $idata["mac_address"]
@@ -20,22 +42,30 @@ get_ifname() { \
         #set $iface_type    = $idata["interface_type"]
         #set $iface_master  = $idata["interface_master"]
         #set $static_routes = $idata["static_routes"]
-        #if not $management or $mac == ""
+        #if $management
+            #set $management_nic = $iname
+        #end if
+        #if $management_nic != ''
+            #if $iname != $management_nic
+                #continue
+            #end if
+        #end if
+        #if $mac == ""
             #continue
         #end if
-if mac_exists $mac; then \
-    get_ifname $mac; \
-    echo "d-i netcfg/choose_interface string \$IFNAME" >> /tmp/pre_install_network_config; \
+# Configuring $iname ($mac)
+if mac_exists $mac; then
+    get_ifname $mac
+    echo "d-i netcfg/choose_interface string \$IFNAME" >> /tmp/pre_install_network_config
         #if $static and $ip != ""
-    echo "d-i netcfg/get_ipaddress string $ip" >> /tmp/pre_install_network_config; \
+    echo "d-i netcfg/get_ipaddress string $ip" >> /tmp/pre_install_network_config
             #if $netmask == ""
                 #set $netmask = "255.255.255.0"
             #end if
-    echo "d-i netcfg/get_netmask string $netmask" >> /tmp/pre_install_network_config; \
+    echo "d-i netcfg/get_netmask string $netmask" >> /tmp/pre_install_network_config
         #else
             #continue
         #end if
-fi; \
+fi
     #end for
 #end if
-debconf-set-selections /tmp/pre_install_network_config; \
