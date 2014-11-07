@@ -1,10 +1,13 @@
-mkdir -p /target/etc/chef; \
+mkdir -p /etc/chef
+mkdir -p /var/log/chef
+
 ## Generate validation.pem
-$SNIPPET('preseed_chef-validator.pem') echo "processed preseed_chef-validator.pem" >> /tmp/preseed.log; \
+$SNIPPET('preseed_chef-validator.pem')
+## Generate admin.pem
+$SNIPPET('preseed_chef-admin.pem')
 ## Generate client.rb
-$SNIPPET('preseed_client.rb') echo "processed preseed_client.rb" >> /tmp/preseed.log; \
-## Generate chef rsyslog conf
-$SNIPPET('preseed_chef_rsyslog.conf') echo "processed preseed_chef_rsyslog.conf" >> /tmp/preseed.log; \
-$SNIPPET('preseed_chef_firstrun.sh') echo "processed preseed_chef_firstrun.sh" >> /tmp/preseed.log; \
-$SNIPPET('preseed_chef_rerun.sh') echo "processed preseed_chef_rerun.sh" >> /tmp/preseed.log; \
-$SNIPPET('preseed_chef_init') echo "processed preseed_chef_init" >> /tmp/preseed.log; \
+$SNIPPET('preseed_client.rb')
+$SNIPPET('preseed_knife.rb')
+$SNIPPET('preseed_gem_local_repo')
+$SNIPPET('preseed_chef_run.sh')
+$SNIPPET('preseed_chef_init')

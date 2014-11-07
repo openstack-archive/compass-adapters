@@ -1,165 +1,482 @@
 #set hostname=$getVar('hostname',None)
 #set partition = $getVar('partition', None)
+#set partition_size = $getVar('partition_size', None)
+#set partition_maxsize = $getVar('partition_maxsize', None)
+
 #if $hostname == None
 #set $vgname = "VolGroup00"
 #else
 #set $vgname = $hostname.split('.')[0]
 #end if
-#if $getVar("system_name","") != ""
-first_found_disk=""; \
-disks_str=""; \
-found_disks_str=""; \
-for disk in \$(list-devices disk); do \
-    if [[ x"\$disk" == x"" ]]; then \
-        continue; \
-    fi; \
+
+set \$(ls -s -l /dev/disk/by-path | tr -s '\t' ' ' | cut -d' ' -f11,13)
+disk_mapping_nums=\$((\$#/2))
+disk_mapping_offset=0
+echo "disk_mapping_nums: \$disk_mapping_nums" >> /tmp/preseed.log
+disk_mapping=""
+while [ \$disk_mapping_offset -lt \$disk_mapping_nums ]; do
+    found_disk_type=0
+#if $getVar('disk_type_only','') != ""
+    if expr match "\$1" ".*-${disk_type_only}-.*"; then
+        found_disk_type=1
+    fi
+#else
+    found_disk_type=1
+#end if
+    if [ \$found_disk_type -gt 0 ]; then
+        disk_name=\$(basename \$2)
+        if [ -z "\${disk_mapping}" ]; then
+            disk_mapping="\${disk_name}"
+        else
+            disk_mapping="\${disk_mapping} \${disk_name}"
+        fi
+        disk_path=\$(echo \$1 | tr '-' '_' | tr ':' '_' | tr '.' '_')
+        eval "disk_\${disk_name}=\${disk_path}"
+        eval "disk_path_\${disk_path}=/dev/\${disk_name}"
+        eval "disk_path_\${disk_name}=/dev/\${disk_name}"
+    fi
+    disk_mapping_offset=\$((\${disk_mapping_offset}+1))
+    shift 2
+done
+
+for key in \${disk_mapping}; do
+    eval "disk_path=\\${disk_\$key}"
+    echo "disk_mapping \$key => \${disk_path}" >> /tmp/preseed.log
+done
+
+partition_disks=""
+disks=""
+for disk in \$(list-devices disk); do
+    if [ -z \$disk ]; then
+        continue
+    fi
+    disk_name=\$(basename \$disk)
+    eval "disk_path=\\${disk_\${disk_name}}" 
+    if [ -z \${disk_path} ]; then
+        echo "ignore disk \${disk_name} since it is not in disk_mapping" >> /tmp/preseed.log
+        continue
+    fi
+    found_disk=0
 #if $getVar('partitions_only','') != ""
-    let found_disk=0; \
     #for $partition_only in $partitions_only.split(',')
         #if not $partition_only
             #continue
         #end if
-    if expr match "\$disk" "$partition_only"; then \
-        let found_disk=1; \
-    fi; \
+    if expr match "\${disk_name}" "$partition_only"; then
+        found_disk=1
+    else
+        echo "disk \${disk_name} does not match $partition_only" >> /tmp/preseed.log
+    fi
     #end for
 #else
-    let found_disk=1; \
+    found_disk=1
 #end if
-    if [ \$found_disk -gt 0 ]; then \
-        if [ -z \$found_disks_str ]; then \
-            found_disks_str="\$disk"; \
-            first_found_disk="\$disk"; \
-        else \
-            found_disks_str="\${found_disks_str} \$disk"; \
-        fi; \
-    fi; \
-    if [ -z \$disks_str ]; then \
-        disks_str="\$disk"; \
-    else \
-        disks_str="\${disks_str} \$disk"; \
-    fi; \
-done; \
-logger "partition disks: \${found_disks_str}"; \
-#if $getVar('keep_old_partitions', '0') != "0"
-remove_disks_str=\${found_disks_str}; \
+#if $getVar('partition_by_path', '0') != "0"
+    eval "disk_name=\\${disk_\${disk_name}}"
+#end if
+    if [ \$found_disk -gt 0 ]; then
+        echo "add disk \${disk_name} in partitioning list" >> /tmp/preseed.log
+        if [ -z \$partition_disks ]; then
+            partition_disks="\${disk_name}"
+        else
+            partition_disks="\${partition_disks} \${disk_name}"
+        fi
+    fi
+    if [ -z \$disks ]; then
+        disks="\${disk_name}"
+    else
+        disks="\${disks} \${disk_name}"
+    fi
+done
+echo "partition disks: \${partition_disks}" >> /tmp/preseed.log
+
+#if $getVar('sort_disks', '0') != "0"
+sorted_disks=\$(printf '%s\n' \${partition_disks} | sort)
 #else
-remove_disks_str=\${disks_str}; \
+sorted_disks=\${partition_disks}
 #end if
-logger "remove disks \${remove_disks_str}"; \
-## vgremove -f $vgname; \
-## logger "vgremove $vgname"; \
-disk_partitions=\$(pvs --noheadings --rows | head -n1); \
-for disk_partition in \${disk_partitions}; do \
-    if [[ x"\$disk_partition" == x"" ]]; then \
-        continue; \
-    fi; \
-    vg=\$(pvs --noheadings --separator : \${disk_partition} | cut -d: -f2); \
-    remove_vg=""; \
-    for remove_disk in \${remove_disks_str}; do \
-        if [[ x"\$remove_disk" == x"" ]]; then \
-            continue; \
-        fi; \
-        if expr match "\${disk_partition}" "\${remove_disk}.*"; then \
-            remove_vg="\$vg"; \
-            logger "partition \${disk_partition} matches \${remove_disk}.*"; \
-            logger "set remove_vg to \$vg"; \
-        else \
-            logger "partition \${disk_partition} does not match \${remove_disk}.*"; \
-        fi; \
-    done; \
-    if [[ x"\$remove_vg" != x"" ]]; then \
-        vgremove -f \$remove_vg; \
-        logger "vgremove \${remove_vg} for \${disk_partition}"; \
-    else \
-        logger "\${disk_partition} is not in vgremove list"; \
-    fi; \
-done; \
-for remove_disk in \${remove_disks_str}; do \
-    if [[ x"\$remove_disk" == x"" ]]; then \
-        continue; \
-    fi; \
-    pvremove -ff -y \${remove_disk}*; \
-    logger "pvremove \${remove_disk}*"; \
-done; \
-remove_disks=\$(echo \${remove_disks_str} | sed -e 's/ /,/g'); \
-echo "d-i partman-auto/select_disks multiselect \${remove_disks}" >> /tmp/part-include; \
-echo "d-i partman-auto/disk string \${found_disks_str}" >> /tmp/part-include; \
-recipe="boot-root :: \
-100 100 100 ext3 \
-\\$primary{ } \\$bootable{ } method{ format } \
-format{ } use_filesystem{ } filesystem{ ext3 } \
-mountpoint{ /boot } device{ \$first_found_disk } \
-. \
-256 256+10% 200% linux-swap \
-\\$primary{ } method{ swap } format{ } \
-device{ \$first_found_disk } \
-. \
-#set default_percentage = 100
+echo "sorted disks \${sorted_disks}" >> /tmp/preseed.log
+
+#if $getVar('start_from_disk', '') != ""
+    #set $start_from_disk = $int($start_from_disk)
+    #if $start_from_disk > 0
+        #set $disk_start_offset = $start_from_disk - 1
+    #else
+        #set $disk_start_offset = 0
+    #end if
+set \${sorted_disks}
+shift $disk_start_offset
+sorted_disks=\$@
+echo "sorted disks begin from the $start_from_disk: \${sorted_disks}" >> /tmp/preseed.log
+#end if
+
+#if $getVar('disk_num', '') != ""
+set \${sorted_disks}
+sorted_disks=\$(printf '%s\n' \$@ | head -n${disk_num})
+echo "sorted disks for $disk_num disks: \${sorted_disks}" >> /tmp/preseed.log
+#end if
+
+first_disk_name=""
+for disk_name in \${sorted_disks}; do
+    if [ -z \${disk_name} ]; then
+        continue
+    fi
+    if [ -z \${first_disk_name} ]; then
+        first_disk_name=\${disk_name}
+        break
+    fi
+done
+echo "first disk \${first_disk_name}" >> /tmp/preseed.log
+
+#if $getVar('keep_old_partitions', '0') != "0"
+remove_disks=\${sorted_disks}
+#else
+remove_disks=\${disks}
+#end if
+echo "remove disks \${remove_disks}" >> /tmp/preseed.log
+
+disk_partitions=\$(pvs --noheadings --separator :| cut -d: -f1)
+remove_partitions=""
+remove_vgs=""
+for disk_partition in \${disk_partitions}; do
+    if [ -z \$disk_partition ]; then
+        continue
+    fi
+    disk_partition_name=\$(basename \${disk_partition})
+    vg=\$(pvs --noheadings --separator : \${disk_partition} | cut -d: -f2)
+    remove_vg=""
+    remove_partition=""
+    for remove_disk_name in \${remove_disks}; do
+        eval "remove_disk=\\${disk_path_\${remove_disk_name}}"
+        if [ -z \${remove_disk_name} ]; then
+            continue
+        fi
+        if expr match "\${disk_partition}" "\${remove_disk}.*"; then
+            remove_vg="\$vg"
+            remove_partition="\${disk_partition}"
+        else
+            echo "partition \${disk_partition} does not match \${remove_disk}.*" >> /tmp/preseed.log
+        fi
+    done
+    if [ ! -z \$remove_vg ]; then
+        if [ -z \$remove_vgs ]; then
+            remove_vgs="\${remove_vg}"
+        else
+            vg_removed=0
+            for vg in \${remove_vgs}; do
+                if [[ "\$vg" == "\${remove_vg}" ]]; then
+                    vg_removed=1
+                fi
+            done
+            if [ \$vg_remove -eq 0 ]; then
+                remove_vgs="\${remove_vgs} \${remove_vg}"
+            fi
+        fi
+    fi
+    if [ ! -z \$remove_partition ]; then
+        if [ -z \$remove_partitions ]; then
+            remove_partitions="\${remove_partition}"
+        else
+            remove_partitions="\${remove_partitions} \${remove_partition}"
+        fi
+    fi
+done
+
+echo "remove partitions \${remove_partitions} from lvm" >> /tmp/preseed.log
+echo "remove vgs \${remove_vgs} from lvm" >> /tmp/preseed.log
+for remove_vg in \${remove_vgs}; do
+    vgremove -f \${remove_vg}
+done
+for remove_partition in \${remove_partitions}; do
+    pvremove -ff -y \${remove_partition}
+done
+
+select_disks=""
+echo "remove disks \${remove_disks}" >> /tmp/preseed.log
+for remove_disk_name in \${remove_disks}; do
+    eval "remove_disk=\\${disk_path_\${remove_disk_name}}"
+    if [ -z \$remove_disk ]; then
+        continue
+    fi
+    if [ -z \${select_disks} ]; then
+        select_disks="\${remove_disk}"
+    else
+        select_disks="\${select_disks},\${remove_disk}"
+    fi
+done
+echo "d-i partman-auto/select_disks multiselect \${select_disks}" >> /tmp/part-include
+echo "select disks \${select_disks}" >> /tmp/preseed.log
+
+partition_disks=""
+for disk_name in \${sorted_disks}; do
+    eval "disk=\\${disk_path_\${disk_name}}"
+    if [ -z \$disk ]; then
+        continue
+    fi
+    if [ -z \${partition_disks} ]; then
+        partition_disks="\${disk}"
+    else
+        partition_disks="\${partition_disks} \${disk}"
+    fi
+done
+echo "d-i partman-auto/disk string \${partition_disks}" >> /tmp/part-include
+echo "disks \${partition_disks}" >> /tmp/preseed.log
+
+default_partition=$getVar('default_partition', '/')
+partition_fstype=$getVar('partition_fstype', 'ext3')
+
+echo "default partition \${default_partition}" >> /tmp/preseed.log
+echo "partition fstype \${partition_fstype}" >> /tmp/preseed.log
+
+partition_names=""
+default_partition_name=""
 #if $partition != None
     #set vol_sizes = [part.strip() for part in $partition.split(';') if part.strip()]
     #for vol_and_size in vol_sizes
         #set vol, vol_size = $vol_and_size.split(' ', 1)
         #set vol = $vol.strip()
-        #set vol_size = $vol_size.strip()
-        #if $vol.startswith('/')
-            #set volname = $vol[1:]
-        #else
-            #continue
+	#if $vol == '/'
+	    #set volname = 'root'
+	#elif $vol == 'swap'
+	    #set volname = 'swap'
+	#elif $vol.startswith('/')
+            #set volname = $vol[1:].replace('/', '_')
+	#else
+	    #set volname = ''
+# $vol is not starts with / 
         #end if
-	#set vol_min_size = 1
-	#set vol_percent = 0
+if [ -z \$partition_names ]; then
+    partition_names="$volname"
+else
+    partition_names="\$partition_names $volname"
+fi
+if [[ "$vol" == "\$default_partition" ]]; then
+    default_partition_name=$volname
+fi
+partition_point_$volname=$vol
+        #set vol_size = $vol_size.strip()
 	#if $vol_size.endswith('%')
-	    #set vol_percent = $int($vol_size[:-1])
-	#elif $vol_size.endswith('K')
-            #set vol_min_size = $int($vol_size[:-1]) / 1000
-        #elif $vol_size.endswith('M')
+	    #set vol_percent = $vol_size[:-1]
+partition_percentage_$volname=$vol_percent
+        #else
+	    #if $vol_size.endswith('K')
+                #set vol_min_size = $int($vol_size[:-1]) / 1000
+            #elif $vol_size.endswith('M')
+	        #set vol_min_size = $int($vol_size[:-1])
+            #elif $vol_size.endswith('G')
+	        #set vol_min_size = $int($vol_size[:-1]) * 1000
+	    #elif $vol_size.endswith('T')
+	        #set vol_min_size = $int($vol_size[:-1]) * 1000000
+	    #else
+	        #set vol_min_size = $int($vol_size)
+	    #end if
+partition_size_$volname=$vol_min_size
+        #end if
+    #end for
+#end if
+
+#if $partition_size != None
+    #set vol_sizes = [part.strip() for part in $partition_size.split(';') if part.strip()]
+    #for vol_and_size in $vol_sizes
+        #set vol, vol_size = $vol_and_size.split(' ', 1)
+        #set vol = $vol.strip()
+	#if $vol == '/'
+	    #set volname = 'root'
+	#elif $vol == 'swap'
+	    #set volname = 'swap'
+	#elif $vol.startswith('/')
+            #set volname = $vol[1:].replace('/', '_')
+	#else
+	    #set volname = ''
+# $vol is not starts with / 
+        #end if
+	#if $vol_size.endswith('K')
+	    #set vol_min_size = $int($vol_size[:-1]) / 1000
+	#elif $vol_size.endswith('M')
 	    #set vol_min_size = $int($vol_size[:-1])
-        #elif $vol_size.endswith('G')
+	#elif $vol_size.endswith('G')
 	    #set vol_min_size = $int($vol_size[:-1]) * 1000
 	#elif $vol_size.endswith('T')
 	    #set vol_min_size = $int($vol_size[:-1]) * 1000000
+	#else
+	    #set vol_min_size = $int($vol_size)
 	#end if
-	#if $vol_percent
-	    #set factor = '%s+%s%%' % ($vol_min_size, $vol_percent)
-            #set default_percentage = $default_percentage - $vol_percent
-        #else
-	    #set factor = $vol_min_size
-	#end if
-${vol_min_size} ${factor} -1 ext3 \
-\\$lvmok{ } method{ format } format{ } \
-use_filesystem{ } filesystem{ ext3 } \
-in_vg{ $vgname } lv_name{ ${volname}vol } \
-mountpoint{ $vol } \
-. \
+partitions_size_$volname=${vol_min_size}
     #end for
 #end if
-#set vol_min_size = 1
-#if $default_percentage <= 0
-    #set default_percentage = 0
+
+#if $partition_maxsize != None
+    #set vol_sizes = [part.strip() for part in $partition_maxsize.split(';') if part.strip()]
+    #for vol_and_size in $vol_sizes
+        #set vol, vol_size = $vol_and_size.split(' ', 1)
+        #set vol = $vol.strip()
+	#if $vol == '/'
+	    #set volname = 'root'
+	#elif $vol == 'swap'
+	    #set volname = 'swap'
+	#elif $vol.startswith('/')
+            #set volname = $vol[1:].replace('/', '_')
+	#else
+	    #set volname = ''
+# $vol is not starts with / 
+        #end if
+	#if $vol_size.endswith('K')
+	    #set vol_max_size = $int($vol_size[:-1]) / 1000
+	#elif $vol_size.endswith('M')
+	    #set vol_max_size = $int($vol_size[:-1])
+	#elif $vol_size.endswith('G')
+	    #set vol_max_size = $int($vol_size[:-1]) * 1000
+	#elif $vol_size.endswith('T')
+	    #set vol_max_size = $int($vol_size[:-1]) * 1000000
+	#else
+	    #set vol_max_size = $int($vol_size)
+	#end if
+partition_maxsize_$volname=${vol_max_size}
+    #end for
 #end if
-#if $default_percentage
-    #set factor = '%s+%s%%' % ($vol_min_size, $default_percentage)
-#else
-    #set factor = $vol_min_size
-#end if
-${vol_min_size} ${factor} -1 ext3 \
-\\$lvmok{ } method{ format } \
-format{ } use_filesystem{ } filesystem{ ext3 } \
-in_vg{ $vgname } lv_name{ rootvol } \
-mountpoint{ / } \
-. \
-"; \
-pv_offset=1; \
-for found_disk in \${found_disks_str}; do \
-    recipe="\$recipe \
-512 512+100% -1 ext3 \
-\\$defaultignore{ } \\$primary{ } device{ \${found_disk} } \
-method{ lvm } vg_name{ $vgname } \
-. \
-"; \
-let pv_offset=\${pv_offset}+1; \
-done; \
-echo "d-i partman-auto/expert_recipe string \$recipe" >> /tmp/part-include; \
-debconf-set-selections /tmp/part-include; \
-#end if
+
+if [ -z \${default_partition_name} ]; then
+    default_partition_name=root
+fi
+
+default_partition_percentage=100
+for key in \${partition_names}; do
+    if [ -z \$key ]; then
+        continue
+    fi
+    if [[ "\$key" == "\${default_partition_name}" ]]; then
+        continue
+    fi
+    if [[ "\$key" == "swap" ]]; then
+        continue
+    fi
+    eval "partition_percentage=\\${partition_percentage_\$key}"
+    if [ ! -z \${partition_percentage} ]; then
+        if [ \${default_partition_percentage} -gt \${partition_percentage} ]; then
+            default_partition_percentage=\$((\${default_partition_percentage}-\${partition_percentage}))
+        else
+            default_partition_percentage=0
+        fi
+    fi
+done
+eval "partition_percentage_\${default_partition_name}=\${default_partition_percentage}"
+
+if [ -z \$partition_point_boot ]; then
+    partition_point_boot="/boot"
+    if [ -z \$partition_names ]; then
+        partition_names="boot"
+    else
+        partition_names="\${partition_names} boot"
+    fi
+fi
+
+if [ -z \$partition_size_boot ]; then
+    partition_size_boot=500
+fi
+
+if [ -z \$partition_maxsize_boot ]; then
+    partition_maxsize_boot=\$partition_size_boot
+fi
+
+eval "first_disk=\\${disk_path_\${first_disk_name}}"
+if [ -z \${first_disk} ]; then
+    first_disk=/dev/sda
+fi
+
+partition_param_boot="\${partition_fstype} \
+\\$primary{ } \\$bootable{ } method{ format } \
+format{ } use_filesystem{ } filesystem{ \${partition_fstype} } \
+mountpoint{ /boot } device{ \$first_disk } \
+"
+
+if [ -z \$partition_point_swap ]; then
+    partition_point_swap="swap"
+    if [ -z \$partition_names ]; then
+        partition_names="swap"
+    else
+        partition_names="\${partition_names} swap"
+    fi
+fi
+
+if [ -z \$partition_size_swap ]; then
+    partition_size_swap=256
+fi
+
+if [ -z \$partition_percentage_swap ]; then
+    partition_percentage_swap=200
+fi
+
+if [ -z \$partition_maxsize_swap ]; then
+    partition_maxsize_swap=10%
+fi
+
+partition_param_swap="linux-swap \
+\\$primary{ } method{ swap } format{ } \
+device{ \$first_disk } \
+"
+
+if [ -z \$partition_point_root ]; then
+    partition_point_root="/"
+    if [ -z \$partition_names ]; then
+        partition_names="root"
+    else
+        partition_names="\$partition_names root"
+    fi
+fi
+
+recipe="boot-root ::"
+for key in \${partition_names}; do
+    if [ -z \$key ]; then
+        continue
+    fi
+    eval "partition=\\${partition_point_\$key}"
+    echo "partition \$partition => \$key" >> /tmp/preseed.log
+    eval "partition_percentage=\\${partition_percentage_\$key}"
+    if [ -z \$partition_percentage ]; then
+        partition_percentage=0
+    fi
+    echo "partition percentage \$partition => \${partition_percentage}" >> /tmp/preseed.log
+    eval "partition_size=\\${partition_size_\$key}"
+    if [ -z \$partition_size ]; then
+        partition_size=1
+    fi
+    echo "partition size \$partition => \${partition_size}" >> /tmp/preseed.log
+    if [ \${partition_percentage} -ne 0 ]; then
+        partition_factor="\${partition_size}+\${partition_percentage}%"
+    else
+        partition_factor="\${partition_size}"
+    fi
+    echo "partition factor \$partition => \${partition_factor}" >> /tmp/preseed.log
+    eval "partition_maxsize=\\${partition_maxsize_\$key}"
+    if [ -z \${partition_maxsize} ]; then
+        partition_maxsize=-1
+    fi
+    echo "partition maxsize \$partition => \${partition_maxsize}" >> /tmp/preseed.log
+    eval "partition_param=\\${partition_param_\$key}"
+    if [ -z \${partition_param} ]; then
+        partition_param="\${partition_fstype} \
+\\$lvmok{ } method{ format } format{ } \
+use_filesystem{ } filesystem{ \${partition_fstype} } \
+in_vg{ $vgname } lv_name{ \${key}vol } \
+mountpoint{ \$partition }"
+    fi
+    echo "partition param \$partition => \${partition_param}" >> /tmp/preseed.log
+    recipe="\$recipe \${partition_size} \${partition_factor} \${partition_maxsize} \${partition_param} ." 
+done
+
+for disk_name in \${sorted_disks}; do
+    eval "disk=\\${disk_path_\${disk_name}}"
+    if [ -z \$disk ]; then
+        continue
+    fi
+    disk_param="\${partition_fstype} \
+\\$defaultignore{ } \\$primary{ } device{ \${disk} } \
+method{ lvm } vg_name{ $vgname }"
+    recipe="\$recipe 512 512+100% -1 \${disk_param} ."
+    echo "partition param \${disk_name} => \${disk_param}" >> /tmp/preseed.log
+done
+
+echo "d-i partman-auto/expert_recipe string \$recipe" >> /tmp/part-include
+echo "d-i partman-auto/choose_recipe select boot-root" >> /tmp/part-include
+echo "d-i partman-lvm/vgcreate string $vgname" >> /tmp/part-include
+echo "d-i partman-auto-lvm/new_vg_name string $vgname" >> /tmp/part-include

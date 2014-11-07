@@ -1,27 +1,26 @@
-echo "log_level        :info" > /target/etc/chef/client.rb; \
-echo "log_location     '/dev/null'" >> /target/etc/chef/client.rb; \
+cat << EOL > /etc/chef/client.rb
+log_level        :info
+log_location     '/dev/null'
 #if $getVar('chef_url', '') != ""
-echo "chef_server_url  '$chef_url'" >> /target/etc/chef/client.rb; \
+chef_server_url  '$chef_url'
 #end if
 #if $getVar('proxy', '') != "" 
-echo "http_proxy       '$proxy'" >> /target/etc/chef/client.rb; \
-echo "https_proxy      '$proxy'" >> /target/etc/chef/client.rb; \
-echo "ENV['http_proxy'] = '$proxy'" >> /target/etc/chef/client.rb; \
-echo "ENV['https_proxy'] = '$proxy'" >> /target/etc/chef/client.rb; \
-echo "ENV['HTTP_PROXY'] = '$proxy'" >> /target/etc/chef/client.rb; \
-echo "ENV['HTTPS_PROXY'] = '$proxy'" >> /target/etc/chef/client.rb; \
+http_proxy       '$proxy'
+https_proxy      '$proxy'
+ENV['http_proxy'] = '$proxy'
+ENV['https_proxy'] = '$proxy'
+ENV['HTTP_PROXY'] = '$proxy'
+ENV['HTTPS_PROXY'] = '$proxy'
     #if $getVar('ignore_proxy', '') != ""
         #set ignore_proxy = ','.join([proxy.strip() for proxy in $ignore_proxy.split(',') if proxy.strip()])
-echo "no_proxy         '$ignore_proxy'" >> /target/etc/chef/client.rb; \
-echo "ENV['no_proxy'] = '$ignore_proxy'" >> /target/etc/chef/client.rb; \
-echo "ENV['NO_PROXY'] = '$ignore_proxy'" >> /target/etc/chef/client.rb; \
+no_proxy         '$ignore_proxy'
+ENV['no_proxy'] = '$ignore_proxy'
+ENV['NO_PROXY'] = '$ignore_proxy'
     #end if
 #end if
-#if $getVar('chef_node_name', '') != ""
-echo "node_name        '$chef_node_name'" >> /target/etc/chef/client.rb; \
-#end if
-echo "validation_client_name 'chef-validator'" >> /target/etc/chef/client.rb; \
-echo "json_attribs nil" >> /target/etc/chef/client.rb; \
-echo "pid_file '/var/run/chef-client.pid'" >> /target/etc/chef/client.rb; \
-echo "# Using default node name (fqdn)" >> /target/etc/chef/client.rb; \
-echo "no_lazy_load true" >> /target/etc/chef/client.rb; \
+validation_client_name 'chef-validator'
+json_attribs nil
+pid_file '/var/run/chef-client.pid'
+# Using default node name (fqdn) 
+no_lazy_load true
+EOL
