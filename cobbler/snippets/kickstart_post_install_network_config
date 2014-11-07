@@ -90,7 +90,7 @@ declare -A used_physical_interfaces
     #if $mac != ""
 physical_interface=\${physical_mac_interface[$mac]}
 logical_interface_mapping[$iname]=\$physical_interface
-if [ -n "\$physical_interface" ]; then
+if [ ! -z "\$physical_interface" ]; then
     unset physical_interfaces[\$physical_interface]
     if [ "\$physical_interface" != "$iname" ]; then
         used_physical_interfaces[\$physical_interface]=\$physical_interface
@@ -105,7 +105,7 @@ unset_logical_interfaces[$iname]=$iname
 echo "unset logical interfaces: \${unset_logical_interfaces[@]}" >> /tmp/network_log
 
 for logical_interface in \${unset_logical_interfaces[@]}; do
-    if [ -n "\${physical_interfaces[\$logical_interface]}" ]; then
+    if [ ! -z "\${physical_interfaces[\$logical_interface]}" ]; then
         logical_interface_mapping[\$logical_interface]=\$logical_interface
         unset unset_logical_interfaces[\$logical_interface]
         unset physical_interfaces[\$logical_interface]
@@ -179,7 +179,7 @@ echo "DEVICE=$iname" > $devfile
 echo "ONBOOT=yes" >> $devfile
 
     #if $iface_type not in ("master","bond","bridge","bonded_bridge_slave")
-        #if $vlanpattern.match(iname)
+        #if $vlanpattern.match($iname)
             pass
         #else
             #set $interface_matched = $subinterfacepattern.match($iname)
@@ -190,14 +190,14 @@ logical_interface=$interface_name
 logical_interface=$iname
             #end if
 physical_interface=\${logical_interface_mapping[\$logical_interface]}
-if [ -n "\$physical_interface" ]; then
+if [ ! -z "\$physical_interface" ]; then
     physical_mac=\${physical_interface_mac[\$physical_interface]}
 fi
-if [ -n "\$physical_mac" ]; then
+if [ ! -z "\$physical_mac" ]; then
     echo "HWADDR=\$physical_mac" >> $devfile
 fi
             #if not $subinterfacepattern.match($iname)
-if [ -f "/etc/modprobe.conf" ] && [ -n "\$physical_interface" ]; then
+if [ -f "/etc/modprobe.conf" ] && [ ! -z "\$physical_interface" ]; then
     grep \$physical_interface /etc/modprobe.conf | sed "s/\$physical_interface/$iname/" >> /etc/modprobe.conf.cobbler
     grep -v \$physical_interface /etc/modprobe.conf >> /etc/modprobe.conf.new
     rm -f /etc/modprobe.conf
@@ -312,17 +312,17 @@ unset logical_interface_mapping[\$logical_interface]
 
 for logical_interface in \${!logical_interface_mapping[@]}; do
     physical_interface=\${logical_interface_mapping[\$logical_interface]}
-    if [ -n "\$physical_interface" ]; then
+    if [ ! -z "\$physical_interface" ]; then
         devfile="/etc/sysconfig/network-scripts/cobbler/ifcfg-"\$logical_interface
         mac=\${physical_interface_mac[\$physical_interface]}
         echo "DEVICE=\$logical_interface" > \$devfile
         echo "ONBOOT=yes" >> \$devfile
         echo "BOOTPROTO=static" >> \$devfile
-        if [ -n "\$mac" ]; then
+        if [ ! -z "\$mac" ]; then
             echo "HWADDR=\$mac" >> \$devfile
         fi
         echo "TYPE=Ethernet" >> \$devfile
-        if [ -f "/etc/modprobe.conf" ] && [ -n "\$physical_interface" ]; then
+        if [ -f "/etc/modprobe.conf" ] && [ ! -z "\$physical_interface" ]; then
             grep \$physical_interface /etc/modprobe.conf | sed "s/\$physical_interface/\$logical_interface/" >> /etc/modprobe.conf.cobbler
             grep -v \$physical_interface /etc/modprobe.conf >> /etc/modprobe.conf.new
             rm -f /etc/modprobe.conf
