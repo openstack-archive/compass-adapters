@@ -25,15 +25,14 @@ d-i console-keymaps-at/keymap   select  us
 d-i keyboard-configuration/xkb-keymap   select  us
 
 d-i preseed/early_command string \
-$SNIPPET('preseed_pre_anamon') echo "processed preseed_pre_anamon" >> /tmp/preseed.log; \
-$SNIPPET('preseed_pre_install_network_config') echo "processed preseed_pre_install_network_config" >> /tmp/preseed.log; \
 wget -O- \
-http://$http_server/cblr/svc/op/script/$what/$name/?script=preseed_early_default | /bin/sh -s
+http://$http_server/cblr/svc/op/script/$what/$name/?script=preseed_early_default | /bin/sh -s; \
+debconf-set-selections /tmp/pre_install_network_config
 
 d-i partman/early_command string \
-$SNIPPET('preseed_pre_partition_disks') echo "processed preseed_pre_partition_disks" >> /tmp/preseed.log; \
 wget -O- \
-http://$http_server/cblr/svc/op/script/$what/$name/?script=partman_early_default | /bin/sh -s
+http://$http_server/cblr/svc/op/script/$what/$name/?script=partman_early_default | /bin/sh -s; \
+debconf-set-selections /tmp/part-include
 
 $SNIPPET('preseed_network_config')
 $SNIPPET('preseed_partition_disks')
@@ -46,7 +45,11 @@ d-i time/zone string US/Pacific
 #end if
 d-i clock-setup/utc boolean true
 d-i clock-setup/ntp boolean true
-d-i clock-setup/ntp-server  string ntp.ubuntu.com
+#if $getVar('ntp_server', '') == ""
+d-i clock-setup/ntp-server  string 0.ubuntu.pool.ntp.org
+#else
+d-i clock-setup/ntp-server  string $ntp_server
+#end if
 
 # Setup the installation source
 d-i mirror/country string manual
@@ -102,18 +105,6 @@ d-i cdrom-detect/eject boolean false
 # packages and run commands in the target system.
 # d-i preseed/late_command string [command]
 d-i preseed/late_command string \
-$SNIPPET('preseed_post_install_network_config') echo "processed preseed_post_install_network_config" >> /tmp/preseed.log; \
-$SNIPPET('preseed_ssh') echo "processed preseed_ssh" >> /tmp/preseed.log; \
-$SNIPPET('preseed_ntp') echo "processed preseed_ntp" >> /tmp/preseed.log; \
-$SNIPPET('preseed_post_apt_repo_config') echo "processed preseed_post_apt_repo_config" >> /tmp/preseed.log; \
-#if $getVar('tool', '') != ''
-    #set $preseed_tool = "preseed_%s" % $tool
-$SNIPPET($preseed_tool) echo "processed $preseed_tool" >> /tmp/preseed.log; \
-#end if
-$SNIPPET('preseed_limits.conf') echo "processed preseed_limits.conf" >> /tmp/preseed.log; \
-$SNIPPET('preseed_sysctl.conf') echo "processed preseed_sysctl.conf" >> /tmp/preseed.log; \
-$SNIPPET('preseed_rsyslog.conf') echo "processed preseed_rsyslog.conf" >> /tmp/preseed.log; \
-$SNIPPET('preseed_post_anamon') echo "processed preseed_post_anamon" >> /tmp/preseed.log; \
 wget -O- \
    http://$http_server/cblr/svc/op/script/$what/$name/?script=preseed_late_default | \
    chroot /target /bin/sh -s

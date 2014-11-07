@@ -1,0 +1,14 @@
+cat << EOF > /root/.gemrc
+gem: --no-ri --no-rdoc
+:backtrace: false
+:benchmark: false
+:bulk_threshold: 1000
+:sources:
+## - http://gems.rubyforge.org/
+#if $getVar("local_repo","") != ""
+- $local_repo/gem_repo/
+#end if
+:update_sources: true
+:verbose: true
+EOF
+
