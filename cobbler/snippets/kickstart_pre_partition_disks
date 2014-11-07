@@ -10,14 +10,12 @@
 #end if
 
 declare -A disk_mapping
-set \$(ls -l /dev/disk/by-path | awk '{print \$9; print \$11}')
+set \$(ls -s -l /dev/disk/by-path | awk '{print \$10, \$12}')
 let disk_mapping_nums=\$#/2
 let disk_mapping_offset=0
 echo "disk_mapping_nums: \$disk_mapping_nums" > /tmp/log
-echo "disk_mapping_offset: \$disk_mapping_offset" >> /tmp/log
 echo "disk_mapping: $*" >> /tmp/log
-while [ \$disk_mapping_offset -lt \$disk_mapping_nums ];
-do
+while [ \$disk_mapping_offset -lt \$disk_mapping_nums ]; do
     let found_disk_type=0
 #if $getVar('disk_type_only','') != ""
     if expr match "\$1" ".*-${disk_type_only}-.*"; then
@@ -42,35 +40,40 @@ set \$(list-harddrives)
 let disk_nums=\$#/2
 let disk_offset=0
 let found_disk_offset=0
-while [ \$disk_offset -lt \$disk_nums ];
-do
-let found_disk=0
-if [[ x"\${disk_mapping[\$1]}" == x"" ]]; then
-    echo "ignore disk \$1 since it is not in disk_mapping" >> /tmp/log
-else
+while [ \$disk_offset -lt \$disk_nums ]; do
+    let found_disk=0
+    disk_name=\$(basename \$1)
+    if [[ x"\${disk_mapping[\${disk_name}]}" == x"" ]]; then
+        echo "ignore disk \$1 since it is not in disk_mapping" >> /tmp/log
+    	let disk_offset=\$disk_offset+1
+    	shift 2
+        continue
+    fi
 #if $getVar('partitions_only',  '') != ""
     #for $partition_only in $partitions_only.split(',')
-    if expr match "\$1" "$partition_only"; then
+        #if not $partition_only
+            #continue
+        #end if
+    if expr match "\${disk_name}" "$partition_only"; then
         let found_disk=1
     else
-        echo "disk \$1 does not match $partition_only" >> /tmp/log
+        echo "disk \${disk_name} does not match $partition_only" >> /tmp/log
     fi
     #end for
 #else
     let found_disk=1
 #end if
-fi
-if [ \$found_disk -gt 0 ]; then
-    echo "add disk \$1 in partitioning list" >> /tmp/log
+    if [ \$found_disk -gt 0 ]; then
+        echo "add disk \${disk_name} in partitioning list" >> /tmp/log
 #if $getVar('partition_by_path', '0') != "0"
-    disks[\$found_disk_offset]=/dev/disk/by-path/\${disk_mapping[\$1]}
+        disks[\$found_disk_offset]=/dev/disk/by-path/\${disk_mapping[\${disk_name}]}
 #else
-    disks[\$found_disk_offset]=\$1
+        disks[\$found_disk_offset]=/dev/\${disk_name}
 #end if
-    let found_disk_offset=\$found_disk_offset+1
-fi
-let disk_offset=\$disk_offset+1
-shift 2
+        let found_disk_offset=\$found_disk_offset+1
+    fi
+    let disk_offset=\$disk_offset+1
+    shift 2
 done
 echo "disks \${disks[@]}" >> /tmp/log
 #if $getVar('sort_disks', '0') != "0" 

@@ -1,0 +1,11 @@
+#if $getVar("local_repo","") != ""
+cat << EOF > /etc/yum.repos.d/Compass.repo
+[compass_repo]
+name=Compass yum repo
+baseurl=$local_repo/compass_repo/
+enabled=1
+gpgcheck=0
+priority=1
+proxy=_none_
+EOF
+#end if
