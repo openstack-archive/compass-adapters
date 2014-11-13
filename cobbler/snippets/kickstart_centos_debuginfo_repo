@@ -1,3 +1,4 @@
+#if $getVar("local_repo","") == ""
 cat << EOF > /etc/yum.repos.d/CentOS-Debuginfo.repo
 # CentOS-Debug.repo
 #
@@ -21,3 +22,4 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-Debug-6
 enabled=0
 skip_if_unavailable=1
 EOF
+#end if
