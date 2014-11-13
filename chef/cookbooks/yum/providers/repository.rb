@@ -31,36 +31,34 @@ def whyrun_supported?
 end
 
 action :create  do
-  if node['local_repo'].nil? or node['local_repo'].empty?
-    # Hack around the lack of "use_inline_resources" before Chef 11 by
-    # uniquely naming the execute[yum-makecache] resources. Set the
-    # notifies timing to :immediately for the same reasons. Remove both
-    # of these when dropping Chef 10 support.
+  # Hack around the lack of "use_inline_resources" before Chef 11 by
+  # uniquely naming the execute[yum-makecache] resources. Set the
+  # notifies timing to :immediately for the same reasons. Remove both
+  # of these when dropping Chef 10 support.
 
-    template "/etc/yum.repos.d/#{new_resource.repositoryid}.repo" do
-      if new_resource.source.nil?
-        source 'repo.erb'
-        cookbook 'yum'
-      else
-        source new_resource.source
-      end
-      mode '0644'
-      variables(:config => new_resource)
-      notifies :run, "execute[yum-makecache-#{new_resource.repositoryid}]", :immediately
-      notifies :create, "ruby_block[yum-cache-reload-#{new_resource.repositoryid}]", :immediately
+  template "/etc/yum.repos.d/#{new_resource.repositoryid}.repo" do
+    if new_resource.source.nil?
+      source 'repo.erb'
+      cookbook 'yum'
+    else
+      source new_resource.source
     end
+    mode '0644'
+    variables(:config => new_resource)
+    notifies :run, "execute[yum-makecache-#{new_resource.repositoryid}]", :immediately
+    notifies :create, "ruby_block[yum-cache-reload-#{new_resource.repositoryid}]", :immediately
+  end
 
-    # get the metadata for this repo only
-    execute "yum-makecache-#{new_resource.repositoryid}" do
-      command "yum -q makecache --disablerepo=* --enablerepo=#{new_resource.repositoryid}"
-      action :nothing
-    end
+  # get the metadata for this repo only
+  execute "yum-makecache-#{new_resource.repositoryid}" do
+    command "yum -q makecache --disablerepo=* --enablerepo=#{new_resource.repositoryid}"
+    action :nothing
+  end
 
-    # reload internal Chef yum cache
-    ruby_block "yum-cache-reload-#{new_resource.repositoryid}" do
-      block { Chef::Provider::Package::Yum::YumCache.instance.reload }
-      action :nothing
-    end
+  # reload internal Chef yum cache
+  ruby_block "yum-cache-reload-#{new_resource.repositoryid}" do
+    block { Chef::Provider::Package::Yum::YumCache.instance.reload }
+    action :nothing
   end
 end
 
