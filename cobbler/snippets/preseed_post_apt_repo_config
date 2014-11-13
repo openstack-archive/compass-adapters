@@ -1,6 +1,6 @@
 cat << EOF > /etc/apt/apt.conf
 #if $getVar('proxy', '') != ''
-Acquire::http::Proxy "$proxy"
+Acquire::http::Proxy "$proxy";
 #end if
 EOF
 
