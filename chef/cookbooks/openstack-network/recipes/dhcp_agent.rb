@@ -84,34 +84,10 @@ if node['lsb'] && node['lsb']['codename'] == 'precise' && node['openstack']['net
     end
   end
 
-  dhcp_options = node['openstack']['network']['dhcp']
-
-  src_filename = dhcp_options['dnsmasq_filename']
-  src_filepath = "#{Chef::Config['file_cache_path']}/#{src_filename}"
-  extract_path = "#{Chef::Config['file_cache_path']}/#{dhcp_options['dnsmasq_checksum']}"
-
-  remote_file src_filepath do
-    source dhcp_options['dnsmasq_url']
-    checksum dhcp_options['dnsmasq_checksum']
-    owner 'root'
-    group 'root'
-    mode 00644
-  end
-
-  bash 'extract_package' do
-    cwd ::File.dirname(src_filepath)
-    code <<-EOH
-      mkdir -p #{extract_path}
-      tar xzf #{src_filename} -C #{extract_path}
-      mv #{extract_path}/*/* #{extract_path}/
-      cd #{extract_path}/
-      echo '2.65' > VERSION
-      debian/rules binary
-      EOH
-    not_if { ::File.exists?(extract_path) }
-    notifies :install, 'dpkg_package[dnsmasq-utils]', :immediately
-    notifies :install, 'dpkg_package[dnsmasq-base]', :immediately
-    notifies :install, 'dpkg_package[dnsmasq]', :immediately
+  package 'dnsmasq-utils'
+  package 'dnsmasq-base'
+  package 'dnsmasq' do
+    notifies :create, 'ruby_block[wait for dnsmasq]', :immediately
   end
 
   # wait for dnsmasq to start properly. Don't wait forever
@@ -129,19 +105,4 @@ if node['lsb'] && node['lsb']['codename'] == 'precise' && node['openstack']['net
     end
     action :nothing
   end
-
-  dpkg_package 'dnsmasq-utils' do
-    source "#{extract_path}/../dnsmasq-utils_#{dhcp_options['dnsmasq_dpkgversion']}_#{dhcp_options['dnsmasq_architecture']}.deb"
-    action :nothing
-  end
-  dpkg_package 'dnsmasq-base' do
-    source "#{extract_path}/../dnsmasq-base_#{dhcp_options['dnsmasq_dpkgversion']}_#{dhcp_options['dnsmasq_architecture']}.deb"
-    action :nothing
-  end
-  dpkg_package 'dnsmasq' do
-    source "#{extract_path}/../dnsmasq_#{dhcp_options['dnsmasq_dpkgversion']}_all.deb"
-    action :nothing
-    notifies :create, 'ruby_block[wait for dnsmasq]', :immediately
-  end
-
 end

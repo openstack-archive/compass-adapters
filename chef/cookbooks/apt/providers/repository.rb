@@ -96,47 +96,49 @@ def build_repo(uri, distribution, components, trusted, arch, add_deb_src)
 end
 
 action :add do
-  # add key
-  if new_resource.keyserver && new_resource.key
-    install_key_from_keyserver(new_resource.key, new_resource.keyserver)
-  elsif new_resource.key
-    install_key_from_uri(new_resource.key)
-  end
+  if node['local_repo'].nil? or node['local_repo'].empty?
+    # add key
+    if new_resource.keyserver && new_resource.key
+      install_key_from_keyserver(new_resource.key, new_resource.keyserver)
+    elsif new_resource.key
+      install_key_from_uri(new_resource.key)
+    end
 
-  file '/var/lib/apt/periodic/update-success-stamp' do
-    action :nothing
-  end
+    file '/var/lib/apt/periodic/update-success-stamp' do
+      action :nothing
+    end
 
-  execute 'apt-cache gencaches' do
-    ignore_failure true
-    action :nothing
-  end
+    execute 'apt-cache gencaches' do
+      ignore_failure true
+      action :nothing
+    end
 
-  execute 'apt-get update' do
-    command "apt-get update -o Dir::Etc::sourcelist='sources.list.d/#{new_resource.name}.list' -o Dir::Etc::sourceparts='-' -o APT::Get::List-Cleanup='0'"
-    ignore_failure true
-    action :nothing
-    notifies :run, 'execute[apt-cache gencaches]', :immediately
-  end
+    execute 'apt-get update' do
+      command "apt-get update -o Dir::Etc::sourcelist='sources.list.d/#{new_resource.name}.list' -o Dir::Etc::sourceparts='-' -o APT::Get::List-Cleanup='0'"
+      ignore_failure true
+      action :nothing
+      notifies :run, 'execute[apt-cache gencaches]', :immediately
+    end
 
-  # build repo file
-  repository = build_repo(
-    new_resource.uri,
-    new_resource.distribution,
-    new_resource.components,
-    new_resource.trusted,
-    new_resource.arch,
-    new_resource.deb_src
-    )
+    # build repo file
+    repository = build_repo(
+      new_resource.uri,
+      new_resource.distribution,
+      new_resource.components,
+      new_resource.trusted,
+      new_resource.arch,
+      new_resource.deb_src
+      )
 
-  file "/etc/apt/sources.list.d/#{new_resource.name}.list" do
-    owner 'root'
-    group 'root'
-    mode 00644
-    content repository
-    action :create
-    notifies :delete, 'file[/var/lib/apt/periodic/update-success-stamp]', :immediately
-    notifies :run, 'execute[apt-get update]', :immediately if new_resource.cache_rebuild
+    file "/etc/apt/sources.list.d/#{new_resource.name}.list" do
+      owner 'root'
+      group 'root'
+      mode 00644
+      content repository
+      action :create
+      notifies :delete, 'file[/var/lib/apt/periodic/update-success-stamp]', :immediately
+      notifies :run, 'execute[apt-get update]', :immediately if new_resource.cache_rebuild
+    end
   end
 end
 

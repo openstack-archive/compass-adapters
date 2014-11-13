@@ -9,5 +9,23 @@ enabled=1
 gpgcheck=0
 priority=1
 proxy=_none_
+skip_if_unavailable=1
+
+    #set $repo_data = $getVar("repo_data",[])
+    #for $repo in $repo_data
+[$repo.name]
+name=CentOS-6.5 - $repo.name
+        #if $repo.mirror_locally
+baseurl=$http_server/cblr/repo_mirror/${repo.name}
+        #else
+baseurl=${repo.mirror}
+        #end if
+enabled=1
+gpgcheck=0
+priority=${repo.priority}
+skip_if_unavailable=1
+proxy=_none_
+
+    #end for
 EOF
 #end if
