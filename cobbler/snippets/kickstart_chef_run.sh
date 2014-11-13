@@ -10,20 +10,26 @@
     #end if
 #end for
 
+#set $proxy_url = ""
+#if $getVar("local_repo","") != ""
+    #set $local_repo_url = $local_repo
+#else
+    #set $local_repo_url = ""
+    #if $getVar("proxy","") != ""
+        #set $proxy_url = $proxy
+    #end if
+#end if
+
+
 cat << EOF > /etc/chef/chef_client_run.sh
 #!/bin/bash
-instances=\\$(pgrep chef_client_run.sh | wc -l)
-if [ \\$instances -gt 1 ]; then
-    echo "there are chef-client run instances '\\$instances' running" &>> /tmp/chef.log
-    exit 1
-fi
 touch /tmp/chef.log
 while true; do
     echo "run chef-client on \`date\`" &>> /tmp/chef.log
     clients=\\$(pgrep chef-client)
     if [ "\\$?" == "0" ]; then
         echo "there are chef-clients '\\$clients' running" &>> /tmp/chef.log
-        sleep 1m
+        break
     else
         echo "knife search nodes" &>> /tmp/chef.log
         USER=root HOME=/root knife search node "name:\\$HOSTNAME.*" -i -a name &>> /tmp/chef.log
@@ -34,16 +40,11 @@ while true; do
             mkdir -p /var/log/chef/\\$node
 	    if [ ! -f /etc/chef/\\$node.json ]; then
                 cat << EOL > /etc/chef/\\$node.json
-#if $getVar("local_repo","") != ""
 {
-    "local_repo": "$local_repo",
+    "local_repo": "$local_repo_url",
+    "proxy_url": "$proxy_url",
     "ip_address": "$ip_address"
 }
-#else
-{
-    "ip_address": "$ip_address"
-}
-#end if
 EOL
             fi
             if [ ! -f "/etc/chef/\\$node.pem" ]; then
