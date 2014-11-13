@@ -48,6 +48,11 @@ service_pass = get_password 'service', 'openstack-image'
 service_tenant_name = node['openstack']['image']['service_tenant_name']
 service_user = node['openstack']['image']['service_user']
 
+save_http_proxy = Chef::Config[:http_proxy]
+unless node['proxy_url'].nil? or node['proxy_url'].empty?
+    Chef::Config[:http_proxy] = "#{node['proxy_url']}"
+end
+
 node['openstack']['image']['upload_images'].each do |img|
   openstack_image_image "Image setup for #{img.to_s}" do
     image_url node['openstack']['image']['upload_image'][img.to_sym]
@@ -59,3 +64,5 @@ node['openstack']['image']['upload_images'].each do |img|
     action :upload
   end
 end
+
+Chef::Config[:http_proxy] = save_http_proxy
