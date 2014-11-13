@@ -28,6 +28,10 @@ end
 
 include_recipe 'openstack-block-storage::cinder-common'
 
+package "parted" do
+    action :install
+end
+
 platform_options = node['openstack']['block-storage']['platform']
 
 platform_options['cinder_volume_packages'].each do |pkg|
