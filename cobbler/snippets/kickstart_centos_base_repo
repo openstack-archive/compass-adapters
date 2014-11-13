@@ -1,3 +1,4 @@
+#if $getVar("local_repo","") == ""
 cat << EOF > /etc/yum.repos.d/CentOS-Base.repo
 # CentOS-Base.repo
 #
@@ -12,36 +13,37 @@ cat << EOF > /etc/yum.repos.d/CentOS-Base.repo
 #
 
 [base]
-name=CentOS-\\$releasever - Base
-mirrorlist=http://mirrorlist.centos.org/?release=\\$releasever&arch=\\$basearch&repo=os
-baseurl=http://mirror.centos.org/centos/\\$releasever/os/\\$basearch/
+name=CentOS-6.5 - Base
+mirrorlist=http://mirrorlist.centos.org/?release=6.5=\\$basearch&repo=os
+baseurl=http://mirror.centos.org/centos/6.5/os/\\$basearch/
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
 skip_if_unavailable=1
 
-#released updates 
+# released updates 
 [updates]
-name=CentOS-\\$releasever - Updates
-mirrorlist=http://mirrorlist.centos.org/?release=\\$releasever&arch=\\$basearch&repo=updates
-baseurl=http://mirror.centos.org/centos/\\$releasever/updates/\\$basearch/
+name=CentOS-6.5 - Updates
+mirrorlist=http://mirrorlist.centos.org/?release=6.5&arch=\\$basearch&repo=updates
+baseurl=http://mirror.centos.org/centos/6.5/updates/\\$basearch/
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
 skip_if_unavailable=1
 
-#additional packages that may be useful
+# additional packages that may be useful
 [extras]
-name=CentOS-\\$releasever - Extras
-mirrorlist=http://mirrorlist.centos.org/?release=\\$releasever&arch=\\$basearch&repo=extras
-baseurl=http://mirror.centos.org/centos/\\$releasever/extras/\\$basearch/
+name=CentOS-6.5 - Extras
+mirrorlist=http://mirrorlist.centos.org/?release=6.5&arch=\\$basearch&repo=extras
+baseurl=http://mirror.centos.org/centos/6.5/extras/\\$basearch/
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
 skip_if_unavailable=1
+#end if
 
 #additional packages that extend functionality of existing packages
 [centosplus]
-name=CentOS-\\$releasever - Plus
-mirrorlist=http://mirrorlist.centos.org/?release=\\$releasever&arch=\\$basearch&repo=centosplus
-baseurl=http://mirror.centos.org/centos/\\$releasever/centosplus/\\$basearch/
+name=CentOS-6.5 - Plus
+mirrorlist=http://mirrorlist.centos.org/?release=6.5&arch=\\$basearch&repo=centosplus
+baseurl=http://mirror.centos.org/centos/6.5/centosplus/\\$basearch/
 gpgcheck=1
 enabled=0
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
@@ -49,9 +51,9 @@ skip_if_unavailable=1
 
 #contrib - packages by Centos Users
 [contrib]
-name=CentOS-\\$releasever - Contrib
-mirrorlist=http://mirrorlist.centos.org/?release=\\$releasever&arch=\\$basearch&repo=contrib
-baseurl=http://mirror.centos.org/centos/\\$releasever/contrib/\\$basearch/
+name=CentOS-6.5 - Contrib
+mirrorlist=http://mirrorlist.centos.org/?release=6.5&arch=\\$basearch&repo=contrib
+baseurl=http://mirror.centos.org/centos/6.5/contrib/\\$basearch/
 gpgcheck=1
 enabled=0
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
