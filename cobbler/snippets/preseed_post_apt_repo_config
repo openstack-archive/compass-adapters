@@ -1,34 +1,43 @@
 cat << EOF > /etc/apt/apt.conf
 #if $getVar('proxy', '') != ''
-Acquire::http::Proxy "$proxy"
+Acquire::http::Proxy "$proxy";
 #end if
 EOF
 
 cat << EOF > /etc/apt/sources.list
-#if $getVar('os_version', '') != ''
+#if $getVar("local_repo","") != ""
+    #set $repo_data = $getVar("repo_data",[])
+    #for $repo in $repo_data
+        #for $dist in $repo.apt_dists
+            #set $comps = " ".join($repo.apt_components)
+            #if $repo.comment != ""
+# ${repo.comment}
+            #end if
+            #if $repo.arch == "x86_64"
+                #set $rarch = "[arch=amd64]"
+            #else
+                #set $rarch = "[arch=%s]" % $repo.arch
+            #end if
+            #if $repo.mirror_locally
+deb ${rarch} http://$http_server/cblr/repo_mirror/${repo.name} $dist $comps
+            #else
+deb ${rarch} ${repo.mirror} $dist $comps
+            #end if
+        #end for
+    #end for
+    #if $arch == "x86_64"
+        #set $rarch = "[arch=amd64]"
+    #else
+        #set $rarch = "[arch=%s]" % $arch
+    #end if
+deb ${rarch} $local_repo/apt_repo/ubuntu/$arch/12.04/ compass_repo main
+#else
+    #if $getVar('os_version', '') != ''
 deb http://archive.ubuntu.com/ubuntu/ $os_version main restricted universe multiverse
 deb http://archive.ubuntu.com/ubuntu/ ${os_version}-security main restricted universe multiverse
 deb http://archive.ubuntu.com/ubuntu/ ${os_version}-updates main restricted universe multiverse
 deb http://archive.ubuntu.com/ubuntu/ ${os_version}-proposed main restricted universe multiverse
 deb http://archive.ubuntu.com/ubuntu/ ${os_version}-backports main restricted universe multiverse
+    #end if
 #end if
-#set $repo_data = $getVar("repo_data",[])
-#for $repo in $repo_data
-    #for $dist in $repo.apt_dists
-        #set $comps = " ".join($repo.apt_components)
-        #if $repo.comment != ""
-# ${repo.comment}
-        #end if
-        #if $repo.arch == "x86_64"
-            #set $rarch = "[arch=amd64]"
-        #else
-            #set $rarch = "[arch=%s]" % $repo.arch
-        #end if
-        #if $repo.mirror_locally
-deb ${rarch} http://$http_server/cblr/repo_mirror/${repo.name} $dist $comps
-        #else
-deb ${rarch} ${repo.mirror} $dist $comps
-        #end if
-    #end for
-#end for
 EOF
