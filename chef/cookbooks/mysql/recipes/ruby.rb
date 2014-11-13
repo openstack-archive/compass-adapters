@@ -44,12 +44,12 @@ node['mysql']['client']['packages'].each do |name|
   resources("package[#{name}]").run_action(:install)
 end
 
-if node['local_repo'].nil? or node['local_repo'].empty?
-  chef_gem 'mysql'
-else
-  gem_package 'mysql' do
-    options("--clear-sources --source #{node['local_repo']}/gem_repo/")
+case node['platform_family']
+when 'debian'
+  chef_gem 'mysql' do
     action :install
     version '2.9.1'
   end
+when 'rhel'
+  chef_gem 'mysql'
 end
