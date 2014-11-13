@@ -48,6 +48,17 @@ service_pass = get_password 'service', 'openstack-image'
 service_tenant_name = node['openstack']['image']['service_tenant_name']
 service_user = node['openstack']['image']['service_user']
 
+save_http_proxy = Chef::Config[:http_proxy]
+save_https_proxy = Chef::Config[:https_proxy]
+unless node['proxy_url'].nil? or node['proxy_url'].empty?
+  Chef::Config[:http_proxy] = "#{node['proxy_url']}"
+  Chef::Config[:https_proxy] = "#{node['proxy_url']}"
+  ENV['http_proxy'] = "#{node['proxy_url']}"
+  ENV['HTTP_RPOXY'] = "#{node['proxy_url']}"
+  ENV['https_proxy'] = "#{node['proxy_url']}"
+  ENV['HTTPS_RPOXY'] = "#{node['proxy_url']}"
+end
+
 node['openstack']['image']['upload_images'].each do |img|
   openstack_image_image "Image setup for #{img.to_s}" do
     image_url node['openstack']['image']['upload_image'][img.to_sym]
@@ -59,3 +70,11 @@ node['openstack']['image']['upload_images'].each do |img|
     action :upload
   end
 end
+
+Chef::Config[:http_proxy] = save_http_proxy
+Chef::Config[:https_proxy] = save_https_proxy
+ENV['http_proxy'] = save_http_proxy
+ENV['HTTP_RPOXY'] = save_http_proxy
+ENV['https_proxy'] = save_https_proxy
+ENV['HTTPS_RPOXY'] = save_https_proxy
+

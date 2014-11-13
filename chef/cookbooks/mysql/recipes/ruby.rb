@@ -44,12 +44,26 @@ node['mysql']['client']['packages'].each do |name|
   resources("package[#{name}]").run_action(:install)
 end
 
-if node['local_repo'].nil? or node['local_repo'].empty?
-  chef_gem 'mysql'
-else
-  gem_package 'mysql' do
-    options("--clear-sources --source #{node['local_repo']}/gem_repo/")
-    action :install
-    version '2.9.1'
-  end
+save_http_proxy = Chef::Config[:http_proxy]
+save_https_proxy = Chef::Config[:https_proxy]
+unless node['proxy_url'].nil? or node['proxy_url'].empty?
+  Chef::Config[:http_proxy] = "#{node['proxy_url']}"
+  Chef::Config[:https_proxy] = "#{node['proxy_url']}"
+  ENV['http_proxy'] = "#{node['proxy_url']}"
+  ENV['HTTP_PROXY'] = "#{node['proxy_url']}"
+  ENV['https_proxy'] = "#{node['proxy_url']}"
+  ENV['HTTPS_PROXY'] = "#{node['proxy_url']}"
 end
+
+chef_gem 'mysql' do
+  action :install
+  version '2.9.1'
+end
+
+Chef::Config[:http_proxy] = save_http_proxy
+Chef::Config[:https_proxy] = save_https_proxy
+ENV['http_proxy'] = save_http_proxy
+ENV['HTTP_PROXY'] = save_http_proxy
+ENV['https_proxy'] = save_https_proxy
+ENV['HTTPS_PROXY'] = save_https_proxy
+
