@@ -48,6 +48,17 @@ service_pass = get_password 'service', 'openstack-image'
 service_tenant_name = node['openstack']['image']['service_tenant_name']
 service_user = node['openstack']['image']['service_user']
 
+unless node['proxy_url'].nil? or node['proxy_url'].empty?
+  node['openstack']['image']['upload_images'].each do |img|
+    execute "wget #{node['openstack']['image']['upload_image'][img.to_sym]}" do
+      cwd ::File.dirname(Chef::Config['file_cache_path'])
+      returns [0]
+      not_if { ::File.exists?(::File.basename(node['openstack']['image']['upload_image'][img.to_sym])) }
+      environment ({ 'http_proxy' =>  node['proxy_url'], 'https_proxy' => node['proxy_url'] })
+    end
+  end
+end
+
 node['openstack']['image']['upload_images'].each do |img|
   openstack_image_image "Image setup for #{img.to_s}" do
     image_url node['openstack']['image']['upload_image'][img.to_sym]
