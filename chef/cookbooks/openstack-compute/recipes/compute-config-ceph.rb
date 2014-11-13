@@ -42,9 +42,20 @@ if node['openstack']['block-storage']['volume']['driver'] == 'cinder.volume.driv
     node.override['ceph']['rhel']['extras']['repository'] = "#{node['local_repo']}/compass_repo"
   end
 
+  save_http_proxy = Chef::Config[:http_proxy]
+  unless node['proxy_url'].nil? or node['proxy_url'].empty?
+    Chef::Config[:http_proxy] = "#{node['proxy_url']}"
+    ENV['http_proxy'] = "#{node['proxy_url']}"
+    ENV['HTTP_PROXY'] = "#{node['proxy_url']}"
+  end
+
   execute "rpm -Uvh --force #{node['ceph']['rhel']['extras']['repository']}/qemu-kvm-0.12.1.2-2.415.el6.3ceph.x86_64.rpm #{node['ceph']['rhel']['extras']['repository']}/qemu-img-0.12.1.2-2.415.el6.3ceph.x86_64.rpm" do
     not_if "rpm -qa | grep qemu | grep ceph"
   end
+
+  Chef::Config[:http_proxy] = save_http_proxy
+  ENV['http_proxy'] = save_http_proxy
+  ENV['HTTP_PROXY'] = save_http_proxy
 
   secret_uuid = node['openstack']['block-storage']['rbd_secret_uuid']
   rbd_user = node['openstack']['compute']['libvirt']['rbd']['rbd_user']
