@@ -1,14 +1,20 @@
 cat << EOF > /root/.gemrc
+#if $getVar("local_repo","") == "" and $getVar('proxy', '') != ""
+gem: --no-ri --no-rdoc --http-proxy=$proxy
+#else
 gem: --no-ri --no-rdoc
+#end if
 :backtrace: false
 :benchmark: false
 :bulk_threshold: 1000
 :sources:
-## - http://gems.rubyforge.org/
 #if $getVar("local_repo","") != ""
 - $local_repo/gem_repo/
+#else
+- https://rubygems.org/
 #end if
 :update_sources: true
 :verbose: true
 EOF
 
+cp -f /root/.gemrc /etc/gemrc
