@@ -28,6 +28,9 @@ end
 if ! node['cluster']
   node.set['cluster'] = "no_cluster_defined"
 end
+
+node.set['collectd']['client']['fqdn'] = node['fqdn'] || node['hostname'] || node['ipaddress'] || "fqdn_unknown"
+
 collectd_python_plugin "kairosdb_writer" do
   opts  =    {"KairosDBHost"=>node['collectd']['server']['host'],
               "KairosDBPort"=>node['collectd']['server']['port'],
