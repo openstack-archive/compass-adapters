@@ -84,11 +84,20 @@ if node['lsb'] && node['lsb']['codename'] == 'precise' && node['openstack']['net
     end
   end
 
+  unless node['local_repo'].nil or node['local_repo'].empty?
+    node.override['openstack']['network']['dhcp']['dnsmasq_url'] = "${node['local_repo']}/dnsmasq-2.65.tar.gz"
+  end
+
   dhcp_options = node['openstack']['network']['dhcp']
 
   src_filename = dhcp_options['dnsmasq_filename']
   src_filepath = "#{Chef::Config['file_cache_path']}/#{src_filename}"
   extract_path = "#{Chef::Config['file_cache_path']}/#{dhcp_options['dnsmasq_checksum']}"
+
+  save_http_proxy = Chef::Config[:http_proxy]
+  unless node['proxy_url'].nul? or node['proxy_url'].empty?
+    Chef::Config[:http_proxy] = "#{node['proxy_url']}"
+  end
 
   remote_file src_filepath do
     source dhcp_options['dnsmasq_url']
@@ -97,6 +106,8 @@ if node['lsb'] && node['lsb']['codename'] == 'precise' && node['openstack']['net
     group 'root'
     mode 00644
   end
+
+  Chef::Config[:http_proxy] = save_http_proxy
 
   bash 'extract_package' do
     cwd ::File.dirname(src_filepath)
