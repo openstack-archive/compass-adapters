@@ -30,6 +30,16 @@ if node['compass'] and node['compass']['cluster_id']
   cluster_id = node['compass']['cluster_id']
 end
 
+if node['fqdn']
+  node.set['collectd']['client']['fqdn'] = node['fqdn']
+elsif node['hostname']
+  node.set['collectd']['client']['fqdn'] = node['hostname']
+elsif node['ipaddress']
+  node.set['collectd']['client']['fqdn'] = node['ipaddress']
+else
+  node.set['collectd']['client']['fqdn'] = "fqdn_unknown"
+end
+
 collectd_python_plugin "kairosdb_writer" do
   opts  =    {"KairosDBHost"=>node['collectd']['server']['host'],
               "KairosDBPort"=>node['collectd']['server']['port'],
