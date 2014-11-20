@@ -2,7 +2,11 @@
 #set profile_name = $getVar('profile_name','')
 #set breed = $getVar('breed','')
 #set os_version = $getVar('os_version','')
-#set srv = $getVar('http_server','')
+#if $getVar("compass_server","") != ""
+#set srv = $getVar('compass_server','')
+#else
+#set srv = $getVar('server','')
+#end if
 #set kickstart = $getVar('kickstart','')
 #set run_install_triggers = $str($getVar('run_install_triggers',''))
 #set pxe_just_once = $str($getVar('pxe_just_once',''))
