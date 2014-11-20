@@ -8,7 +8,11 @@ $idata["ip_address"] $hostname
 #end for
 #import os
 #set $server_name = $os.uname[1]
+#if $getVar("compass_server", "") != ""
+$compass_server $server_name
+#else
 $server $server_name
+#end if
 #if $getVar("chef_server_ip", "") != "" and $getVar("chef_server_dns", "") != ""
 $chef_server_ip $chef_server_dns
 #end if
