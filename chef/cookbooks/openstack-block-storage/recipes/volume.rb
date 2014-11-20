@@ -190,6 +190,10 @@ when 'cinder.volume.drivers.lvm.LVMISCSIDriver'
       action :upgrade
     end
 
+    package 'parted' do
+      action :install
+    end
+
     openstack_block_storage_volume node['openstack']['block-storage']['volume']['disk'] do
       action :create_partition
     end
