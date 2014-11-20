@@ -90,7 +90,7 @@ if node['openstack']['dashboard']['session_backend'] == 'memcached'
   end
 end
 
-memcached = memcached_servers
+memcached = memcached_servers('os-ops-caching')
 
 # delete the openstack-dashboard.conf before reload apache2 service on fedora, redhat and centos
 # since this file is not valid on those platforms for the apache2 service.

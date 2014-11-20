@@ -108,9 +108,6 @@ if node['openstack']['auth']['strategy'] == 'pki'
 
   if certfile_url.nil? || keyfile_url.nil? || ca_certs_url.nil?
     keygen_node = node_election('os-identity', 'keystone_keygen')
-    if keygen_node.nil?
-      keygen_node = node
-    end
     if node.name.eql?(keygen_node.name)
       execute 'keystone-manage pki_setup' do
         user  node['openstack']['identity']['user']
@@ -130,7 +127,7 @@ if node['openstack']['auth']['strategy'] == 'pki'
       end
 
     else
-      if keygen_node['openstack']['identity']['signing'].attribute?("#{name}_data")
+      if keygen_node['openstack']['identity']['signing'].attribute?("ca_certs_data")
         %w{certfile keyfile ca_certs}.each do |name|
           file node['openstack']['identity']['signing']["#{name}"] do
             content keygen_node['openstack']['identity']['signing']["#{name}_data"]
@@ -196,7 +193,11 @@ if node['openstack']['identity']['token']['backend'].eql?('memcache')
   memcache_servers = memcached_servers('os-ops-caching').join ','  # from openstack-common lib
   # number of seconds to wait before sockets timeout when the memcached server is down
   # the default number is 3, here is going to set it as 0.1
-  `sed -i "s/_SOCKET_TIMEOUT = 3/_SOCKET_TIMEOUT = 0.1/g" /usr/lib/python[0-9].[0-9]/site-packages/memcache.py`
+  ruby_block "Set memcache socket timeout" do
+    block do
+      `sed -i "s/_SOCKET_TIMEOUT = 3/_SOCKET_TIMEOUT = 0.1/g" /usr/lib/python[0-9].[0-9]/site-packages/memcache.py`
+    end
+  end
 end
 
 # These configuration endpoints must not have the path (v2.0, etc)

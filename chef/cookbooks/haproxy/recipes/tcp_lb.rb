@@ -35,7 +35,7 @@ node['haproxy']['services'].each do |name, service|
 
   if node['haproxy']['choose_backend'].eql?("prefeed")
     pool_members = []
-    if node['haproxy'].has_attribute?(:node_mapping)
+    if node['haproxy'].attribute?("node_mapping")
       node['haproxy']['node_mapping'].each do |nodename, nodeinfo|
         if nodeinfo['roles'].include?(service['role'])
           pool_members << nodename

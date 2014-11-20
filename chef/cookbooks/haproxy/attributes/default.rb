@@ -50,8 +50,8 @@ default['haproxy']['ssl_incoming_port'] = 443
 default['haproxy']['ssl_member_port'] = 8443
 default['haproxy']['httpchk'] = nil
 default['haproxy']['ssl_httpchk'] = nil
-default['haproxy']['enable_admin'] = true
-default['haproxy']['admin']['address_bind'] = "10.145.88.152"
+default['haproxy']['enable_admin'] = false
+default['haproxy']['admin']['address_bind'] = "127.0.0.1"
 default['haproxy']['admin']['port'] = 22002
 default['haproxy']['enable_stats_socket'] = false
 default['haproxy']['stats_socket_path'] = "/var/run/haproxy.sock"
@@ -97,6 +97,7 @@ default['haproxy']['enabled_services'] = [
   "dashboard_http",
   "dashboard_https",
   "glance_api",
+  "glance_registry_cluster",
   "keystone_admin",
   "keystone_public_internal",
   "nova_compute_api",
@@ -127,7 +128,8 @@ default['haproxy']['roles'] = {
     "neutron_api"
   ],
   "os-image" => [
-    "glance_api"
+    "glance_api",
+    "glance_registry_cluster"
   ]
 }
 
@@ -145,10 +147,12 @@ default['haproxy']['services'] = {
     "options" => [ "capture  cookie vgnvisitor= len 32", \
                    "cookie  SERVERID insert indirect nocache", \
                    "mode  http", \
+                   "balance source", \
                    "option  forwardfor", \
-                   "option  httpchk", \
+                   "option  httpchk OPTIONS / HTTP/1.1", \
+                   "http-check expect status 400", \
                    "option  http-server-close", \
-                   'rspidel  ^Set-cookie:\ IP='
+                   "rspidel  ^Set-cookie:\ IP="
                   # "appsession csrftoken len 42  timeout 1h"
                  ]
   },
@@ -169,7 +173,7 @@ default['haproxy']['services'] = {
     "role" => "os-image-registry",
     "frontend_port" => "9191",
     "backend_port" => "9191",
-    "options" => [ "option tcpka", "option  httpchk", "option  tcplog", "balance leastconn" ]
+    "options" => [ "option tcpka", "option  httpchk", "option  tcplog", "balance leastconn", "http-check expect status 401" ]
   },
   "keystone_admin" => {
     "role" => "os-identity",
