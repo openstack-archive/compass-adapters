@@ -1,5 +1,3 @@
-mkdir -p /tmp/repo_backup
-mv /etc/yum.repos.d/* /tmp/repo_backup/
 $SNIPPET('kickstart_yum.conf')
 ## $SNIPPET('kickstart_centos_base_repo')
 ## $SNIPPET('kickstart_centos_debuginfo_repo')

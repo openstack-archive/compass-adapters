@@ -1,4 +1,6 @@
 #if $getVar("local_repo","") != ""
+mkdir -p /tmp/repo_backup
+mv /etc/yum.repos.d/* /tmp/repo_backup/
 cat << EOF > /etc/yum.repos.d/Compass.repo
 [compass_repo]
 name=Compass yum repo
