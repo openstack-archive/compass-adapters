@@ -44,8 +44,17 @@ node['mysql']['client']['packages'].each do |name|
   resources("package[#{name}]").run_action(:install)
 end
 
+# unknown reason cause chef-client not to honor .gemrc immediately
+# even not until timeout is reached, so specify the options explicitly.
 if node['local_repo'].nil? or node['local_repo'].empty?
-  chef_gem 'mysql'
+  if node['proxy_url']
+    gem_package 'mysql' do
+      options("--http-proxy #{node['proxy_url']}")
+      action :install
+    end
+  else
+    chef_gem 'mysql'
+  end
 else
   gem_package 'mysql' do
     options("--clear-sources --source #{node['local_repo']}/gem_repo/")
