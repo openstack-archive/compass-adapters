@@ -51,6 +51,9 @@ for disk in \$(list-devices disk); do
         continue
     fi
     disk_name=\$(basename \$disk)
+#if $getVar('keep_old_partitions', '0') == "0"
+    dd if=/dev/zero of=\$disk bs=512 count=1
+#end if
     eval "disk_path=\\${disk_\${disk_name}}" 
     if [ -z \${disk_path} ]; then
         echo "ignore disk \${disk_name} since it is not in disk_mapping" >> /tmp/preseed.log
@@ -129,6 +132,9 @@ done
 echo "first disk \${first_disk_name}" >> /tmp/preseed.log
 
 #if $getVar('keep_old_partitions', '0') != "0"
+for disk_name in \${sorted_disks}; do
+    dd if=/dev/zero of=/dev/\${disk_name} bs=512 count=1
+done
 remove_disks=\${sorted_disks}
 #else
 remove_disks=\${disks}
