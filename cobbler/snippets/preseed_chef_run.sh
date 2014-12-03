@@ -12,12 +12,16 @@
 
 cat << EOF > /etc/chef/chef_client_run.sh
 #!/bin/bash
-instances=\\$(pgrep chef_client_run.sh | wc -l)
-if [ \\$instances -gt 1 ]; then
-    echo "there are chef-client run instances '\\$instances' running" &>> /tmp/chef.log
-    exit 1
-fi
 touch /tmp/chef.log
+PIDFILE=/tmp/chef_client_run.pid
+if [ -f \\$PIDFILE ]; then
+    ps --no-heading --pid `cat \\$PIDFILE`
+    if [[ "\\$?" == "0" ]]; then
+	echo "there are chef_client_run.sh running with pid `cat \\$PIDFILE`" &>> /tmp/chef.log
+	exit 1
+    fi
+fi
+echo \\$$ > \\$PIDFILE
 while true; do
     echo "run chef-client on \`date\`" &>> /tmp/chef.log
     clients=\\$(pgrep chef-client)
