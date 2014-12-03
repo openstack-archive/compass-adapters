@@ -28,6 +28,10 @@ end
 
 include_recipe 'openstack-block-storage::cinder-common'
 
+package 'parted' do
+  action :install
+end
+
 platform_options = node['openstack']['block-storage']['platform']
 
 platform_options['cinder_volume_packages'].each do |pkg|
@@ -188,10 +192,6 @@ when 'cinder.volume.drivers.lvm.LVMISCSIDriver'
 
     package 'bc' do
       action :upgrade
-    end
-
-    package 'parted' do
-      action :install
     end
 
     openstack_block_storage_volume node['openstack']['block-storage']['volume']['disk'] do
