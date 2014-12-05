@@ -43,6 +43,9 @@ let found_disk_offset=0
 while [ \$disk_offset -lt \$disk_nums ]; do
     let found_disk=0
     disk_name=\$(basename \$1)
+#if $getVar('keep_old_partitions', '0') == "0"
+    dd if=/dev/zero of=/dev/\${disk_name} bs=512 count=1
+#end if
     if [[ x"\${disk_mapping[\${disk_name}]}" == x"" ]]; then
         echo "ignore disk \$1 since it is not in disk_mapping" >> /tmp/log
     	let disk_offset=\$disk_offset+1
@@ -103,6 +106,9 @@ done
 echo "clearpart --all --initlabel" > /tmp/part-include
 
 #if $getVar('keep_old_partitions', '0') != "0"
+for disk in \${sorted_disks[@]}; do
+    dd if=/dev/zero of=\${disk} bs=512 count=1
+done
 echo "only partition \$sorted_disks_str" >> /tmp/log
 echo "ignoredisk --only-use=\$sorted_disks_str" >> /tmp/part-include
 #end if
