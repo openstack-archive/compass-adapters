@@ -2,6 +2,7 @@
 #set partition = $getVar('partition', None)
 #set partition_size = $getVar('partition_size', None)
 #set partition_maxsize = $getVar('partition_maxsize', None)
+#set disk_reserve_size = $getVar('disk_reserve_size', None)
 
 #if $hostname == None
 #set $vgname = "VolGroup00"
@@ -32,6 +33,7 @@ while [ \$disk_mapping_offset -lt \$disk_mapping_nums ]; do
         fi
         disk_path=\$(echo \$1 | tr '-' '_' | tr ':' '_' | tr '.' '_')
         eval "disk_\${disk_name}=\${disk_path}"
+	eval "disk_\${disk_path}=\${disk_path}"
         eval "disk_path_\${disk_path}=/dev/\${disk_name}"
         eval "disk_path_\${disk_name}=/dev/\${disk_name}"
     fi
@@ -133,8 +135,16 @@ echo "first disk \${first_disk_name}" >> /tmp/preseed.log
 
 #if $getVar('keep_old_partitions', '0') != "0"
 for disk_name in \${sorted_disks}; do
-    dd if=/dev/zero of=/dev/\${disk_name} bs=512 count=1
+    if [ -z \${disk_name} ]; then
+        continue
+    fi
+    eval "disk=\\${disk_path_\${disk_name}}"
+    if [ -z \${disk} ]; then
+        continue
+    fi
+    dd if=/dev/zero of=\${disk} bs=512 count=1
 done
+
 remove_disks=\${sorted_disks}
 #else
 remove_disks=\${disks}
@@ -153,8 +163,11 @@ for disk_partition in \${disk_partitions}; do
     remove_vg=""
     remove_partition=""
     for remove_disk_name in \${remove_disks}; do
-        eval "remove_disk=\\${disk_path_\${remove_disk_name}}"
         if [ -z \${remove_disk_name} ]; then
+            continue
+        fi
+        eval "remove_disk=\\${disk_path_\${remove_disk_name}}"
+        if [ -z \${remove_disk} ]; then
             continue
         fi
         if expr match "\${disk_partition}" "\${remove_disk}.*"; then
@@ -200,6 +213,9 @@ done
 select_disks=""
 echo "remove disks \${remove_disks}" >> /tmp/preseed.log
 for remove_disk_name in \${remove_disks}; do
+    if [ -z \${remove_disk_name} ]; then
+        continue
+    fi
     eval "remove_disk=\\${disk_path_\${remove_disk_name}}"
     if [ -z \$remove_disk ]; then
         continue
@@ -215,6 +231,9 @@ echo "select disks \${select_disks}" >> /tmp/preseed.log
 
 partition_disks=""
 for disk_name in \${sorted_disks}; do
+    if [ -z \${disk_name} ]; then
+        continue
+    fi
     eval "disk=\\${disk_path_\${disk_name}}"
     if [ -z \$disk ]; then
         continue
@@ -233,6 +252,24 @@ partition_fstype=$getVar('partition_fstype', 'ext3')
 
 echo "default partition \${default_partition}" >> /tmp/preseed.log
 echo "partition fstype \${partition_fstype}" >> /tmp/preseed.log
+
+#if $disk_reserve_size != None
+    #set disk_sizes = [disk_size.strip() for disk_size in $disk_reserve_size.split(';') if disk_size.strip()]
+    #for disk_and_size in $disk_sizes
+        #set disk_name, size = $disk_and_size.split(' ', 1)
+        #set disk_name = $disk_name.strip()
+	#if $size.endswith('K')
+	    #set disk_size = $int($size[:-1])
+	#elif $size.endswith('G')
+	    #set disk_size = $int($size[:-1]) * 1000
+	#elif $size.endswith('T')
+	    #set disk_size = $int($size[:-1]) * 1000000
+	#else
+	    #set disk_size = $int($size)
+	#end if
+reserve_disk_size_${disk_name}=${disk_size}
+    #end for
+#end if
 
 partition_names=""
 default_partition_name=""
@@ -392,7 +429,7 @@ fi
 partition_param_boot="\${partition_fstype} \
 \\$primary{ } \\$bootable{ } method{ format } \
 format{ } use_filesystem{ } filesystem{ \${partition_fstype} } \
-mountpoint{ /boot } device{ \$first_disk } \
+mountpoint{ /boot } device{ \${first_disk} } \
 "
 
 if [ -z \$partition_point_swap ]; then
@@ -418,7 +455,7 @@ fi
 
 partition_param_swap="linux-swap \
 \\$primary{ } method{ swap } format{ } \
-device{ \$first_disk } \
+device{ \${first_disk} } \
 "
 
 if [ -z \$partition_point_root ]; then
@@ -471,9 +508,20 @@ mountpoint{ \$partition }"
 done
 
 for disk_name in \${sorted_disks}; do
+    if [ -z \${disk_name} ]; then
+        continue
+    fi
     eval "disk=\\${disk_path_\${disk_name}}"
     if [ -z \$disk ]; then
         continue
+    fi
+    disk_name=\$(basename \$disk)
+    eval "reserve_disk_size=\\${reserve_disk_size_\${disk_name}}"
+    if [ ! -z \${reserve_disk_size} ]; then
+        reserve_disk_param="\${partition_fstype} \
+method{ format } format{ } use_filesystem{ } filesystem{ \${partition_fstype} } device{ \${disk} }"
+        recipe="\$recipe \${reserve_disk_size} \${reserve_disk_size} \${reserve_disk_size} \${reserve_disk_param} ."
+	echo "reserve partition param \${disk_name} => \${reserve_disk_param}" >> /tmp/preseed.log
     fi
     disk_param="\${partition_fstype} \
 \\$defaultignore{ } \\$primary{ } device{ \${disk} } \

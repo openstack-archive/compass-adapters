@@ -18,3 +18,4 @@ d-i partman/confirm_write_changes_to_disks_and_configure_lvm boolean true
 d-i partman/choose_partition select Finish partitioning and write changes to disk
 d-i mdadm/boot_degraded boolean true
 d-i partman-auto-lvm/no_boot boolean true
+d-i partman-basicfilesystems/no_mount_point false

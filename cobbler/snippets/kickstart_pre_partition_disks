@@ -2,6 +2,7 @@
 #set partition = $getVar('partition', None)
 #set partition_size = $getVar('partition_size', None)
 #set partition_maxsize = $getVar('partition_maxsize', None)
+#set disk_reserve_size = $getVar('disk_reserve_size', None)
 
 #if $hostname == None
 #set $vgname = "VolGroup00"
@@ -111,6 +112,30 @@ for disk in \${sorted_disks[@]}; do
 done
 echo "only partition \$sorted_disks_str" >> /tmp/log
 echo "ignoredisk --only-use=\$sorted_disks_str" >> /tmp/part-include
+#end if
+
+declare -A reserve_disks_size
+#if $disk_reserve_size != None
+    #set disk_sizes = [disk_size.strip() for disk_size in $disk_reserve_size.split(';') if disk_size.strip()]
+    #for disk_and_size in $disk_sizes
+        #set disk_name, size = $disk_and_size.split(' ', 1)
+        #set disk_name = $disk_name.strip()
+	#if $size.endswith('K')
+	    #set disk_size = $int($size[:-1])
+	#elif $size.endswith('G')
+	    #set disk_size = $int($size[:-1]) * 1000
+	#elif $size.endswith('T')
+	    #set disk_size = $int($size[:-1]) * 1000000
+	#else
+	    #set disk_size = $int($size)
+	#end if
+        #if $getVar('partition_by_path', '0') != "0"
+disk=/dev/disk/by-path/\${disk_mapping[\${disk_name}]}
+        #else
+disk=/dev/${disk_name}
+        #end if
+reserve_disks_size[\$disk]=${disk_size}
+    #end for
 #end if
 
 declare -A partitions_percentage
@@ -241,8 +266,14 @@ let disk_offset=0
 while [ \$disk_offset -lt \$disk_nums ];
 do
 let pv_id=\$disk_offset+1
+disk=\${sorted_disks[\$disk_offset]}
+if [ ! -z \${reserve_disks_size[\${disk}]} ]; then
+    reserve_partname="reverse.0\$pv_id"
+    reserve_disk_size=\${reserve_disks_size[\${disk}]}
+    echo "part \${reserve_partname} --size=\${reserve_disk_size} --ondisk=\${disk}" >> /tmp/part-include
+fi
 partname="pv.0\$pv_id"
-echo "part \$partname --size=1 --grow --ondisk=\${sorted_disks[\$disk_offset]}" >> /tmp/part-include
+echo "part \$partname --size=1 --grow --ondisk=\${disk}" >> /tmp/part-include
 vggroup="\$vggroup \$partname"
 let disk_offset=\$disk_offset+1;
 done
