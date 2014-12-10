@@ -24,10 +24,19 @@
 cat << EOF > /etc/chef/chef_client_run.sh
 #!/bin/bash
 touch /tmp/chef.log
+PIDFILE=/tmp/chef_client_run.pid
+if [ -f \\$PIDFILE ]; then
+    pid=\\$(cat \\$PIDFILE)
+    if [ -f /proc/\\$pid/exe ]; then
+	echo "there are chef_client_run.sh running with pid \\$pid" &>> /tmp/chef.log
+	exit 1
+    fi
+fi
+echo \\$$ > \\$PIDFILE
 while true; do
     echo "run chef-client on \`date\`" &>> /tmp/chef.log
     clients=\\$(pgrep chef-client)
-    if [ "\\$?" == "0" ]; then
+    if [[ "\\$?" == "0" ]]; then
         echo "there are chef-clients '\\$clients' running" &>> /tmp/chef.log
         break
     else
