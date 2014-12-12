@@ -468,6 +468,7 @@ if [ -z \$partition_point_root ]; then
 fi
 
 recipe="boot-root ::"
+recipe="\$recipe 1 1 1 free method{ biosgrub } ."
 for key in \${partition_names}; do
     if [ -z \$key ]; then
         continue
