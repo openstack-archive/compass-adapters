@@ -3,6 +3,9 @@
 #set partition_size = $getVar('partition_size', None)
 #set partition_maxsize = $getVar('partition_maxsize', None)
 #set disk_reserve_size = $getVar('disk_reserve_size', None)
+#set disk_max_size = $getVar('disk_max_size', None)
+#set default_disk_reserve_size = $getVar('default_disk_reserve_size', '0')
+#set default_disk_max_size = $getVar('default_disk_max_size', '0')
 
 #if $hostname == None
 #set $vgname = "VolGroup00"
@@ -24,21 +27,22 @@ while [ \$disk_mapping_offset -lt \$disk_mapping_nums ]; do
 #else
     found_disk_type=1
 #end if
+    disk_path=\$(echo \$1 | tr '-' '_' | tr ':' '_' | tr '.' '_')
+    disk_name=\$(basename \$2)
+    disk_mapping_offset=\$((\${disk_mapping_offset}+1))
+    shift 2
+
     if [ \$found_disk_type -gt 0 ]; then
-        disk_name=\$(basename \$2)
         if [ -z "\${disk_mapping}" ]; then
             disk_mapping="\${disk_name}"
         else
             disk_mapping="\${disk_mapping} \${disk_name}"
         fi
-        disk_path=\$(echo \$1 | tr '-' '_' | tr ':' '_' | tr '.' '_')
         eval "disk_\${disk_name}=\${disk_path}"
 	eval "disk_\${disk_path}=\${disk_path}"
         eval "disk_path_\${disk_path}=/dev/\${disk_name}"
         eval "disk_path_\${disk_name}=/dev/\${disk_name}"
     fi
-    disk_mapping_offset=\$((\${disk_mapping_offset}+1))
-    shift 2
 done
 
 for key in \${disk_mapping}; do
@@ -49,7 +53,7 @@ done
 partition_disks=""
 disks=""
 for disk in \$(list-devices disk); do
-    if [ -z \$disk ]; then
+    if [ -z "\$disk" ]; then
         continue
     fi
     disk_name=\$(basename \$disk)
@@ -57,7 +61,7 @@ for disk in \$(list-devices disk); do
     dd if=/dev/zero of=\$disk bs=512 count=1
 #end if
     eval "disk_path=\\${disk_\${disk_name}}" 
-    if [ -z \${disk_path} ]; then
+    if [ -z "\${disk_path}" ]; then
         echo "ignore disk \${disk_name} since it is not in disk_mapping" >> /tmp/preseed.log
         continue
     fi
@@ -81,13 +85,13 @@ for disk in \$(list-devices disk); do
 #end if
     if [ \$found_disk -gt 0 ]; then
         echo "add disk \${disk_name} in partitioning list" >> /tmp/preseed.log
-        if [ -z \$partition_disks ]; then
+        if [ -z "\${partition_disks}" ]; then
             partition_disks="\${disk_name}"
         else
             partition_disks="\${partition_disks} \${disk_name}"
         fi
     fi
-    if [ -z \$disks ]; then
+    if [ -z "\$disks" ]; then
         disks="\${disk_name}"
     else
         disks="\${disks} \${disk_name}"
@@ -123,10 +127,10 @@ echo "sorted disks for $disk_num disks: \${sorted_disks}" >> /tmp/preseed.log
 
 first_disk_name=""
 for disk_name in \${sorted_disks}; do
-    if [ -z \${disk_name} ]; then
+    if [ -z "\${disk_name}" ]; then
         continue
     fi
-    if [ -z \${first_disk_name} ]; then
+    if [ -z "\${first_disk_name}" ]; then
         first_disk_name=\${disk_name}
         break
     fi
@@ -135,11 +139,11 @@ echo "first disk \${first_disk_name}" >> /tmp/preseed.log
 
 #if $getVar('keep_old_partitions', '0') != "0"
 for disk_name in \${sorted_disks}; do
-    if [ -z \${disk_name} ]; then
+    if [ -z "\${disk_name}" ]; then
         continue
     fi
     eval "disk=\\${disk_path_\${disk_name}}"
-    if [ -z \${disk} ]; then
+    if [ -z "\${disk}" ]; then
         continue
     fi
     dd if=/dev/zero of=\${disk} bs=512 count=1
@@ -155,7 +159,7 @@ disk_partitions=\$(pvs --noheadings --separator :| cut -d: -f1)
 remove_partitions=""
 remove_vgs=""
 for disk_partition in \${disk_partitions}; do
-    if [ -z \$disk_partition ]; then
+    if [ -z "\${disk_partition}" ]; then
         continue
     fi
     disk_partition_name=\$(basename \${disk_partition})
@@ -163,11 +167,11 @@ for disk_partition in \${disk_partitions}; do
     remove_vg=""
     remove_partition=""
     for remove_disk_name in \${remove_disks}; do
-        if [ -z \${remove_disk_name} ]; then
+        if [ -z "\${remove_disk_name}" ]; then
             continue
         fi
         eval "remove_disk=\\${disk_path_\${remove_disk_name}}"
-        if [ -z \${remove_disk} ]; then
+        if [ -z "\${remove_disk}" ]; then
             continue
         fi
         if expr match "\${disk_partition}" "\${remove_disk}.*"; then
@@ -177,8 +181,8 @@ for disk_partition in \${disk_partitions}; do
             echo "partition \${disk_partition} does not match \${remove_disk}.*" >> /tmp/preseed.log
         fi
     done
-    if [ ! -z \$remove_vg ]; then
-        if [ -z \$remove_vgs ]; then
+    if [ ! -z "\${remove_vg}" ]; then
+        if [ -z "\${remove_vgs}" ]; then
             remove_vgs="\${remove_vg}"
         else
             vg_removed=0
@@ -192,8 +196,8 @@ for disk_partition in \${disk_partitions}; do
             fi
         fi
     fi
-    if [ ! -z \$remove_partition ]; then
-        if [ -z \$remove_partitions ]; then
+    if [ ! -z "\${remove_partition}" ]; then
+        if [ -z "\${remove_partitions}" ]; then
             remove_partitions="\${remove_partition}"
         else
             remove_partitions="\${remove_partitions} \${remove_partition}"
@@ -213,14 +217,14 @@ done
 select_disks=""
 echo "remove disks \${remove_disks}" >> /tmp/preseed.log
 for remove_disk_name in \${remove_disks}; do
-    if [ -z \${remove_disk_name} ]; then
+    if [ -z "\${remove_disk_name}" ]; then
         continue
     fi
     eval "remove_disk=\\${disk_path_\${remove_disk_name}}"
-    if [ -z \$remove_disk ]; then
+    if [ -z "\${remove_disk}" ]; then
         continue
     fi
-    if [ -z \${select_disks} ]; then
+    if [ -z "\${select_disks}" ]; then
         select_disks="\${remove_disk}"
     else
         select_disks="\${select_disks},\${remove_disk}"
@@ -231,14 +235,14 @@ echo "select disks \${select_disks}" >> /tmp/preseed.log
 
 partition_disks=""
 for disk_name in \${sorted_disks}; do
-    if [ -z \${disk_name} ]; then
+    if [ -z "\${disk_name}" ]; then
         continue
     fi
     eval "disk=\\${disk_path_\${disk_name}}"
-    if [ -z \$disk ]; then
+    if [ -z "\$disk" ]; then
         continue
     fi
-    if [ -z \${partition_disks} ]; then
+    if [ -z "\${partition_disks}" ]; then
         partition_disks="\${disk}"
     else
         partition_disks="\${partition_disks} \${disk}"
@@ -259,6 +263,8 @@ echo "partition fstype \${partition_fstype}" >> /tmp/preseed.log
         #set disk_name, size = $disk_and_size.split(' ', 1)
         #set disk_name = $disk_name.strip()
 	#if $size.endswith('K')
+	    #set disk_size = $int($size[:-1]) / 1000
+	#elif $size.endswith('M')
 	    #set disk_size = $int($size[:-1])
 	#elif $size.endswith('G')
 	    #set disk_size = $int($size[:-1]) * 1000
@@ -270,6 +276,51 @@ echo "partition fstype \${partition_fstype}" >> /tmp/preseed.log
 reserve_disk_size_${disk_name}=${disk_size}
     #end for
 #end if
+#if $default_disk_reserve_size.endswith('K')
+    #set disk_size = $int($default_disk_reserve_size[:-1]) / 1000
+#elif $default_disk_reserve_size.endswith('M')
+    #set disk_size = $int($default_disk_reserve_size[:-1])
+#elif $default_disk_reserve_size.endswith('G')
+    #set disk_size = $int($default_disk_reserve_size[:-1]) * 1000
+#elif $default_disk_reserve_size.endswith('T')
+    #set disk_size = $int($default_disk_reserve_size[:-1]) * 1000000
+#else
+    #set disk_size = $int($default_disk_reserve_size)
+#end if
+default_reserve_disk_size=${disk_size}
+
+#if $disk_max_size != None
+    #set disk_sizes = [disk_size.strip() for disk_size in $disk_max_size.split(';') if disk_size.strip()]
+    #for disk_and_size in $disk_sizes
+        #set disk_name, size = $disk_and_size.split(' ', 1)
+        #set disk_name = $disk_name.strip()
+	#if $size.endswith('K')
+	    #set disk_size = $int($size[:-1]) / 1000
+	#elif $size.endswith('M')
+	    #set disk_size = $int($size[:-1])
+	#elif $size.endswith('G')
+	    #set disk_size = $int($size[:-1]) * 1000
+	#elif $size.endswith('T')
+	    #set disk_size = $int($size[:-1]) * 1000000
+	#else
+	    #set disk_size = $int($size)
+	#end if
+max_disk_size_${disk_name}=${disk_size}
+    #end for
+#end if
+
+#if $default_disk_max_size.endswith('K')
+    #set disk_size = $int($default_disk_max_size[:-1]) / 1000
+#elif $default_disk_max_size.endswith('M')
+    #set disk_size = $int($default_disk_max_size[:-1])
+#elif $default_disk_max_size.endswith('G')
+    #set disk_size = $int($default_disk_max_size[:-1]) * 1000
+#elif $default_disk_max_size.endswith('T')
+    #set disk_size = $int($default_disk_max_size[:-1]) * 1000000
+#else
+    #set disk_size = $int($default_disk_max_size)
+#end if
+default_max_disk_size=${disk_size}
 
 partition_names=""
 default_partition_name=""
@@ -288,7 +339,7 @@ default_partition_name=""
 	    #set volname = ''
 # $vol is not starts with / 
         #end if
-if [ -z \$partition_names ]; then
+if [ -z "\${partition_names}" ]; then
     partition_names="$volname"
 else
     partition_names="\$partition_names $volname"
@@ -378,13 +429,13 @@ partition_maxsize_$volname=${vol_max_size}
     #end for
 #end if
 
-if [ -z \${default_partition_name} ]; then
+if [ -z "\${default_partition_name}" ]; then
     default_partition_name=root
 fi
 
 default_partition_percentage=100
 for key in \${partition_names}; do
-    if [ -z \$key ]; then
+    if [ -z "\$key" ]; then
         continue
     fi
     if [[ "\$key" == "\${default_partition_name}" ]]; then
@@ -394,7 +445,7 @@ for key in \${partition_names}; do
         continue
     fi
     eval "partition_percentage=\\${partition_percentage_\$key}"
-    if [ ! -z \${partition_percentage} ]; then
+    if [ ! -z "\${partition_percentage}" ]; then
         if [ \${default_partition_percentage} -gt \${partition_percentage} ]; then
             default_partition_percentage=\$((\${default_partition_percentage}-\${partition_percentage}))
         else
@@ -404,25 +455,25 @@ for key in \${partition_names}; do
 done
 eval "partition_percentage_\${default_partition_name}=\${default_partition_percentage}"
 
-if [ -z \$partition_point_boot ]; then
+if [ -z "\${partition_point_boot}" ]; then
     partition_point_boot="/boot"
-    if [ -z \$partition_names ]; then
+    if [ -z "\${partition_names}" ]; then
         partition_names="boot"
     else
         partition_names="\${partition_names} boot"
     fi
 fi
 
-if [ -z \$partition_size_boot ]; then
+if [ -z "\${partition_size_boot}" ]; then
     partition_size_boot=500
 fi
 
-if [ -z \$partition_maxsize_boot ]; then
+if [ -z "\${partition_maxsize_boot}" ]; then
     partition_maxsize_boot=\$partition_size_boot
 fi
 
 eval "first_disk=\\${disk_path_\${first_disk_name}}"
-if [ -z \${first_disk} ]; then
+if [ -z "\${first_disk}" ]; then
     first_disk=/dev/sda
 fi
 
@@ -432,24 +483,24 @@ format{ } use_filesystem{ } filesystem{ \${partition_fstype} } \
 mountpoint{ /boot } device{ \${first_disk} } \
 "
 
-if [ -z \$partition_point_swap ]; then
+if [ -z "\${partition_point_swap}" ]; then
     partition_point_swap="swap"
-    if [ -z \$partition_names ]; then
+    if [ -z "\${partition_names}" ]; then
         partition_names="swap"
     else
         partition_names="\${partition_names} swap"
     fi
 fi
 
-if [ -z \$partition_size_swap ]; then
+if [ -z "\${partition_size_swap}" ]; then
     partition_size_swap=256
 fi
 
-if [ -z \$partition_percentage_swap ]; then
+if [ -z "\${partition_percentage_swap}" ]; then
     partition_percentage_swap=200
 fi
 
-if [ -z \$partition_maxsize_swap ]; then
+if [ -z "\${partition_maxsize_swap}" ]; then
     partition_maxsize_swap=10%
 fi
 
@@ -458,9 +509,9 @@ partition_param_swap="linux-swap \
 device{ \${first_disk} } \
 "
 
-if [ -z \$partition_point_root ]; then
+if [ -z "\${partition_point_root}" ]; then
     partition_point_root="/"
-    if [ -z \$partition_names ]; then
+    if [ -z "\${partition_names}" ]; then
         partition_names="root"
     else
         partition_names="\$partition_names root"
@@ -469,18 +520,18 @@ fi
 
 recipe="boot-root ::"
 for key in \${partition_names}; do
-    if [ -z \$key ]; then
+    if [ -z "\$key" ]; then
         continue
     fi
     eval "partition=\\${partition_point_\$key}"
     echo "partition \$partition => \$key" >> /tmp/preseed.log
     eval "partition_percentage=\\${partition_percentage_\$key}"
-    if [ -z \$partition_percentage ]; then
+    if [ -z "\${partition_percentage}" ]; then
         partition_percentage=0
     fi
     echo "partition percentage \$partition => \${partition_percentage}" >> /tmp/preseed.log
     eval "partition_size=\\${partition_size_\$key}"
-    if [ -z \$partition_size ]; then
+    if [ -z "\${partition_size}" ]; then
         partition_size=1
     fi
     echo "partition size \$partition => \${partition_size}" >> /tmp/preseed.log
@@ -496,7 +547,7 @@ for key in \${partition_names}; do
     fi
     echo "partition maxsize \$partition => \${partition_maxsize}" >> /tmp/preseed.log
     eval "partition_param=\\${partition_param_\$key}"
-    if [ -z \${partition_param} ]; then
+    if [ -z "\${partition_param}" ]; then
         partition_param="\${partition_fstype} \
 \\$lvmok{ } method{ format } format{ } \
 use_filesystem{ } filesystem{ \${partition_fstype} } \
@@ -508,25 +559,41 @@ mountpoint{ \$partition }"
 done
 
 for disk_name in \${sorted_disks}; do
-    if [ -z \${disk_name} ]; then
+    if [ -z "\${disk_name}" ]; then
         continue
     fi
     eval "disk=\\${disk_path_\${disk_name}}"
-    if [ -z \$disk ]; then
+    if [ -z "\$disk" ]; then
         continue
     fi
     disk_name=\$(basename \$disk)
     eval "reserve_disk_size=\\${reserve_disk_size_\${disk_name}}"
-    if [ ! -z \${reserve_disk_size} ]; then
+    if [ -z "\${reserve_disk_size}" ]; then
+        reserve_disk_size=\${default_reserve_disk_size}
+    fi
+    echo "disk \${disk} reserve disk size \${reserve_disk_size}" >> /tmp/preseed.log
+    if [ \${reserve_disk_size} -gt 0 ]; then
         reserve_disk_param="\${partition_fstype} \
-method{ format } format{ } use_filesystem{ } filesystem{ \${partition_fstype} } device{ \${disk} }"
+\\$primary{ } device{ \${disk} } \
+method{ format } format{ } label{ reserved_\${disk_name} } \
+use_filesystem{ } filesystem{ \${partition_fstype} }"
         recipe="\$recipe \${reserve_disk_size} \${reserve_disk_size} \${reserve_disk_size} \${reserve_disk_param} ."
 	echo "reserve partition param \${disk_name} => \${reserve_disk_param}" >> /tmp/preseed.log
+    fi
+    eval "max_disk_size=\\${max_disk_size_\${disk_name}}"
+    if [ -z "\${max_disk_size}" ]; then
+        max_disk_size=\${default_max_disk_size}
+    fi
+    echo "disk \${disk} max disk size \${max_disk_size}" >> /tmp/preseed.log
+    if [ \${max_disk_size} -gt 0 ]; then
+         maxsize_param=\${max_disk_size}
+    else
+        maxsize_param=-1
     fi
     disk_param="\${partition_fstype} \
 \\$defaultignore{ } \\$primary{ } device{ \${disk} } \
 method{ lvm } vg_name{ $vgname }"
-    recipe="\$recipe 512 512+100% -1 \${disk_param} ."
+    recipe="\$recipe 512 512+100% \${maxsize_param} \${disk_param} ."
     echo "partition param \${disk_name} => \${disk_param}" >> /tmp/preseed.log
 done
 

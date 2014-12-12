@@ -66,6 +66,7 @@ d-i live-installer/net-image string http://$http_server/cobbler/ks_mirror/$distr
 # root account and password
 d-i passwd/root-login boolean true
 d-i passwd/make-user boolean false
+d-i user-setup/allow-password-weak boolean true
 #if $getVar('password', '') != ""
 d-i passwd/root-password-crypted password $password
 #else
