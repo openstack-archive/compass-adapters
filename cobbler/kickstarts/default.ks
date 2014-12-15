@@ -57,7 +57,7 @@ install
 reboot
 
 %pre
-$SNIPPET('kickstar_pre_log')
+$SNIPPET('kickstart_pre_log')
 $SNIPPET('kickstart_start')
 $SNIPPET('kickstart_pre_install_network_config')
 $SNIPPET('kickstart_pre_partition_disks')
@@ -80,12 +80,14 @@ libestr
 libgt
 liblogging
 rsyslog
+parted
 %end
 
 %post --log=/var/log/post_install.log
 $SNIPPET('kickstart_post_log')
 $SNIPPET('kickstart_post_install_kernel_options')
 $SNIPPET('kickstart_post_install_network_config')
+$SNIPPET('kickstart_post_partition_disks')
 
 chkconfig iptables off
 chkconfig ip6tables off
