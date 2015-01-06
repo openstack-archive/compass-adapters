@@ -1,0 +1,31 @@
+{
+    "NovaServers.resize_server": [
+        {
+            "args": {
+                "flavor": {
+                    "name": "m1.tiny"
+                },
+                "image": {
+                    "name": "^cirros.*"
+                },
+                "to_flavor": {
+                    "name": "m1.small"
+                },
+                "confirm": true,
+                "force_delete": false
+            },
+            "runner": {
+                "type": "constant",
+                "times": 1,
+                "concurrency": 1
+            },
+            "context": {
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant": 1
+                }
+            }
+        }
+    ]
+}
+
