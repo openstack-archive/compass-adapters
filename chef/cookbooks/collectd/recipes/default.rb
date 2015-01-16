@@ -45,6 +45,15 @@ node[:collectd][:package_name].each do |pkg|
   end
 end
 
+unless node[:collectd][:service_file].nil? or node[:collectd][:service_file].empty?
+  template node[:collectd][:service_file] do
+    source "collectd_service.erb"
+    owner "root"
+    group "root"
+    mode "644"
+  end
+end
+
 service "collectd" do
   supports :restart => true, :status => true
 end

@@ -1,5 +1,5 @@
 cat << EOF > /root/.gemrc
-#if $getVar("local_repo","") == "" and $getVar('proxy', '') != ""
+#if $getVar('proxy', '') != ""
 gem: --no-ri --no-rdoc --http-proxy=$proxy
 #else
 gem: --no-ri --no-rdoc
@@ -10,6 +10,9 @@ gem: --no-ri --no-rdoc
 :sources:
 #if $getVar("local_repo","") != ""
 - $local_repo/gem_repo/
+    #if $getVar("local_repo_only","1") == "0"
+- https://rubygems.org/
+    #end if
 #else
 - https://rubygems.org/
 #end if

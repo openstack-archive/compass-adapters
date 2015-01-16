@@ -3,6 +3,10 @@ default['rabbitmq']['version'] = '3.1.5'
 # The distro versions may be more stable and have back-ported patches
 default['rabbitmq']['use_distro_version'] = true
 
+if node['platform_family'] == 'rhel' && node['platform_version'].to_i > 6
+  default['rabbitmq']['use_distro_version'] = false
+end
+
 # being nil, the rabbitmq defaults will be used
 default['rabbitmq']['nodename']  = nil
 default['rabbitmq']['address']  = nil

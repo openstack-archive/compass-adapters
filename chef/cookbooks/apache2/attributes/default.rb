@@ -19,6 +19,12 @@
 
 default['apache']['root_group'] = 'root'
 
+default['apache']['version'] = '2.2'
+if node['platform_family'] == 'rhel' && node['platform_version'].to_i > 6
+  # mysql version is 5.6 on el7
+  default['apache']['version'] = '2.4'
+end
+
 # Where the various parts of apache are
 case node['platform']
 when 'redhat', 'centos', 'scientific', 'fedora', 'suse', 'amazon', 'oracle'
@@ -180,6 +186,8 @@ default['apache']['default_modules'] = %w[
   status alias auth_basic authn_file authz_default authz_groupfile authz_host authz_user autoindex
   dir env mime negotiation setenvif
 ]
+
+
 
 %w[log_config logio].each do |log_mod|
   default['apache']['default_modules'] << log_mod if %w[rhel fedora suse arch freebsd].include?(node['platform_family'])

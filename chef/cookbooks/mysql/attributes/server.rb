@@ -150,6 +150,12 @@ unless node['platform_family'] == 'rhel' && node['platform_version'].to_i < 6
   default['mysql']['tunable']['binlog_format']    = 'statement' if node['mysql']['tunable']['log_bin']
 end
 
+default['mysql']['version'] = '5.1'
+if node['platform_family'] == 'rhel' && node['platform_version'].to_i > 6
+  # mysql version is 5.6 on el7
+  default['mysql']['version'] = '5.6'
+end
+
 # security options
 # @see http://www.symantec.com/connect/articles/securing-mysql-step-step
 # @see http://dev.mysql.com/doc/refman/5.7/en/server-options.html#option_mysqld_chroot

@@ -11,13 +11,12 @@
 #end for
 
 #set $proxy_url = ""
+#set $local_repo_url = ""
 #if $getVar("local_repo","") != ""
     #set $local_repo_url = $local_repo
-#else
-    #set $local_repo_url = ""
-    #if $getVar("proxy","") != ""
-        #set $proxy_url = $proxy
-    #end if
+#end if
+#if $getVar("proxy","") != ""
+    #set $proxy_url = $proxy
 #end if
 
 cat << EOF > /etc/chef/chef_client_run.sh

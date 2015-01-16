@@ -1,21 +1,21 @@
 sed -i 's/PermitRootLogin.*/PermitRootLogin yes/g' /etc/ssh/sshd_config
+#set ssh_keys = $getVar("push_ssh_keys", "/root/.ssh/id_rsa.pub")
+#if $ssh_keys != ""
 mkdir -p /root/.ssh
 chmod 700 -R /root/.ssh
-#if $getVar("push_ssh_keys", "") != ""
-    #set $ssh_keys = $push_ssh_keys.split(',')
     #set $firstline = True
-    #for $ssh_key in $ssh_keys
+    #for $ssh_key in $ssh_keys.split(',')
         #if not $ssh_key
             #continue
         #end if
-        #set $f = open($ssh_key)
+        #set $f = $open($ssh_key)
         #if firstline
 cat << EOF > /root/.ssh/authorized_keys
-#echo $f.read()
+            #echo $f.read()
 EOF
         #else
 cat << EOF >> /root/.ssh/authorized_keys
-#echo $f.read()
+            #echo $f.read()
 EOF
         #end if
         #set $firstline = False
