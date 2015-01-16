@@ -40,7 +40,7 @@ if platform_family?("rhel")
                                         "collectd-snmp",
                                         "collectd-varnish"
   ]
-  default[:collectd][:yum][:uri] = "http://12.133.183.203/repos/collectd/epel-6"
+  default[:collectd][:yum][:uri] = "http://12.133.183.203/repos/collectd/epel-$releasever"
   default[:collectd][:plugin_dir] = "/usr/lib64/collectd"
   default[:collectd][:config_file] = "/etc/collectd.conf"
 elsif platform_family?("debian")

@@ -91,7 +91,7 @@ default['openstack']['zypp']['repo-key'] = 'd85f9316'  # 32 bit key ID
 default['openstack']['zypp']['uri'] = 'http://download.opensuse.org/repositories/Cloud:/OpenStack:/%release%/%suse-release%/'
 
 default['openstack']['yum']['rdo_enabled'] = true
-default['openstack']['yum']['uri'] = 'http://repos.fedorapeople.org/repos/openstack/openstack-icehouse/epel-6'
+default['openstack']['yum']['uri'] = 'http://repos.fedorapeople.org/repos/openstack/openstack-icehouse/epel-$releasever'
 #default['openstack']['yum']['repo-key'] = 'https://raw.githubusercontent.com/redhat-openstack/rdo-release/master/RPM-GPG-KEY-RDO-Icehouse'
 default['openstack']['yum']['repo-key'] = 'file:///etc/pki/rpm-gpg/RPM-GPG-KEY-RDO-Icehouse'
 

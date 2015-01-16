@@ -126,11 +126,12 @@ when 'debian'
   }
   # lessc became node-less in 12.10
   if node['lsb']['release'] > '12.04'
+    default['openstack']['dashboard']['apache']['sites-path'] = "#{node["apache"]["dir"]}/sites-available/openstack-dashboard.conf"
     default['openstack']['dashboard']['platform']['horizon_packages'] = ['node-less', 'openstack-dashboard']
   else
+    default['openstack']['dashboard']['apache']['sites-path'] = "#{node["apache"]["dir"]}/sites-available/openstack-dashboard"
     default['openstack']['dashboard']['platform']['horizon_packages'] = ['lessc', 'openstack-dashboard']
   end
-  default['openstack']['dashboard']['apache']['sites-path'] = "#{node["apache"]["dir"]}/sites-available/openstack-dashboard"
 end
 
 default['openstack']['dashboard']['dash_path'] = "#{node['openstack']['dashboard']['django_path']}/openstack_dashboard"

@@ -4,7 +4,12 @@
 # System Authorization
 auth --useshadow --enablemd5
 
-# Use Text Mode
+#if $os_version == "rhel7"
+eula --agreed
+services --enabled=NetworkManager,sshd
+#end if
+
+# Use Graphic Mode
 text
 
 # Disable Firewall
@@ -81,6 +86,9 @@ libgt
 liblogging
 rsyslog
 parted
+#if $os_version == "rhel7"
+net-tools
+#end if
 %end
 
 %post --log=/var/log/post_install.log

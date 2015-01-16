@@ -1,6 +1,6 @@
 case node['platform_family']
 when 'rhel'
-  default['yum']['erlang_solutions']['baseurl'] = 'http://packages.erlang-solutions.com/rpm/centos/6/$basearch'
+  default['yum']['erlang_solutions']['baseurl'] = 'http://packages.erlang-solutions.com/rpm/centos/$releasever/$basearch'
 else
   default['yum']['erlang_solutions']['baseurl'] = 'http://packages.erlang-solutions.com/rpm/centos/$releasever/$basearch'
 end
