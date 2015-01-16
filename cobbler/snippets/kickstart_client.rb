@@ -1,3 +1,4 @@
+mkdir -p /etc/chef
 cat << EOL > /etc/chef/client.rb
 log_level        :info
 log_location     '/dev/null'
@@ -9,4 +10,26 @@ json_attribs nil
 pid_file '/var/run/chef-client.pid'
 # Using default node name (fqdn) 
 no_lazy_load true
+ssl_verify_mode :verify_none
+#if $os_version == "rhel7"
+verify_api_cert false
+#end if
 EOL
+
+mkdir -p /etc/chef/trusted_certs
+#set certs_path = $getVar("trusted_certs_path", "/var/opt/chef-server/nginx/ca")
+#if $certs_path != ""
+    #import os
+    #import os.path
+    #set filenames = $os.listdir($certs_path)
+    #for filename in $filenames
+        #if $filename.endswith('.crt')
+            #set filepath = $os.path.join($certs_path, $filename)
+            #set f = $open($filepath)
+cat << EOF > /etc/chef/trusted_certs/$filename
+            #echo $f.read()
+EOF
+            #silent $f.close() 
+        #end if
+    #end for
+#end if

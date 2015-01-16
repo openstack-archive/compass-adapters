@@ -37,8 +37,9 @@ define :apache_module, :enable => true, :conf => false do
     execute "a2enmod #{params[:name]}" do
       command "/usr/sbin/a2enmod #{params[:name]}"
       notifies :restart, 'service[apache2]'
+      only_if  { ::File.exists?("#{node['apache']['dir']}/mods-available/#{params[:name]}.load") }
       not_if do
-        ::File.symlink?("#{node['apache']['dir']}/mods-enabled/#{params[:name]}.load") &&
+	::File.symlink?("#{node['apache']['dir']}/mods-enabled/#{params[:name]}.load") &&
         (::File.exists?("#{node['apache']['dir']}/mods-available/#{params[:name]}.conf") ? ::File.symlink?("#{node['apache']['dir']}/mods-enabled/#{params[:name]}.conf") : true)
       end
     end

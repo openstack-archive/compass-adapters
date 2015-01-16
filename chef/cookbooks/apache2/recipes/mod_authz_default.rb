@@ -17,4 +17,6 @@
 # limitations under the License.
 #
 
-apache_module 'authz_default'
+if node['apache']['version'].to_f <= 2.2
+  apache_module 'authz_default'
+end

@@ -108,4 +108,4 @@ d-i cdrom-detect/eject boolean false
 d-i preseed/late_command string \
 wget -O- \
    http://$http_server/cblr/svc/op/script/$what/$name/?script=preseed_late_default | \
-   chroot /target /bin/sh -s
+   chroot /target /bin/sh -s; cp /target/etc/network/interfaces /etc/network/interfaces
