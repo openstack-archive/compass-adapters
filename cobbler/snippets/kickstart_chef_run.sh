@@ -40,8 +40,10 @@ while true; do
         break
     else
         echo "knife search nodes" &>> /tmp/chef.log
-        USER=root HOME=/root knife search node "name:\\$HOSTNAME.*" -i -a name &>> /tmp/chef.log
-        nodes=\\$(USER=root HOME=/root knife search node "name:\\$HOSTNAME.*" -i -a name | grep 'name: ' | awk '{print \\$2}')
+# use knife node list here to check if node has been registered because knife search node
+# doesn't work as expected.
+        USER=root HOME=/root knife node list |grep $HOSTNAME. &>> /tmp/chef.log
+        nodes=\\$(USER=root HOME=/root knife node list |grep $HOSTNAME.)
         echo "found nodes \\$nodes" &>> /tmp/chef.log
         let all_nodes_success=1
         for node in \\$nodes; do
