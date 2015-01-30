@@ -10,7 +10,7 @@
 grep -v GATEWAY /etc/sysconfig/network > /etc/sysconfig/network.cobbler
 echo "GATEWAY=$gateway" >> /etc/sysconfig/network.cobbler
 rm -f /etc/sysconfig/network
-mv /etc/sysconfig/network.cobbler /etc/sysconfig/network
+mv -f /etc/sysconfig/network.cobbler /etc/sysconfig/network
 #end if
 
 #if $hostname != ""
@@ -18,7 +18,7 @@ mv /etc/sysconfig/network.cobbler /etc/sysconfig/network
 grep -v HOSTNAME /etc/sysconfig/network > /etc/sysconfig/network.cobbler
 echo "HOSTNAME=$hostname" >> /etc/sysconfig/network.cobbler
 rm -f /etc/sysconfig/network
-mv /etc/sysconfig/network.cobbler /etc/sysconfig/network
+mv -f /etc/sysconfig/network.cobbler /etc/sysconfig/network
 /bin/hostname $hostname
 #end if
 
@@ -414,7 +414,7 @@ used_logical_interfaces[$iname]=$iname
 
     #if $iface_type in ("slave","bond_slave","bridge_slave","bonded_bridge_slave")
         #set $static = 1
-    #end if 
+    #end if
 echo "DEVICE=$iname" > $devfile
 echo "ONBOOT=yes" >> $devfile
 
@@ -441,7 +441,7 @@ if [ -f "/etc/modprobe.conf" ] && [ ! -z "\${physical_interface}" ]; then
     grep \$physical_interface /etc/modprobe.conf | sed "s/\${physical_interface}/$iname/" >> /etc/modprobe.conf.cobbler
     grep -v \$physical_interface /etc/modprobe.conf >> /etc/modprobe.conf.new
     rm -f /etc/modprobe.conf
-    mv /etc/modprobe.conf.new /etc/modprobe.conf
+    mv -f /etc/modprobe.conf.new /etc/modprobe.conf
 fi
             #end if
         #end if
@@ -560,7 +560,7 @@ for logical_interface in \${!logical_interface_mapping[@]}; do
             grep \${physical_interface} /etc/modprobe.conf | sed "s/\${physical_interface}/\${logical_interface}/" >> /etc/modprobe.conf.cobbler
             grep -v \${physical_interface} /etc/modprobe.conf >> /etc/modprobe.conf.new
             rm -f /etc/modprobe.conf
-            mv /etc/modprobe.conf.new /etc/modprobe.conf
+            mv -f /etc/modprobe.conf.new /etc/modprobe.conf
         fi
     fi
 done
@@ -569,11 +569,11 @@ done
 ## the old files with the new ones in the working directory
 ## This stops unneccesary (and time consuming) DHCP queries
 ## during the network initialization
-sed -i 's/ONBOOT=yes/ONBOOT=no/g' /etc/sysconfig/network-scripts/ifcfg-eth*
+sed -i 's/ONBOOT=yes/ONBOOT=no/g' /etc/sysconfig/network-scripts/ifcfg-*
 
 ## Move all staged files to their final location
 rm -f /etc/sysconfig/network-scripts/ifcfg-*
-mv /etc/sysconfig/network-scripts/cobbler/* /etc/sysconfig/network-scripts/
+mv -f /etc/sysconfig/network-scripts/cobbler/* /etc/sysconfig/network-scripts/
 rm -r /etc/sysconfig/network-scripts/cobbler
 if [ -f "/etc/modprobe.conf" ]; then
     cat /etc/modprobe.conf.cobbler >> /etc/modprobe.conf
@@ -584,6 +584,6 @@ if [ -f "/etc/udev/rules.d/\${udev_network_rule_filename}" ]; then
 fi
 
 if [ -f "/etc/udev/rules.d/\${udev_network_rule_filename}.new" ]; then
-    mv /etc/udev/rules.d/\${udev_network_rule_filename}.new /etc/udev/rules.d/\${udev_network_rule_filename}
+    mv -f /etc/udev/rules.d/\${udev_network_rule_filename}.new /etc/udev/rules.d/\${udev_network_rule_filename}
 fi
 # End post_install_network_config generated code

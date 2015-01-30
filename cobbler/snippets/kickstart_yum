@@ -30,7 +30,8 @@ distroverpkg=centos-release
 EOF
 
 mkdir -p /root/repo_backup
-mv /etc/yum.repos.d/* /root/repo_backup/
+mv -f /etc/yum.repos.d/* /root/repo_backup/
+
 #set profile_name = $getVar('profile_name','')
 #set os_info = $profile_name.split('-')
 #set osname = $os_info[0].lower()
@@ -71,4 +72,9 @@ priority=1
 proxy=_none_
 skip_if_unavailable=1
 EOF
+
+    #if $getVar("local_repo_only","1") != "0"
+yum -y update
+rm -rf /etc/yum.repos.d/CentOS-*.repo
+    #end if
 #end if

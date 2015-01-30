@@ -33,6 +33,11 @@ get_ifname() {
 #end raw
     #set ikeys = $interfaces.keys()
     #for $iname in $ikeys
+        #if $management
+            #set $management_nic = $iname
+        #end if
+    #end for
+    #for $iname in $ikeys
         #set $idata         = $interfaces[$iname]
         #set $mac           = $idata["mac_address"]
         #set $static        = $idata["static"]
@@ -42,9 +47,6 @@ get_ifname() {
         #set $iface_type    = $idata["interface_type"]
         #set $iface_master  = $idata["interface_master"]
         #set $static_routes = $idata["static_routes"]
-        #if $management
-            #set $management_nic = $iname
-        #end if
         #if $management_nic != ''
             #if $iname != $management_nic
                 #continue

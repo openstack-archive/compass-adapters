@@ -33,28 +33,7 @@ end
 
 node.set['haproxy']['conf_dir'] = "#{node['haproxy']['source']['prefix']}/etc"
 
-remote_file "#{Chef::Config[:file_cache_path]}/haproxy-#{node['haproxy']['source']['version']}.tar.gz" do
-  source node['haproxy']['source']['url']
-  checksum node['haproxy']['source']['checksum']
-  action :create_if_missing
-end
-
-make_cmd = "make TARGET=#{node['haproxy']['source']['target_os']}"
-make_cmd << " CPU=#{node['haproxy']['source']['target_cpu' ]}" unless node['haproxy']['source']['target_cpu'].empty?
-make_cmd << " ARCH=#{node['haproxy']['source']['target_arch']}" unless node['haproxy']['source']['target_arch'].empty?
-make_cmd << " USE_PCRE=1" if node['haproxy']['source']['use_pcre']
-make_cmd << " USE_OPENSSL=1" if node['haproxy']['source']['use_openssl']
-make_cmd << " USE_ZLIB=1" if node['haproxy']['source']['use_zlib']
-
-bash "compile_haproxy" do
-  cwd Chef::Config[:file_cache_path]
-  code <<-EOH
-    tar xzf haproxy-#{node['haproxy']['source']['version']}.tar.gz
-    cd haproxy-#{node['haproxy']['source']['version']}
-    #{make_cmd} && make install PREFIX=#{node['haproxy']['source']['prefix']}
-  EOH
-  creates "#{node['haproxy']['source']['prefix']}/sbin/haproxy"
-end
+package 'haproxy'
 
 user "haproxy" do
   comment "haproxy system account"

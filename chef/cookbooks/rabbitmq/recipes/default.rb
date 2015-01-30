@@ -32,16 +32,25 @@ when 'debian'
   # installs the required setsid command -- should be there by default but just in case
   package 'util-linux'
 
-  if node['rabbitmq']['use_distro_version']
+  if node['rabbitmq']['use_distro_version'] or (not node['local_repo'].nil? and not node['local_repo'].empty?)
     package 'rabbitmq-server' do
       action :upgrade
     end
   else
     # we need to download the package
     deb_package = "https://www.rabbitmq.com/releases/rabbitmq-server/v#{node['rabbitmq']['version']}/rabbitmq-server_#{node['rabbitmq']['version']}-1_all.deb"
-    remote_file "#{Chef::Config[:file_cache_path]}/rabbitmq-server_#{node['rabbitmq']['version']}-1_all.deb" do
-      source deb_package
-      action :create_if_missing
+    if not node['proxy_url'].nil? and not node['proxy_url'].empty?
+      execute "download_mod-rabbitmq-server_#{node['rabbitmq']['version']}-1_all.deb" do
+        command "wget #{deb_package}"
+        cwd Chef::Config['file_cache_path']
+        not_if { ::File.exists?("rabbitmq-server_#{node['rabbitmq']['version']}-1_all.deb") }
+        environment ({ 'http_proxy' =>  node['proxy_url'], 'https_proxy' => node['proxy_url'] })
+      end
+    else
+      remote_file "#{Chef::Config[:file_cache_path]}/rabbitmq-server_#{node['rabbitmq']['version']}-1_all.deb" do
+        source deb_package
+        action :create_if_missing
+      end
     end
     dpkg_package "#{Chef::Config[:file_cache_path]}/rabbitmq-server_#{node['rabbitmq']['version']}-1_all.deb"
   end
@@ -102,15 +111,25 @@ when 'rhel', 'fedora'
     rpm_package "#{Chef::Config[:file_cache_path]}/esl-erlang-compat.rpm"
   end
 
-  if node['rabbitmq']['use_distro_version']
-    package 'rabbitmq-server'
+  if node['rabbitmq']['use_distro_version'] or (not node['local_repo'].nil? and not node['local_repo'].empty?)
+    package 'rabbitmq-server' do
+      action :upgrade
+    end
   else
     # We need to download the rpm
     rpm_package = "https://www.rabbitmq.com/releases/rabbitmq-server/v#{node['rabbitmq']['version']}/rabbitmq-server-#{node['rabbitmq']['version']}-1.noarch.rpm"
-
-    remote_file "#{Chef::Config[:file_cache_path]}/rabbitmq-server-#{node['rabbitmq']['version']}-1.noarch.rpm" do
-      source rpm_package
-      action :create_if_missing
+    if not node['proxy_url'].nil? and not node['proxy_url'].empty?
+      execute "download_mod-rabbitmq-server_#{node['rabbitmq']['version']}-1_all.deb" do
+        command "wget #{rpm_package}"
+        cwd Chef::Config['file_cache_path']
+        not_if { ::File.exists?("rabbitmq-server_#{node['rabbitmq']['version']}-1.noarch.rpm") }
+        environment ({ 'http_proxy' =>  node['proxy_url'], 'https_proxy' => node['proxy_url'] })
+      end
+    else
+      remote_file "#{Chef::Config[:file_cache_path]}/rabbitmq-server-#{node['rabbitmq']['version']}-1.noarch.rpm" do
+        source rpm_package
+        action :create_if_missing
+      end
     end
     rpm_package "#{Chef::Config[:file_cache_path]}/rabbitmq-server-#{node['rabbitmq']['version']}-1.noarch.rpm"
   end

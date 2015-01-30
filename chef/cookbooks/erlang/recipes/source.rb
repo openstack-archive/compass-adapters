@@ -37,20 +37,4 @@ erlang_deps.each do |pkg|
   end
 end
 
-bash 'install-erlang' do
-  cwd Chef::Config[:file_cache_path]
-  code <<-EOH
-    tar -xzf otp_src_#{node['erlang']['source']['version']}.tar.gz
-    (cd otp_src_#{node['erlang']['source']['version']} && ./configure && make && make install)
-  EOH
-  action :nothing
-  not_if "erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell | grep #{node['erlang']['source']['version']}"
-end
-
-remote_file File.join(Chef::Config[:file_cache_path], "otp_src_#{node['erlang']['source']['version']}.tar.gz") do
-  source node['erlang']['source']['url']
-  owner 'root'
-  mode 0644
-  checksum node['erlang']['source']['checksum']
-  notifies :run, 'bash[install-erlang]', :immediately
-end
+package 'erlang'
