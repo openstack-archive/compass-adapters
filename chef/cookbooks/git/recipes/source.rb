@@ -40,21 +40,4 @@ pkgs.each do |pkg|
   package pkg
 end
 
-# reduce line-noise-eyness
-remote_file "#{Chef::Config['file_cache_path']}/git-#{node['git']['version']}.tar.gz" do
-  source    node['git']['url']
-  checksum  node['git']['checksum']
-  mode      '0644'
-  not_if "test -f #{Chef::Config['file_cache_path']}/git-#{node['git']['version']}.tar.gz"
-end
-
-# reduce line-noise-eyness
-execute "Extracting and Building Git #{node['git']['version']} from Source" do
-  cwd Chef::Config['file_cache_path']
-  command <<-COMMAND
-    (mkdir git-#{node['git']['version']} && tar -zxf git-#{node['git']['version']}.tar.gz -C git-#{node['git']['version']} --strip-components 1)
-    (cd git-#{node['git']['version']} && make prefix=#{node['git']['prefix']} install)
-  COMMAND
-  creates "#{node['git']['prefix']}/bin/git"
-  not_if "git --version | grep #{node['git']['version']}"
-end
+package 'git'

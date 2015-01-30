@@ -18,15 +18,31 @@
 #
 
 if platform_family?('debian')
-  remote_file "#{Chef::Config[:file_cache_path]}/mod-pagespeed.deb" do
-    source node['apache2']['mod_pagespeed']['package_link']
-    mode '0644'
-    action :create_if_missing
-  end
+  if not node['local_repo'].nil? and not node['local_repo'].empty?
+    package 'mod_pagespeed' do
+      package_name "mod_pagespeed-stable"
+      action :install
+    end
+  else
+    if not node['proxy_url'].nil? and not node['proxy_url'].empty?
+      execute "download_mod-pagespeed.deb" do
+        command "wget -o mod-pagespeed.deb #{node['apache2']['mod_pagespeed']['package_link']}"
+        cwd Chef::Config['file_cache_path']
+        not_if { ::File.exists?("mod-pagespeed.deb") }
+        environment ({ 'http_proxy' =>  node['proxy_url'], 'https_proxy' => node['proxy_url'] })
+      end
+    else
+      remote_file "#{Chef::Config[:file_cache_path]}/mod-pagespeed.deb" do
+        source node['apache2']['mod_pagespeed']['package_link']
+        mode '0644'
+        action :create_if_missing
+      end
+    end
 
-  package 'mod_pagespeed' do
-    source "#{Chef::Config[:file_cache_path]}/mod-pagespeed.deb"
-    action :install
+    package 'mod_pagespeed' do
+      source "#{Chef::Config[:file_cache_path]}/mod-pagespeed.deb"
+      action :install
+    end
   end
 
   apache_module 'pagespeed' do
