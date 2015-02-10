@@ -152,7 +152,7 @@ default['haproxy']['services'] = {
                    "option  httpchk OPTIONS / HTTP/1.1", \
                    "http-check expect status 400", \
                    "option  http-server-close", \
-                   "rspidel  ^Set-cookie:\ IP="
+                   "rspidel  ^Set-cookie:\\ IP="
                   # "appsession csrftoken len 42  timeout 1h"
                  ]
   },
