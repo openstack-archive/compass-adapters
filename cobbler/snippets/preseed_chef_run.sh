@@ -39,8 +39,8 @@ while true; do
         break
     else
         echo "knife search nodes" &>> /tmp/chef.log
-        USER=root HOME=/root knife node list |grep $HOSTNAME. &>> /tmp/chef.log
-        nodes=\\$(USER=root HOME=/root knife node list |grep $HOSTNAME.)
+        USER=root HOME=/root knife node list |grep \\$HOSTNAME. &>> /tmp/chef.log
+        nodes=\\$(USER=root HOME=/root knife node list |grep \\$HOSTNAME.)
         echo "found nodes \\$nodes" &>> /tmp/chef.log
         all_nodes_success=1
         for node in \\$nodes; do
