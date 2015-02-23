@@ -61,4 +61,8 @@ cat << EOF >> /etc/apt/sources.list
 #set compass_repo = 'apt.repos.d/%s/%s/ubuntu_repo' % ($osname, $osversion)
 deb ${rarch} $local_repo/$compass_repo/ local_repo main
 EOF
+
+    #if $getVar("local_repo_only","1") != "0"
+apt-get -y update
+    #end if
 #end if
