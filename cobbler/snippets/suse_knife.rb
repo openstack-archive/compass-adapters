@@ -1,22 +1,19 @@
-cat << EOL > /etc/chef/client.rb
+mkdir -p /root/.chef
+cat << EOL > /root/.chef/knife.rb
 log_level        :info
 log_location     '/dev/null'
 #if $getVar('chef_url', '') != ""
 chef_server_url  '$chef_url'
-#elif $getVar("compass_server","") != ""
-chef_server_url  'https://$compass_server'
-#else
-chef_server_url  'https://$server'
 #end if
-validation_client_name 'chef-validator'
-json_attribs nil
-pid_file '/var/run/chef-client.pid'
-# Using default node name (fqdn) 
-no_lazy_load true
+node_name                'admin'
+client_key               '/etc/chef/admin.pem'
+validation_client_name   'chef-validator'
+validation_key           '/etc/chef/validation.pem'
+syntax_check_cache_path  '/root/.chef/syntax_check_cache'
 ssl_verify_mode :verify_none
 EOL
 
-mkdir -p /etc/chef/trusted_certs
+mkdir -p /root/.chef/trusted_certs
 #set certs_path = $getVar("trusted_certs_path", "/var/opt/chef-server/nginx/ca")
 #if $certs_path != ""
     #import os
@@ -26,7 +23,7 @@ mkdir -p /etc/chef/trusted_certs
         #if $filename.endswith('.crt')
             #set filepath = $os.path.join($certs_path, $filename)
             #set f = $open($filepath)
-cat << EOF > /etc/chef/trusted_certs/$filename
+cat << EOF > /root/.chef/trusted_certs/$filename
             #echo $f.read()
 EOF
             #silent $f.close() 

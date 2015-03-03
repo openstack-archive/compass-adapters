@@ -1,18 +1,20 @@
 ## A self-destruct service to boot chef client and register cron job
 #if $getVar('ntp_server', '') == ""
-    #set $ntp_server = '0.centos.pool.ntp.org'
+    #set $ntp_server = '0.pool.ntp.org'
 #end if
 cat << EOF > /etc/init.d/chef
 #raw
 #!/bin/bash
-# chkconfig: 2345 99 20
-# description: Description of the script
-# processname: chef-agent
+# Required-Start: \$syslog \$ntp
+# Default-Start:  2 3 4 5
+# Default-Stop:   0 6
+# Short-Description: chef client daemon (chef)
+# Description:    chef client daemon (chef).
 #end raw
 echo "old date is: `date`" 2>&1 > /tmp/ntp.log
-service ntp stop 2>&1 >> /tmp/ntp.log
+service ntpd stop 2>&1 >> /tmp/ntp.log
 ntpdate $ntp_server 2>&1 >> /tmp/ntp.log
-service ntp start 2>&1 >> /tmp/ntp.log
+service ntpd start 2>&1 >> /tmp/ntp.log
 echo "new date is: `date`" 2>&1 >> /tmp/ntp.log
 
 crontab -l  > /tmp/mycron
@@ -22,9 +24,9 @@ rm /tmp/mycron
 
 /etc/chef/chef_client_run.sh &
 
-chkconfig chef off
+chkconfig -d chef 
 mv /etc/init.d/chef /tmp/chef
 EOF
 
-chmod +x /etc/init.d/chef
+chmod 755 /etc/init.d/chef
 chkconfig chef on
