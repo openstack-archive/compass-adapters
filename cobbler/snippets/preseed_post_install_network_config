@@ -253,8 +253,8 @@ done
 echo "unset physical interfaces \${sorted_unset_physical_interfaces}" >> /tmp/network_log
 echo "unset logical interfaces \${sorted_unset_logical_interfaces}" >> /tmp/network_log
 
-# map any unmapped logical interfaces
-echo "map unmapped logical interfaces" >> /tmp/network_log
+# map remaining unmapped logical interfaces
+echo "map remaining unmapped logical interfaces" >> /tmp/network_log
 if [ ! -z "\${sorted_unset_logical_interfaces}" ]; then
     # get all available logical interfaces which the same name physical interface is not used
     available_logical_interfaces=""
@@ -297,19 +297,6 @@ if [ ! -z "\${sorted_unset_logical_interfaces}" ]; then
     done
     sorted_unset_logical_interfaces=\${unset_logical_interfaces}
 
-    echo "finish mapping ramaining unmapped logical interfaces to the same name physical interface" >> /tmp/network_log
-    for key in \${logical_interfaces}; do
-        eval "physical_interface=\\${logical_interface_mapping_\${key}}"
-        echo "map logical interface \${key} to physical interface \${physical_interface}" >> /tmp/network_log
-    done
-    for key in \${physical_interfaces}; do
-        eval "logical_interface=\\${physical_interface_mapping_\${key}}"
-        echo "map physical interface \${key} to logical interface \${logical_interface}" >> /tmp/network_log
-    done
-
-    echo "unset physical interfaces \${sorted_unset_physical_interfaces}" >> /tmp/network_log
-    echo "unset logical interfaces \${sorted_unset_logical_interfaces}" >> /tmp/network_log
-
     # map remain unset logical interfaces to available logical interface names
     for logical_interface in \${sorted_unset_logical_interfaces}; do
         for available_logical_interface in \${available_logical_interfaces}; do
@@ -335,8 +322,8 @@ for key in \${physical_interfaces}; do
     echo "map physical interface \${key} to logical interface \${logical_interface}" >> /tmp/network_log
 done
 
-# map any unmapped physical interfaces
-echo "map unmapped physical interfaces" >> /tmp/network_log
+# map remaining unmapped physical interfaces
+echo "map remaining unmapped physical interfaces" >> /tmp/network_log
 if [ ! -z "\${sorted_unset_physical_interfaces}" ]; then
     # get all available physical interfaces which the same name logical interface is not used
     available_physical_interfaces=""
@@ -378,19 +365,6 @@ if [ ! -z "\${sorted_unset_physical_interfaces}" ]; then
         fi
     done
     sorted_unset_physical_interfaces=\${unset_physical_interfaces}
-
-    echo "finish mapping ramaining unmapped physical interfaces to the same name logical interface" >> /tmp/network_log
-    for key in \${logical_interfaces}; do
-        eval "physical_interface=\\${logical_interface_mapping_\${key}}"
-        echo "map logical interface \${key} to physical interface \${physical_interface}" >> /tmp/network_log
-    done
-    for key in \${physical_interfaces}; do
-        eval "logical_interface=\\${physical_interface_mapping_\${key}}"
-        echo "map physical interface \${key} to logical interface \${logical_interface}" >> /tmp/network_log
-    done
-
-    echo "unset physical interfaces \${sorted_unset_physical_interfaces}" >> /tmp/network_log
-    echo "unset logical interfaces \${sorted_unset_logical_interfaces}" >> /tmp/network_log
 
     # map remain unset physical interfaces to logical interface name as available physical interface names
     for physical_interface in \${sorted_unset_physical_interfaces}; do

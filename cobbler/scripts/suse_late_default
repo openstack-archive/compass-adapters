@@ -1,0 +1,17 @@
+# Start suse_late_default
+# This script is not run in the chroot /target by default
+#if $getVar('system_name','') != ''
+#set $what = "system"
+#else
+#set $what = "profile"
+#end if
+$SNIPPET('suse_post_log')
+$SNIPPET('suse_post_install_network')
+$SNIPPET('suse_post_partition_disks')
+#if $getVar('tool', '') != ''
+    #set $suse_tool = "suse_%s" % $tool
+$SNIPPET($suse_tool)
+#end if
+$SNIPPET('suse_post_anamon')
+# End suse_late_default
+
