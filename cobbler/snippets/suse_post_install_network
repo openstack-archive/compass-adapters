@@ -1,0 +1,10 @@
+# Start post_install_network_config generated code
+#if $getVar('promisc_nics', '') != ""
+    #set promisc_interfaces = [promisc.strip() for promisc in $promisc_nics.split(',') if promisc.strip()]
+#else
+    #set promisc_interfaces = []
+#end if
+
+#for promisc_interface in $promisc_interfaces
+echo 'LINK_OPTIONS="promisc on"' >> /etc/sysconfig/network/ifcfg-$promisc_interface
+#end for

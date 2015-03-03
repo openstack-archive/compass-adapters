@@ -131,7 +131,7 @@ for disk in \${sorted_disks}; do
         break
     fi
 done
-echo "first disk \${first_disk}" >> /tmp/preseed.log
+echo "first disk \${first_disk}" >> /tmp/log
 
 let disk_nums=\${#sorted_disks[@]}
 sorted_disks_str=""
@@ -187,13 +187,13 @@ for disk_partition in \${disk_partitions}; do
             remove_vg="\$vg"
             remove_partition="\${disk_partition}"
         else
-            echo "partition \${disk_partition} does not match \${remove_disk_path}.*" >> /tmp/preseed.log
+            echo "partition \${disk_partition} does not match \${remove_disk_path}.*" >> /tmp/log
         fi
         if expr match "\${disk_partition}" "\${remove_disk}.*"; then
             remove_vg="\$vg"
             remove_partition="\${disk_partition}"
         else
-            echo "partition \${disk_partition} does not match \${remove_disk}.*" >> /tmp/preseed.log
+            echo "partition \${disk_partition} does not match \${remove_disk}.*" >> /tmp/log
         fi
 	if [[ "\$vg" == "$vgname" ]]; then
             remove_vg="\$vg"
@@ -232,12 +232,12 @@ for disk_partition in \${disk_partitions}; do
     fi
 done
 
-echo "remove vgs \${remove_vgs}" >> /tmp/preseed.log
+echo "remove vgs \${remove_vgs}" >> /tmp/log
 for remove_vg in \${remove_vgs}; do
     vgremove -f \${remove_vg}
 done
 
-echo "remove partitions \${remove_partitions} from \${remove_vgs}" >> /tmp/preseed.log
+echo "remove partitions \${remove_partitions} from \${remove_vgs}" >> /tmp/log
 for remove_partition in \${remove_partitions}; do
     pvremove -ff -y \${remove_partition}
 done
@@ -259,7 +259,7 @@ declare -A reserve_disks_size
 	#else
 	    #set disk_size = $int($size)
 	#end if
-reserve_disks_size[\${disk_name}]=${disk_size}
+reserve_disks_size[${disk_name}]=${disk_size}
     #end for
 #end if
 
@@ -293,7 +293,7 @@ declare -A max_disks_size
 	#else
 	    #set disk_size = $int($size)
 	#end if
-max_disks_size[\${disk_name}]=${disk_size}
+max_disks_size[${disk_name}]=${disk_size}
     #end for
 #end if
 
@@ -454,7 +454,7 @@ while [ \${disk_offset} -lt \${disk_nums} ]; do
     fi
     echo "partition \${disk} max size \${max_disk_size}" >> /tmp/log
     if [ \${max_disk_size} -gt 0 ]; then
-        maxsize_param="--maxsize=\${max_disks_size[\${disk}]}"
+        maxsize_param="--maxsize=\${max_disk_size}"
     else
         maxsize_param=""
     fi

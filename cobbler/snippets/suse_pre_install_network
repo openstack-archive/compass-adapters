@@ -1,0 +1,541 @@
+# Start pre_install_network_config generated code
+
+#if $getVar('promisc_nics', '') != ""
+    #set promisc_interfaces = [promisc.strip() for promisc in $promisc_nics.split(',') if promisc.strip()]
+#else
+    #set promisc_interfaces = []
+#end if
+
+# get physical interfaces
+declare -a physical_interfaces
+physical_interfaces=()
+set \$(ip -o link | grep -v lo | awk '{print \$2}' | sed 's/://')
+let physical_interface_num=\$#;
+let physical_interface_offset=0
+echo "network interface numbers: \$physical_interface_num" > /tmp/network_log
+echo "got network interfaces: \$@" >> /tmp/network_log
+while [ \$physical_interface_offset -lt \$physical_interface_num ];
+do
+    physical_interface=\$1
+    echo "record \$physical_interface_offset physical interface \${physical_interface}" >> /tmp/network_log
+    physical_interfaces+=(\${physical_interface})
+    eval "physical_interface_\${physical_interface}=\${physical_interface}"
+    let physical_interface_offset=\$physical_interface_offset+1
+    shift 1
+done
+
+echo "interfaces: \${physical_interfaces[@]}" >> /tmp/network_log
+
+# map physical interface to mac address
+declare -a mac_names
+mac_names=()
+for physical_interface in \${physical_interfaces[@]}; do
+    mac=\$(cat /sys/class/net/\${physical_interface}/address)
+    mac_name=\$(echo \${mac} |tr 'a-z' 'A-Z' | tr ':' '_')
+    mac_names+=(\$mac_name)
+    echo "mapping physical interface \${physical_interface} to mac \${mac}" >> /tmp/network_log
+    eval "physical_interface_mac_\${physical_interface}=\$mac"
+    eval "physical_mac_interface_\${mac_name}=\${physical_interface}"
+    eval "mac_name_\${mac_name}=\$mac"
+done
+
+echo "list physical interfaces to mac" >> /tmp/network_log
+for physical_interface in \${physical_interfaces[@]}; do
+    eval "mac=\\${physical_interface_mac_\${physical_interface}}"
+    echo "physical interface to mac: \${physical_interface} => \${mac}" >> /tmp/network_log
+done
+
+echo "list mac to physical interface mapping" >> /tmp/network_log
+for mac_name in \${mac_names[@]}; do
+    eval "mac=\\${mac_name_\${mac_name}}"
+    eval "physical_interface=\\${physical_mac_interface_\${mac_name}}"
+    echo "mac to physical interface: \${mac} => \${physical_interface}" >> /tmp/network_log
+done
+
+declare -a logical_interfaces
+logical_interfaces=()
+#set ikeys = $interfaces.keys()
+#set osversion = $getVar("os_version","")
+#import re
+#set $vlanpattern = $re.compile("([a-zA-Z0-9]+)[\.][0-9]+")
+#set $subinterfacepattern = $re.compile("([a-zA-Z0-9]+)[:][0-9]+")
+#set $numbondingdevs = 0
+#for $iname in $ikeys
+    #set $idata = $interfaces[$iname]
+    #set $mac = $idata.get("mac_address", "").upper()
+    #set $interface_type = $idata.get("interface_type", "").lower()
+    #if $interface_type in ("master","bond","bonded_bridge_slave")
+        #set $numbondingdevs += 1
+    #end if
+    #if $interface_type in ("master","bond","bridge","bonded_bridge_slave")
+        #continue
+    #end if
+    #if $vlanpattern.match($iname)
+        #set $interface_matched = $vlanpattern.match($iname)
+        #set $interface_name = $interface_matched.group(1)
+logical_interface=${interface_name}
+    #elif $subinterfacepattern.match($iname)
+        #set $interface_matched = $subinterfacepattern.match($iname)
+        #set $interface_name = $interface_matched.group(1)
+logical_interface=${interface_name}
+    #else
+logical_interface=$iname
+    #end if
+logical_interfaces+=(\${logical_interface})
+eval "logical_interface_\${logical_interface}=\${logical_interface}"
+    #if $mac != ""
+        #set mac_name = $mac.replace(':', '_')
+physical_interface=\${physical_mac_interface_${mac_name}}
+eval "logical_interface_mapping_\${logical_interface}=\${physical_interface}"
+if [ ! -z "\$physical_interface" ]; then
+    eval "physical_interface_mapping_\${physical_interface}=\${logical_interface}"
+fi
+    #else
+eval "physical_interface=\\${logical_interface_mapping_\${logical_interface}}"
+if [ -z "\${physical_interface}" ]; then
+    eval "logical_interface_mapping_\${logical_interface}="
+fi
+    #end if
+#end for
+
+echo "logical interfaces: \${logical_interfaces[@]}" >> /tmp/network_log
+
+echo "finish mapping logical interfaces in network config to physical interfaces" >> /tmp/network_log
+for key in \${logical_interfaces[@]}; do
+    eval "physical_interface=\\${logical_interface_mapping_\${key}}"
+    echo "map logical interface \${key} to physical interface \${physical_interface}" >> /tmp/network_log
+done
+for key in \${physical_interfaces[@]}; do
+    eval "logical_interface=\\${physical_interface_mapping_\${key}}"
+    echo "map physical interface \${key} to logical interface \${logical_interface}" >> /tmp/network_log
+done
+
+# map unmapped logical interface to the same name physical interface
+echo "mapping unmapped logical interfaces to the same name physical interfaces" >> /tmp/network_log
+for logical_interface in \${logical_interfaces[@]}; do
+    eval "physical_interface=\\${logical_interface_mapping_\${logical_interface}}"
+    if [ ! -z "\${physical_interface}" ]; then
+        echo "ignore logical interface \${logical_interface} where its physical interface is \${physical_interface}" >> /tmp/network_log
+        continue
+    fi
+    # check if the same name physical interface is mapped
+    eval "mapped_logical_interface=\\${physical_interface_mapping_\${logical_interface}}"
+    if [ ! -z "\${mapped_logical_interface}" ]; then
+        echo "ignore logical interface \${logical_interface} since the same name physical interface is mapped by logical interface \${mapped_logical_interface}" >> /tmp/network_log
+	continue
+    fi
+    # check if the same name physical interface exists
+    eval "mapped_logical_interface=\\${physical_interface_\${logical_interface}}"
+    if [ -z "\${mapped_logical_interface}" ]; then
+        echo "ignore logical interface \${logical_interface} since the same name physical interface does not exist" >> /tmp/network_log
+	continue
+    fi
+    eval "logical_interface_mapping_\${logical_interface}=\${logical_interface}"
+    eval "physical_interface_mapping_\${logical_interface}=\${logical_interface}"
+    echo "set logical interface \${logical_interface} to the same physical interface" >> /tmp/network_log
+done
+
+echo "finish mapping unmapped logical interfaces in network config to the same name physical interfaces" >> /tmp/network_log
+for key in \${logical_interfaces[@]}; do
+    eval "physical_interface=\\${logical_interface_mapping_\${key}}"
+    echo "map logical interface \${key} to physical interface \${physical_interface}" >> /tmp/network_log
+done
+for key in \${physical_interfaces[@]}; do
+    eval "logical_interface=\\${physical_interface_mapping_\${key}}"
+    echo "map physical interface \${key} to logical interface \${logical_interface}" >> /tmp/network_log
+done
+
+declare -a unset_logical_interfaces
+unset_logical_interfaces=()
+declare -a unset_physical_interfaces
+unset_physical_interfaces=()
+
+echo "get unset logical interfaces from \${logical_interfaces[@]}" >> /tmp/network_log
+for logical_interface in \${logical_interfaces[@]}; do
+    eval "physical_interface=\\${logical_interface_mapping_\${logical_interface}}"
+    if [ ! -z "\${physical_interface}" ]; then
+        echo "logical interface \${logical_interface} is already set to \${physical_interface}" >> /tmp/network_log
+        continue
+    fi
+    unset_logical_interfaces+=(\${logical_interface})
+done
+echo "got unset logical interfaces: \${unset_logical_interfaces[@]}" >> /tmp/network_log
+
+echo "get unset physical interfaces from \${physical_interfaces[@]}" >> /tmp/network_log
+for physical_interface in \${physical_interfaces[@]}; do
+    eval "logical_interface=\\${physical_interface_mapping_\${physical_interface}}"
+    if [ ! -z "\${logical_interface}" ]; then
+        echo "physical interface \${physical_interface} is already set to \${logical_interface}" >> /tmp/network_log
+        continue
+    fi
+    unset_physical_interfaces+=(\${physical_interface})
+    eval "unset_physical_interface_\${physical_interface}=\${physical_interface}"
+done
+echo "got unset physical interfaces: \${unset_physical_interfaces[@]}" >> /tmp/network_log
+
+sorted_unset_physical_interfaces=(\$(printf '%s\n' \${unset_physical_interfaces[@]} | sort))
+echo "sorted unset physical interfaces: \${sorted_unset_physical_interfaces[@]}" >> /tmp/network_log
+sorted_unset_logical_interfaces=(\$(printf '%s\n' \${unset_logical_interfaces[@]} | sort))
+echo "sorted unset logical interfaces: \${sorted_unset_logical_interfaces[@]}" >> /tmp/network_log
+
+# map unset logical interface to unset physical interface
+echo "map unset logical interfaces \${sorted_unset_logical_interfaces[@]} to unset physical interfaces \${sorted_unset_physical_interfaces[@]}" >> /tmp/network_log
+while [ \${#sorted_unset_physical_interfaces[@]} -gt 0 -a \${#sorted_unset_logical_interfaces[@]} -gt 0 ]; do
+    physical_interface=\${sorted_unset_physical_interfaces[0]}
+    logical_interface=\${sorted_unset_logical_interfaces[0]}
+    echo "map unset logical interface \${logical_interface} to unset physical interface \${physical_interface}" >> /tmp/network_log
+    unset sorted_unset_physical_interfaces[0]
+    unset sorted_unset_logical_interfaces[0]
+    echo "map unset logical interface \${logical_interface} to unset physical interface \${physical_interface}" >> /tmp/network_log
+    eval "physical_interface_mapping_\${physical_interface}=\${logical_interface}"
+    eval "logical_interface_mapping_\${logical_interface}=\${physical_interface}"
+done
+unset_logical_interfaces=()
+unset_physical_interfaces=()
+
+echo "finish mapping unmapped logical interfaces in network config to unmapped physical interfaces" >> /tmp/network_log
+for key in \${logical_interfaces[@]}; do
+    eval "physical_interface=\\${logical_interface_mapping_\${key}}"
+    echo "map logical interface \${key} to physical interface \${physical_interface}" >> /tmp/network_log
+done
+for key in \${physical_interfaces[@]}; do
+    eval "logical_interface=\\${physical_interface_mapping_\${key}}"
+    echo "map physical interface \${key} to logical interface \${logical_interface}" >> /tmp/network_log
+done
+
+echo "unset logical interfaces: \${sorted_unset_logical_interfaces[@]}" >> /tmp/network_log
+echo "unset physical interfaces: \${sorted_unset_physical_interfaces[@]}" >> /tmp/network_log
+
+# map remaining unmapped logical interfaces
+echo "map remaining unmapped logical interfaces" >> /tmp/network_log
+if [ \${#sorted_unset_logical_interfaces[@]} -gt 0 ]; then
+    declare -a available_logical_interfaces
+    available_logical_interfaces=()
+    # get all available logical interfaces which the same name physical interface is not used
+    for logical_interface in \${logical_interfaces[@]}; do
+        eval "mapped_logical_interface=\\${physical_interface_mapping_\${logical_interface}}"
+	if [ -z "\${mapped_logical_interface}" ]; then
+            eval "available_logical_interface_\${logical_interface}=\${logical_interface}"
+	    available_logical_interfaces+=(\${logical_interface})
+	else
+	    echo "ignore logical interface \${logical_interface} since the same name physical interface mapped to logical interface \${mapped_logical_interface}" >> /tmp/network_log
+	fi
+    done
+
+    # add extra logical interfaces name to physical interfaces
+    physical_interfaces+=(\${available_logical_interfaces[@]})
+    echo "updated physical interfaces: \${physical_interfaces[@]}" >> /tmp/network_log
+
+    #first map logical interface to the same name physical interface if that physical interface name is not used
+    unset_logical_interfaces=()
+    for logical_interface in \${sorted_unset_logical_interfaces[@]}; do
+        eval "available_logical_interface=\\${available_logical_interface_\${logical_interface}}"
+	if [ ! -z "\${available_logical_interface}" ]; then
+            eval "physical_interface_mapping_\${available_logical_interface}=\${logical_interface}"
+            eval "logical_interface_mapping_\${logical_interface}=\${available_logical_interface}"
+        else
+            unset_logical_interfaces+=(\${logical_interface})
+	fi
+    done
+    sorted_unset_logical_interfaces=(\${unset_logical_interfaces[@]})
+
+    echo "finish mapping ramaining unmapped logical interfaces to the same name physical interface" >> /tmp/network_log
+    for key in \${logical_interfaces}; do
+        eval "physical_interface=\\${logical_interface_mapping_\${key}}"
+        echo "map logical interface \${key} to physical interface \${physical_interface}" >> /tmp/network_log
+    done
+    for key in \${physical_interfaces}; do
+        eval "logical_interface=\\${physical_interface_mapping_\${key}}"
+        echo "map physical interface \${key} to logical interface \${logical_interface}" >> /tmp/network_log
+    done
+    echo "unset physical interfaces \${sorted_unset_physical_interfaces[@]}" >> /tmp/network_log
+    echo "unset logical interfaces \${sorted_unset_logical_interfaces[@]}" >> /tmp/network_log
+
+    # map remain unset logical interfaces to available logical interface names
+    for logical_interface in \${sorted_unset_logical_interfaces[@]}; do
+        for available_logical_interface in \${available_logical_interfaces[@}}; do
+	    eval "mapped_logical_interface=\\${physical_interface_mapping_\${available_logical_interface}}"
+	    if [ -z "\${mapped_logical_interface}" ]; then
+	        eval "physical_interface_mapping_\${available_logical_interface}=\${logical_interface}"
+		eval "logical_interface_mapping_\${logical_interface}=\${available_logical_interface}"
+	        break
+	    fi
+	done
+    done
+fi
+unset_logical_interfaces=()
+sorted_unset_logical_interfaces=()
+
+echo "finish mapping ramaining unmapped logical interfaces" >> /tmp/network_log
+for key in \${logical_interfaces[@]}; do
+    eval "physical_interface=\\${logical_interface_mapping_\${key}}"
+    echo "map logical interface \${key} to physical interface \${physical_interface}" >> /tmp/network_log
+done
+for key in \${physical_interfaces[@]}; do
+    eval "logical_interface=\\${physical_interface_mapping_\${key}}"
+    echo "map physical interface \${key} to logical interface \${logical_interface}" >> /tmp/network_log
+done
+
+# map remaining unmapped physical interfaces
+echo "map remaining unmapped physical interfaces" >> /tmp/network_log
+if [ \${#sorted_unset_physical_interfaces[@]} -gt 0 ]; then
+    declare -a available_physical_interfaces
+    available_physical_interfaces=()
+    # get all available physical interfaces which the same name logical interface is not used
+    for physical_interface in \${physical_interfaces[@]}; do
+        eval "mapped_physical_interface=\\${logical_interface_mapping_\${physical_interface}}"
+	if [ -z "\${mapped_physical_interface}" ]; then
+            eval "available_physical_interface_\${physical_interface}=\${physical_interface}"
+	    available_physical_interfaces+=(\${physical_interface})
+	else
+	    echo "ignore physical interface \${physical_interface} since the same name logical interface mapped to physical interface \${mapped_physical_interface}" >> /tmp/network_log
+	fi
+    done
+
+    logical_interfaces+=(\${available_physical_interfaces[@]})
+    echo "updated logical interfaces: \${logical_interfaces[@]}" >> /tmp/network_log
+
+    #first map physical interface to the same name logical interface if that logical interface name is not used
+    unset_physical_interfaces=()
+    for physical_interface in \${sorted_unset_physical_interfaces[@]}; do
+        eval "available_physical_interface=\\${available_physical_interface_\${physical_interface}}"
+	if [ ! -z "\${available_physical_interface}" ]; then
+            eval "logical_interface_mapping_\${available_physical_interface}=\${physical_interface}"
+            eval "physical_interface_mapping_\${physical_interface}=\${available_physical_interface}"
+        else
+            unset_physical_interfaces+=(\${physical_interface})
+	fi
+    done
+    sorted_unset_physical_interfaces=(\${unset_physical_interfaces[@]})
+
+    # map remain unset physical interfaces to logical interface name as available physical interface names
+    for physical_interface in \${sorted_unset_physical_interfaces}; do
+        for available_physical_interface in \${available_physical_interfaces}; do
+	    eval "mapped_physical_interface=\\${logical_interface_mapping_\${available_physical_interface}}"
+	    if [ -z "\${mapped_physical_interface}" ]; then
+	        eval "logical_interface_mapping_\${available_physical_interface}=\${physical_interface}"
+		eval "physical_interface_mapping_\${physical_interface}=\${available_physical_interface}"
+	        break
+	    fi
+	done
+    done
+fi
+unset_physical_interfaces=()
+sorted_unset_physical_interfaces=()
+
+echo "finish mapping ramaining unmapped physical interfaces" >> /tmp/network_log
+for key in \${logical_interfaces[@]}; do
+    eval "physical_interface=\\${logical_interface_mapping_\${key}}"
+    echo "map logical interface \${key} to physical interface \${physical_interface}" >> /tmp/network_log
+done
+for key in \${physical_interfaces[@]}; do
+    eval "logical_interface=\\${physical_interface_mapping_\${key}}"
+    echo "map physical interface \${key} to logical interface \${logical_interface}" >> /tmp/network_log
+done
+
+echo '<keep_install_network config:type="boolean">false</keep_install_network>' > /tmp/profile/network.xml
+echo '<dns>' >> /tmp/profile/network.xml
+echo '  <dhcp_hostname config:type="boolean">false</dhcp_hostname>' >> /tmp/profile/network.xml
+echo '  <dhcp_resolv config:type="boolean">false</dhcp_resolv>' >> /tmp/profile/network.xml
+echo '  <write_hostname config:type="boolean">false</write_hostname>' >> /tmp/profile/network.xml
+echo '  <resolv_conf_policy></resolv_conf_policy>' >> /tmp/profile/network.xml
+#if $hostname != ""
+echo '  <hostname>$hostname</hostname>' >> /tmp/profile/network.xml
+#end if
+#if $getVar("name_servers_search","") != ""
+echo '  <searchlist config:type="list">' >> /tmp/profile/network.xml
+    #for $sd in $name_servers_search
+echo '    <search>$sd</search>' >> /tmp/profile/network.xml
+    #end for
+echo '  </searchlist>' >> /tmp/profile/network.xml
+#end if
+#if $getVar("name_servers","") != ""
+echo '  <nameservers config:type="list">' >> /tmp/profile/network.xml
+    #for $ns in $name_servers
+echo '    <nameserver>$ns</nameserver>' >> /tmp/profile/network.xml
+    #end for
+echo '  </nameservers>' >> /tmp/profile/network.xml
+#end if
+#if $getVar("domain", "") != ""
+echo '<domain>$domain</domain>' >> /tmp/profile/network.xml
+#else
+echo '<domain>site</domain>' >> /tmp/profile/network.xml
+#end if
+echo '</dns>' >> /tmp/profile/network.xml
+
+echo '<interfaces config:type="list">' >> /tmp/profile/network.xml
+
+#for $iname in $ikeys
+# Start configuration for $iname
+    ## create lots of variables to use later
+    #set $idata                = $interfaces[$iname]
+    #set $mac                  = $idata.get("mac_address", "").upper()
+    #set $mtu                  = $idata.get("mtu", "")
+    #set $static               = $idata.get("static", "")
+    #set $ip                   = $idata.get("ip_address", "")
+    #set $netmask              = $idata.get("netmask", "")
+    #set $if_gateway           = $idata.get("if_gateway", "")
+    #set $static_routes        = $idata.get("static_routes", "")
+    #set $iface_type           = $idata.get("interface_type", "").lower()
+    #set $iface_master         = $idata.get("interface_master", "")
+    #set $bonding_opts         = $idata.get("bonding_opts", "")
+    #set $bridge_opts          = $idata.get("bridge_opts", "").split(" ")
+    #set $devfile              = "/etc/sysconfig/network-scripts/cobbler/ifcfg-" + $iname
+    #set $routesfile           = "/etc/sysconfig/network-scripts/cobbler/route-" + $iname
+
+used_logical_interface_$iname=$iname
+
+echo '  <interface>' >> /tmp/profile/network.xml
+
+    #if $iface_type in ("slave","bond_slave","bridge_slave","bonded_bridge_slave")
+        #set $static = 1
+    #end if
+
+echo '    <device>$iname</device>' >> /tmp/profile/network.xml
+echo '    <startmode>auto</startmode>' >> /tmp/profile/network.xml
+echo '    <usercontrol>no</usercontrol>' >> /tmp/profile/network.xml
+    #if $iface_type not in ("master","bond","bridge","bonded_bridge_slave")
+        #if $vlanpattern.match($iname)
+            #pass
+        #else
+            #set $interface_matched = $subinterfacepattern.match($iname)
+            #if $interface_matched
+                #set $interface_name = $interface_matched.group(1)
+logical_interface=$interface_name
+            #else
+logical_interface=$iname
+            #end if
+eval "physical_interface=\\${logical_interface_mapping_\${logical_interface}}"
+if [ ! -z "\${physical_interface}" ]; then
+    eval "physical_mac=\\${physical_interface_mac_\${physical_interface}}"
+fi
+if [ ! -z "\${physical_mac}" ]; then
+    physical_mac=\$(echo \${physical_mac} | tr 'A-Z' 'a-z')
+    echo "    <lladdr>\${physical_mac}</lladdr>" >> /tmp/profile/network.xml
+fi
+        #end if
+    #end if
+
+    #if $iface_type in ("master","bond","bonded_bridge_slave")
+echo '    <bonding_master>yes</bonding_master>' >> /tmp/profile/network.xml
+        #if $bonding_opts != ""
+echo '    <bonding_module_opts>$bonding_opts.lower()</bonding_module_opts>' >> /tmp/profile/network.xml
+        #end if
+        #set $loop_ikeys = $interfaces.keys()
+        #set $loop_counter = 0
+        #for $loop_iface in $loop_ikeys
+          #set $loop_idata          = $interfaces[$loop_iface]
+          #set $loop_interface_type = $loop_idata["interface_type"]
+          #if $loop_interface_type.lower == "bond_slave"
+             #if $loop_idata["interface_master"] != ""
+                #if $loop_idata["interface_master"].lower() == $iface.lower()
+echo '    <bonding_slave$loop_counter>$loop_iface</bonding_slave$loop_counter>' >> /tmp/profile/network.xml
+                   #set $loop_counter += 1
+                #end if
+             #end if
+          #end if
+        #end for
+    #end if
+    #if $static
+echo '    <bootproto>static</bootproto>' >> /tmp/profile/network.xml
+        #if $iname in $promisc_interfaces
+            #pass
+        #elif $ip != ""
+echo '    <ipaddr>$ip</ipaddr>' >> /tmp/profile/network.xml
+
+            #if $netmask == ""
+	        ## Default to 255.255.255.0?
+                #set $netmask = "255.255.255.0"
+            #end if
+echo "    <netmask>$netmask</netmask>" >> /tmp/profile/network.xml
+        #end if
+    #else
+echo '    <bootproto>dhcp</bootproto>' >> /tmp/profile/network.xml
+    #end if
+
+    #if $mtu != ""
+echo "    <mtu>$mtu</mtu>" >> /tmp/profile/network.xml
+    #end if
+echo '  </interface>' >> /tmp/profile/network.xml
+#end for
+
+for logical_interface in \${logical_interfaces[@]}; do
+    eval "used_logical_interface=\\${used_logical_interface_\${logical_interface}}"
+    if [ ! -z "\${used_logical_interface}" ]; then
+        # ignore logical interface that is already generated in above
+        echo "ignore used logical interface \${logical_interface}" >> /tmp/network_log
+        continue
+    fi
+    echo "add logical interface \${logical_interface} into network config since it is not set above" >> /tmp/network_log
+    eval "physical_interface=\\${logical_interface_mapping_\${logical_interface}}"
+    if [ ! -z "\${physical_interface}" ]; then
+        eval "mac=\\${physical_interface_mac_\${physical_interface}}"
+        echo "  <interface>" >> /tmp/profile/network.xml
+        echo "    <device>\${logical_interface}</device>" >> /tmp/profile/network.xml
+        echo "    <startmode>auto</startmode>" >> /tmp/profile/network.xml
+        echo "    <usercontrol>no</usercontrol>" >> /tmp/profile/network.xml
+        echo "    <bootproto>static</bootproto>" >> /tmp/profile/network.xml
+        if [ ! -z "\$mac" ]; then
+            mac=\$(echo \${mac} | tr 'A-Z' 'a-z')
+            echo "    <lladdr>\${mac}</lladdr>" >> /tmp/profile/network.xml
+        fi
+        echo "  </interface>" >> /tmp/profile/network.xml
+    fi
+done
+echo '</interfaces>' >> /tmp/profile/network.xml
+echo '<managed config:type="boolean">false</managed>' >> /tmp/profile/network.xml
+echo '<net-udev config:type="list">' >> /tmp/profile/network.xml
+for logical_interface in \${logical_interfaces[@]}; do
+    eval "physical_interface=\\${logical_interface_mapping_\${logical_interface}}"
+    if [ ! -z "\${physical_interface}" ]; then
+        eval "mac=\\${physical_interface_mac_\${physical_interface}}" 
+        if [ ! -z "\$mac" ]; then
+            mac=\$(echo \${mac} | tr 'A-Z' 'a-z')
+            echo "    <rule>" >> /tmp/profile/network.xml
+            echo "      <name>\$logical_interface</name>" >> /tmp/profile/network.xml
+            echo "      <rule>ATTR{address}</rule>" >> /tmp/profile/network.xml
+            echo "      <value>\${mac}</value>" >> /tmp/profile/network.xml
+            echo "    </rule>" >> /tmp/profile/network.xml 
+        fi
+    fi
+done
+echo '</net-udev>' >> /tmp/profile/network.xml
+echo '<routing>' >> /tmp/profile/network.xml
+echo '  <ip_forward config:type="boolean">false</ip_forward>' >> /tmp/profile/network.xml
+echo '  <routes config:type="list">' >> /tmp/profile/network.xml
+#if $gateway != ""
+echo '    <route>' >> /tmp/profile/network.xml
+echo '      <destination>default</destination>' >> /tmp/profile/network.xml
+echo '      <netmask>-</netmask>' >> /tmp/profile/network.xml
+echo '      <device>-</device>' >> /tmp/profile/network.xml
+echo '      <gateway>$gateway</gateway>' >> /tmp/profile/network.xml
+echo '    </route>' >> /tmp/profile/network.xml
+#end if
+#for $iname in $ikeys
+    ## create lots of variables to use later
+    #set $idata                = $interfaces[$iname]
+    #set $static_routes        = $idata.get("static_routes", "")
+    #for $route in $static_routes
+        #set routepattern = $re.compile("[0-9/.]+:[0-9.]+")
+        #if $routepattern.match($route)
+            #set $routebits = $route.split(":")
+            #set [$network, $router] = $route.split(":")
+            #import netaddr
+            #set interface_network = $netaddr.IPNetwork($network)
+            #set interface_network_ip = $str($interface_network.ip)
+            #set interface_network_netmask = $str($interface_network.netmask)
+echo '    <route>' >> /tmp/profile/network.xml
+echo '      <destination>$interface_network_ip</destination>' >> /tmp/profile/network.xml
+echo '      <netmask>$interface_network_netmask</netmask>' >> /tmp/profile/network.xml
+echo '      <device>$iname</device>' >> /tmp/profile/network.xml
+echo '      <gateway>$router</gateway>' >> /tmp/profile/network.xml
+echo '    </route>' >> /tmp/profile/network.xml
+echo "$network via $router" >> $routesfile
+        #else
+# Warning: invalid route "$route"
+        #end if
+    #end for
+#end for
+echo '  </routes>' >> /tmp/profile/network.xml
+echo '</routing>' >> /tmp/profile/network.xml
+
