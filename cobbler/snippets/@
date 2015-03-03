@@ -52,13 +52,14 @@ done
 
 declare -A partition_disks 
 declare -A disks
-set \$(list-harddrives)
+set \$(lsblk -n -d -P -o NAME,TYPE,RM,SIZE | grep 'TYPE="disk"' | grep 'RM="0"' | cut -d' ' -f1,4)
 let disk_nums=\$#/2
 let disk_offset=0
 let found_disk_offset=0
 while [ \$disk_offset -lt \$disk_nums ]; do
-    disk=\$1
-    disk_name=\$(basename \$1)
+    eval \$1
+    disk_name=\$(basename \$NAME)
+    disk=/dev/\${disk_name}
     shift 2
     if [[ x"\${disk_mapping[\${disk_name}]}" == x"" ]]; then
         echo "ignore disk \${disk_name} since it is not in disk_mapping" >> /tmp/log
@@ -125,13 +126,15 @@ echo "sorted disks for $disk_num disks: \${sorted_disks[@]}" >> /tmp/log
 #end if
 
 first_disk=""
+first_disk_name=""
 for disk in \${sorted_disks}; do
     if [ -z "\${first_disk}" ]; then
         first_disk=\${disk}
+        first_disk_name=\$(basename \${first_disk})
         break
     fi
 done
-echo "first disk \${first_disk}" >> /tmp/log
+echo "first disk \${first_disk}" >> /tmp/preseed.log
 
 let disk_nums=\${#sorted_disks[@]}
 sorted_disks_str=""
@@ -143,8 +146,6 @@ for disk in \${sorted_disks[@]}; do
     fi
 done
 
-echo "clearpart --all --initlabel" > /tmp/part-include
-
 declare -A remove_disks
 #if $getVar('keep_old_partitions', '0') != "0"
 for disk in \${sorted_disks[@]}; do
@@ -152,7 +153,6 @@ for disk in \${sorted_disks[@]}; do
     remove_disks+=(\$disk)
 done
 echo "only partition \$sorted_disks_str" >> /tmp/log
-echo "ignoredisk --only-use=\$sorted_disks_str" >> /tmp/part-include
 #else
 for disk in \${disks[@]}; do
     dd if=/dev/zero of=\${disk} bs=512 count=1
@@ -187,13 +187,13 @@ for disk_partition in \${disk_partitions}; do
             remove_vg="\$vg"
             remove_partition="\${disk_partition}"
         else
-            echo "partition \${disk_partition} does not match \${remove_disk_path}.*" >> /tmp/log
+            echo "partition \${disk_partition} does not match \${remove_disk_path}.*" >> /tmp/preseed.log
         fi
         if expr match "\${disk_partition}" "\${remove_disk}.*"; then
             remove_vg="\$vg"
             remove_partition="\${disk_partition}"
         else
-            echo "partition \${disk_partition} does not match \${remove_disk}.*" >> /tmp/log
+            echo "partition \${disk_partition} does not match \${remove_disk}.*" >> /tmp/preseed.log
         fi
 	if [[ "\$vg" == "$vgname" ]]; then
             remove_vg="\$vg"
@@ -232,12 +232,12 @@ for disk_partition in \${disk_partitions}; do
     fi
 done
 
-echo "remove vgs \${remove_vgs}" >> /tmp/log
+echo "remove vgs \${remove_vgs}" >> /tmp/preseed.log
 for remove_vg in \${remove_vgs}; do
     vgremove -f \${remove_vg}
 done
 
-echo "remove partitions \${remove_partitions} from \${remove_vgs}" >> /tmp/log
+echo "remove partitions \${remove_partitions} from \${remove_vgs}" >> /tmp/preseed.log
 for remove_partition in \${remove_partitions}; do
     pvremove -ff -y \${remove_partition}
 done
@@ -248,33 +248,11 @@ declare -A reserve_disks_size
     #for disk_and_size in $disk_sizes
         #set disk_name, size = $disk_and_size.split(' ', 1)
         #set disk_name = $disk_name.strip()
-	#if $size.endswith('K')
-	    #set disk_size = $int($size[:-1]) / 1000
-	#elif size.endswith('M')
-	    #set disk_size = $int($size[:-1])
-	#elif $size.endswith('G')
-	    #set disk_size = $int($size[:-1]) * 1000
-	#elif $size.endswith('T')
-	    #set disk_size = $int($size[:-1]) * 1000000
-	#else
-	    #set disk_size = $int($size)
-	#end if
-reserve_disks_size[${disk_name}]=${disk_size}
+reserve_disks_size[${disk_name}]=${size}
     #end for
 #end if
 
-#if $default_disk_reserve_size.endswith('K')
-    #set disk_size = $int($default_disk_reserve_size[:-1]) / 1000
-#elif $default_disk_reserve_size.endswith('M')
-    #set disk_size = $int($default_disk_reserve_size[:-1])
-#elif $default_disk_reserve_size.endswith('G')
-    #set disk_size = $int($default_disk_reserve_size[:-1]) * 1000
-#elif $default_disk_reserve_size.endswith('T')
-    #set disk_size = $int($default_disk_reserve_size[:-1]) * 1000000
-#else
-    #set disk_size = $int($default_disk_reserve_size)
-#end if
-default_reserve_disk_size=${disk_size}
+default_reserve_disk_size=${default_disk_reserve_size}
 
 declare -A max_disks_size
 #if $disk_max_size != None
@@ -282,33 +260,11 @@ declare -A max_disks_size
     #for disk_and_size in $disk_sizes
         #set disk_name, size = $disk_and_size.split(' ', 1)
         #set disk_name = $disk_name.strip()
-	#if $size.endswith('K')
-	    #set disk_size = $int($size[:-1]) / 1000
-	#elif $size.endswith('M')
-	    #set disk_size = $int($size[:-1])
-	#elif $size.endswith('G')
-	    #set disk_size = $int($size[:-1]) * 1000
-	#elif $size.endswith('T')
-	    #set disk_size = $int($size[:-1]) * 1000000
-	#else
-	    #set disk_size = $int($size)
-	#end if
-max_disks_size[${disk_name}]=${disk_size}
+max_disks_size[${disk_name}]=${size}
     #end for
 #end if
 
-#if $default_disk_max_size.endswith('K')
-    #set disk_size = $int($default_disk_max_size[:-1]) / 1000
-#elif $default_disk_max_size.endswith('M')
-    #set disk_size = $int($default_disk_max_size[:-1])
-#elif $default_disk_max_size.endswith('G')
-    #set disk_size = $int($default_disk_max_size[:-1]) * 1000
-#elif $default_disk_max_size.endswith('T')
-    #set disk_size = $int($default_disk_max_size[:-1]) * 1000000
-#else
-    #set disk_size = $int($default_disk_max_size)
-#end if
-default_max_disk_size=${disk_size}
+default_max_disk_size=${default_disk_max_size}
 
 declare -A partitions_percentage
 declare -A partitions_name
@@ -334,21 +290,9 @@ declare -A partitions_maxsize
 partitions_name[$vol]=$volname
         #set vol_size = $vol_size.strip()
         #if $vol_size.endswith('%'):
-            #set vol_percent = $vol_size[:-1]
-partitions_percentage[$vol]=${vol_percent}
+partitions_percentage[$vol]=$vol_size
         #else
-	    #if $vol_size.endswith('K')
-	        #set vol_min_size = $int($vol_size[:-1]) / 1000
-	    #elif $vol_size.endswith('M')
-	        #set vol_min_size = $int($vol_size[:-1])
-	    #elif $vol_size.endswith('G')
-	        #set vol_min_size = $int($vol_size[:-1]) * 1000
-	    #elif $vol_size.endswith('T')
-	        #set vol_min_size = $int($vol_size[:-1]) * 1000000
-	    #else
-	        #set vol_min_size = $int($vol_size)
-	    #end if
-partitions_size[$vol]=${vol_min_size}
+partitions_size[$vol]=$vol_size
         #end if
     #end for
 #end if
@@ -358,18 +302,7 @@ partitions_size[$vol]=${vol_min_size}
     #for vol_and_size in $vol_sizes
         #set vol, vol_size = $vol_and_size.split(' ', 1)
         #set vol = $vol.strip()
-	#if $vol_size.endswith('K')
-	    #set vol_min_size = $int($vol_size[:-1]) / 1000
-	#elif $vol_size.endswith('M')
-	    #set vol_min_size = $int($vol_size[:-1])
-	#elif $vol_size.endswith('G')
-	    #set vol_min_size = $int($vol_size[:-1]) * 1000
-	#elif $vol_size.endswith('T')
-	    #set vol_min_size = $int($vol_size[:-1]) * 1000000
-	#else
-	    #set vol_min_size = $int($vol_size)
-	#end if
-partitions_size[$vol]=${vol_min_size}
+partitions_size[$vol]=${vol_size}
     #end for
 #end if
 
@@ -378,18 +311,7 @@ partitions_size[$vol]=${vol_min_size}
     #for vol_and_size in $vol_sizes
         #set vol, vol_size = $vol_and_size.split(' ', 1)
         #set vol = $vol.strip()
-	#if $vol_size.endswith('K')
-	    #set vol_max_size = $int($vol_size[:-1]) / 1000
-	#elif $vol_size.endswith('M')
-	    #set vol_max_size = $int($vol_size[:-1])
-	#elif $vol_size.endswith('G')
-	    #set vol_max_size = $int($vol_size[:-1]) * 1000
-	#elif $vol_size.endswith('T')
-	    #set vol_max_size = $int($vol_size[:-1]) * 1000000
-	#else
-	    #set vol_max_size = $int($vol_size)
-	#end if
-partitions_maxsize[$vol]=${vol_max_size}
+partitions_maxsize[$vol]=${vol_size}
     #end for
 #end if
 
@@ -415,71 +337,76 @@ for key in \${!partitions_maxsize[@]}; do
     echo "partition max size \$key => \${partitions_maxsize[\$key]}" >> /tmp/log
 done
 
-partition_size=\${partitions_size[/boot]:-500}
-unset \${partitions_name[/boot]}
-#if $os_version == "rhel7"
-echo "bootloader --location=mbr --boot-drive=\${sorted_disks[0]}" >> /tmp/part-include
+for disk in \${sorted_disks[@]}; do
+    echo '<drive>' >> /tmp/profile/partition.xml
+    echo "  <device>\$disk</device>" >> /tmp/profile/partition.xml
+    echo '  <initialize config:type="boolean">true</initialize>' >> /tmp/profile/partition.xml
+    echo '  <use>all</use>' >> /tmp/profile/partition.xml
+    echo '  <partitions config:type="list">' >> /tmp/profile/partition.xml
+
+    if [[ "\$disk" == "\${first_disk}" ]]; then
+        size=\${partitions_size[/boot]:-500}
+        unset \${partitions_name[/boot]}
+        echo '    <partition>' >> /tmp/profile/partition.xml
+        echo "      <filesystem config:type=\"symbol\">\${partition_fstype}</filesystem>" >> /tmp/profile/partition.xml
+        echo '      <format config:type="boolean">true</format>' >> /tmp/profile/partition.xml
+#if $getVar('partition_by_path', '0') != "0" 
+        echo '      <mountby config:type="symbol">uuid</mountby>' >> /tmp/profile/partition.xml
 #else
-echo "bootloader --location=mbr --driveorder=\${sorted_disks[0]}" >> /tmp/part-include
+        echo '      <mountby config:type="symbol">device</mountby>' >> /tmp/profile/partition.xml
 #end if
-echo "zerombr" >> /tmp/part-include
-echo "part biosboot --fstype=biosboot --size=1 --ondisk=\${sorted_disks[0]} --asprimary" >> /tmp/part-include
-echo "part /boot --fstype=\${partition_fstype} --size=\${partition_size} --ondisk=\${sorted_disks[0]}  --asprimary" >> /tmp/part-include
-partition_size=\${partitions_size[swap]:-0}
-if [[ "\$partition_size" == "0" ]]; then
-    partition_maxsize=\${partitions_maxsize[swap]:-128000}
-    echo "part swap --recommended --maxsize=\${partition_maxsize} --ondisk=\${sorted_disks[0]} --asprimary" >> /tmp/part-include
-else
-    echo "part swap --size=\${partition_size} --ondisk=\${sorted_disks[0]}" >> /tmp/part-include
-fi
-unset \${partitions_name[swap]}
-
-if [[ x"\${partitions_name[/]}" == x"" ]]; then
-    partitions_name[/]="root"
-fi
-
-echo "partition disks" >> /tmp/log
-
-vggroup=''
-let disk_nums=\${#sorted_disks[@]}
-let disk_offset=0
-while [ \${disk_offset} -lt \${disk_nums} ]; do
-    let pv_id=\${disk_offset}+1
-    disk=\${sorted_disks[\${disk_offset}]}
-    partname="pv.0\${pv_id}"
+        echo '      <partition_type>primary</partition_type>' >> /tmp/profile/partition.xml
+        echo '      <mount>/boot</mount>' >> /tmp/profile/partition.xml
+        echo "      <size>\${size}</size>" >> /tmp/profile/partition.xml
+        echo '    </partition>' >> /tmp/profile/partition.xml
+        size=\${partitions_size[swap]:-0}
+        unset \${partitions_name[swap]}
+        echo '    <partition>' >> /tmp/profile/partition.xml
+        echo "      <filesystem config:type=\"symbol\">swap</filesystem>" >> /tmp/profile/partition.xml
+        echo '      <partition_type>primary</partition_type>' >> /tmp/profile/partition.xml
+        echo '      <mount>swap</mount>' >> /tmp/profile/partition.xml
+        if [[ "\$size" == "0" ]]; then
+            echo "      <size>auto</size>" >> /tmp/profile/partition.xml
+        else
+            echo "      <size>\${size}</size>" >> /tmp/profile/partition.xml
+        fi
+        echo '    </partition>' >> /tmp/profile/partition.xml
+    fi
+    echo '    <partition>' >> /tmp/profile/partition.xml
+    echo '      <lvm_group>$vgname</lvm_group>' >> /tmp/profile/partition.xml
+    echo '      <partition_type>primary</partition_type>' >> /tmp/profile/partition.xml
     if [ ! -z "\${max_disks_size[\${disk}]}" ]; then
         max_disk_size=\${max_disks_size[\${disk}]}
     else
         max_disk_size=\${default_max_disk_size}
     fi
-    echo "partition \${disk} max size \${max_disk_size}" >> /tmp/log
-    if [ \${max_disk_size} -gt 0 ]; then
-        maxsize_param="--maxsize=\${max_disk_size}"
+    if [[ "\${max_disk_size}" !=  "0" ]]; then
+        echo "      <size>\${max_disk_size}</size>" >> /tmp/profile/partition.xml
     else
-        maxsize_param=""
+        echo '      <size>max</size>' >> /tmp/profile/partition.xml
     fi
-    echo "part \$partname --size=1 --grow \${maxsize_param} --ondisk=\${disk}" >> /tmp/part-include
-    vggroup="\$vggroup \$partname"
+    echo '    </partition>' >> /tmp/profile/partition.xml
     if [ ! -z "\${reserve_disks_size[\$disk]}" ]; then
         reserve_disk_size=\${reserve_disks_size[\$disk]}
     else
         reserve_disk_size=\${default_reserve_disk_size}
     fi
     echo "reserve \${reserve_disk_size} on \${disk}" >> /tmp/log
-    if [ \${reserve_disk_size} -gt 0 ]; then
-        reserve_partname="pv.1\${pv_id}"
-        echo "part \${reserve_partname} --size=\${reserve_disk_size} --ondisk=\${disk}" >> /tmp/part-include
-        reserve_vggroup="\${reserve_vggroup} \${reserve_partname}"
+    if [[ "\${reserve_disk_size}" != "0" ]; then
+        echo '    <partition>' >> /tmp/profile/partition.xml
+        echo '      <lvm_group>reserved</lvm_group>' >> /tmp/profile/partition.xml
+        echo "      <size>\${reserve_disk_size}</size>" >> /tmp/profile/partition.xml
+        echo '    </partition>' >> /tmp/profile/partition.xml
     fi
-    let disk_offset=\$disk_offset+1;
+    echo '  </partitions>' >> /tmp/profile/partition.xml
+    echo '</drive>' >> /tmp/profile/partition.xml
 done
 
-if [ ! -z "\$vggroup" ]; then
-    echo "volgroup $vgname \$vggroup" >> /tmp/part-include
+if [[ x"\${partitions_name[/]}" == x"" ]]; then
+    partitions_name[/]="root"
 fi
-if [ ! -z "\${reserve_vggroup}" ]; then
-    echo "volgroup reserved \${reserve_vggroup}" >> /tmp/part-include
-fi
+
+echo "partition disks" >> /tmp/log
 
 declare -A sorted_partitions
 sorted_partitions[0]=\${default_partition}
@@ -490,32 +417,56 @@ for key in \${!partitions_name[@]}; do
 	let partition_offset=\${partition_offset}+1
     fi
 done
-
+#stop
+echo '<drive>' >> /tmp/profile/partition.xml
+echo "  <device>/dev/$vgname</device>" >> /tmp/profile/partition.xml
+echo '  <is_lvm_vg config:type="boolean">true</is_lvm_vg>' >> /tmp/profile/partition.xml
+echo '  <pesize>4M</pesize>' >> /tmp/profile/partition.xml
+echo '  <use>all</use>' >> /tmp/profile/partition.xml
+echo '  <partitions config:type="list">' >> /tmp/profile/partition.xml
 for key in \${sorted_partitions[@]}; do
+    echo '    <partition>' >> /tmp/profile/partition.xml
+    echo "      <filesystem config:type=\"symbol\">\${partition_fstype}</filesystem>" >> /tmp/profile/partition.xml
+    echo "      <lv_name>\${partition_name}vol</lv_name>" >> /tmp/profile/partition.xml
+    echo "      <mount>\$key</mount>" >> /tmp/profile/partition.xml
     partition_name=\${partitions_name[\$key]}
     if [[ "\$key" == "\${default_partition}" ]]; then
-        grow_param="--grow"
+        size="max"
     else
-        grow_param=""
+        size=""
     fi
     partition_percentage=\${partitions_percentage[\$key]}
     if [[ x"\${partition_percentage}" != x"" ]]; then
-        percentage_param="--percent=\${partition_percentage}"
-	grow_param="--grow"
-    else
-        percentage_param=""
+        if [[ x"\${size}" != x"" ]]; then
+            size=\${partition_percentage}
+        fi
     fi
     partition_size=\${partitions_size[\$key]}
     if [[ x"\${partition_size}" != x"" ]]; then
-        size_param="--size=\${partition_size}"
-    else
-        size_param="--size=1"
+        if [[ x"\${size}" != x"" ]]; then
+            size=\${partition_size}
+        fi
     fi
-    partition_maxsize=\${partitions_maxsize[\$key]}
-    if [[ x"\${partition_maxsize}" != x"" ]]; then
-        maxsize_param="--maxsize=\${partition_maxsize}"
-    else
-        maxsize_param=""
+    if [[ x"\${size}" != x"" ]]; then
+        size=1M 
     fi
-    echo "logvol \$key --fstype=\${partition_fstype} --vgname=$vgname \${percentage_param} \${size_param} \${maxsize_param} \${grow_param} --name=\${partition_name}vol" >> /tmp/part-include
+    echo "      <size>\$size</size>" >> /tmp/profile/partition.xml
+    echo '    </partition>' >> /tmp/profile/partition.xml
 done
+echo '  </partitions>' >> /tmp/profile/partition.xml
+echo '</drive>' >> /tmp/profile/partition.xml
+
+echo '<device_map config:type="list">' >> /tmp/profile/bootloader.xml
+echo '  <device_map_entry>' >> /tmp/profile/bootloader.xml
+echo "    <firmware>\${first_disk_name}</firmware>" >> /tmp/profile/bootloader.xml
+echo "    <linux>\${first_disk}</linux>" >> /tmp/profile/bootloader.xml
+echo '  </device_map_entry>' >> /tmp/profile/bootloader.xml
+echo '</device_map>' >> /tmp/profile/bootloader.xml
+echo '<global>' >> /tmp/profile/bootloader.xml
+echo '  <activate>true</activate>' >> /tmp/profile/bootloader.xml
+echo '    <default>openSUSE</default>' >> /tmp/profile/bootloader.xml
+echo '    <timeout config:type="integer">0</timeout>' >> /tmp/profile/bootloader.xml
+echo '    <boot_mbr>true</boot_mbr>' >> /tmp/profile/bootloader.xml
+echo '    <boot_boot>true</boot_boot>' >> /tmp/profile/bootloader.xml
+echo '</global>' >> /tmp/profile/bootloader.xml
+echo '<loader_type>grub</loader_type>' >> /tmp/profile/bootloader.xml

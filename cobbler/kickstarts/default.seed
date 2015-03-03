@@ -79,7 +79,12 @@ $SNIPPET('preseed_apt_repo_config')
 # Individual additional packages to install
 # wget is REQUIRED otherwise quite a few things won't work
 # later in the build (like late-command scripts)
-d-i pkgsel/include string ntp ssh wget chef
+d-i pkgsel/include string ntp ssh wget \
+#if $getVar('tool', '') != ''
+    #set $preseed_software = "preseed_software_%s" % $tool
+$SNIPPET($preseed_software)
+#end if
+
 # Whether to upgrade packages after debootstrap.
 # Allowed values: none, safe-upgrade, full-upgrade
 d-i pkgsel/upgrade select none
