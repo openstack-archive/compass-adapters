@@ -4,6 +4,10 @@ log_level        :info
 log_location     '/dev/null'
 #if $getVar('chef_url', '') != ""
 chef_server_url  '$chef_url'
+#elif $getVar("compass_server","") != ""
+chef_server_url  'https://$compass_server'
+#else
+chef_server_url  'https://$server'
 #end if
 validation_client_name 'chef-validator'
 json_attribs nil

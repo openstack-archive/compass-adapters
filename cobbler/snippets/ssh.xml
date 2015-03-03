@@ -1,0 +1,36 @@
+#set ssh_keys = $getVar("push_ssh_keys", "/root/.ssh/id_rsa.pub")
+#if $ssh_keys != ""
+<file>
+  <file_path>/root/.ssh/authorized_keys</file_path>
+  <file_owner>root.root</file_owner>
+  <file_permissions>600</file_permissions>
+  <file_script>
+    <interpreter>shell</interpreter>
+    <source>
+<![CDATA[
+\#!/bin/bash
+mkdir -p /root/.ssh
+chmod 700 -R /root/.ssh
+    #set $firstline = True
+    #for $ssh_key in $ssh_keys.split(',') 
+        #if not $ssh_key
+            #continue
+        #end if
+        #set f = $open($ssh_key)
+        #if $firstline
+cat << EOL > /root/.ssh/authorized_keys
+            #echo $f.read()
+EOL
+        #else
+cat << EOL >> /root/.ssh/authorized_keys
+            #echo $f.read()
+EOL
+        #end if
+        #silent $f.close()
+        #set $firstline = False
+    #end for
+]]>
+    </source>
+  </file_script>
+</file>
+#end if
