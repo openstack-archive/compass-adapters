@@ -1,0 +1,27 @@
+#set profile_name = $getVar('profile_name','')
+#set os_info = $profile_name.split('-')
+#set osname = $os_info[0].lower()
+#set osversion = $os_info[1]
+
+#if $getVar("local_repo", "") == "" or $getVar("local_repo_only","1") == "0"
+    #set repos_snippet = 'zypp.repos.d/%s/%s/autoyast_repos' % ($osname, $osversion)
+$SNIPPET($repos_snippet)
+#end if
+
+#if $getVar("local_repo","") != ""
+    #set repo = 'zypp.repos.d/%s/%s/sles_repo' % ($osname, $osversion)
+cat << EOF > /etc/zypp/repos.d/Compass.repo
+[compass_repo]
+name=Compass zypp repo
+baseurl=$local_repo/$repo
+enabled=1
+autorefresh=1
+path=/
+type=rpm-md
+keeppackages=1
+EOF
+
+    #if $getVar("local_repo_only","1") != "0"
+zypper -n update
+    #end if
+#end if
