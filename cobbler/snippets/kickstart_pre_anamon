@@ -1,9 +1,18 @@
+#set os_version = $getVar("profile_name","")
 #if $str($getVar('anamon_enabled','')) == "1"
     #if $getVar("compass_server", "") != ""
 wget -O /tmp/anamon "http://$compass_server:$http_port/cobbler/aux/anamon"
+        #if 'CentOS-7' in os_version
+python /tmp/anamon --watchfile "/tmp/syslog /tmp/anaconda.log /tmp/packaging.log" --name "$name" --server "$compass_server" --port "$http_port"
+        #else
 python /tmp/anamon --name "$name" --server "$compass_server" --port "$http_port"
+        #end if
     #else
 wget -O /tmp/anamon "http://$server:$http_port/cobbler/aux/anamon"
+        #if 'CentOS-7' in os_version
+python /tmp/anamon --watchfile "/tmp/syslog /tmp/anaconda.log /tmp/packaging.log" --name "$name" --server "$server" --port "$http_port"
+        #else
 python /tmp/anamon --name "$name" --server "$server" --port "$http_port"
+        #end if
     #end if
 #end if
