@@ -75,7 +75,6 @@ $SNIPPET('kickstart_pre_anamon')
 %packages --nobase
 @core 
 iproute
-chef
 ntp
 openssh-clients
 wget
@@ -88,6 +87,10 @@ rsyslog
 parted
 #if $os_version == "rhel7"
 net-tools
+#end if
+#if $getVar('tool', '') != ''
+    #set $kickstart_software = "kickstart_software_%s" % $tool
+$SNIPPET($kickstart_software)
 #end if
 %end
 

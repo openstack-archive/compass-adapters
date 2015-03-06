@@ -108,6 +108,7 @@ for disk in \$(list-devices disk); do
     fi
 done
 echo "partition disks: \${partition_disks}" >> /tmp/preseed.log
+echo "disks \${disks}" >> /tmp/preseed.log
 
 #if $getVar('sort_disks', '0') != "0"
 sorted_disks=\$(printf '%s\n' \${partition_disks} | sort)
@@ -441,6 +442,19 @@ partition_maxsize_$volname=${vol_max_size}
     #end for
 #end if
 
+echo "finish partition mapping" >> /tmp/preseed.log
+for key in \${partition_names}; do
+    eval "mountpoint=\\${partition_point_\$key}"
+    echo "partition names \$key => \${mountpoint}" >> /tmp/preseed.log
+    eval "partition_percentage=\\${partition_percentage_\$key}"
+    echo "partition percentage \$key => \${partition_percentage}" >> /tmp/preseed.log
+    eval "partition_size=\\${partition_size_\$key}"
+    echo "partition size \$key => \${partition_size}" >> /tmp/preseed.log
+    eval "partition_max_size=\\${partition_max_size_\$key}"
+    echo "partition max size \$key => \${partition_max_size}" >> /tmp/preseed.log
+done
+
+
 if [ -z "\${default_partition_name}" ]; then
     default_partition_name=root
 fi
@@ -505,11 +519,11 @@ if [ -z "\${partition_size_swap}" ]; then
 fi
 
 if [ -z "\${partition_percentage_swap}" ]; then
-    partition_percentage_swap=200
+    partition_percentage_swap=10
 fi
 
 if [ -z "\${partition_maxsize_swap}" ]; then
-    partition_maxsize_swap=10%
+    partition_maxsize_swap=200%
 fi
 
 partition_param_swap="linux-swap \
