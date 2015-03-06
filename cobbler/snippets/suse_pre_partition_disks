@@ -344,7 +344,7 @@ fi
 
 if [ -z "\${partition_point_root}" ]; then
     partition_names+=(root)
-    partition_point_root=/root
+    partition_point_root=/
 fi
 
 eval "default_partition_point=\\${partition_point_\${default_partition_name}}"
