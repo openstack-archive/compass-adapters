@@ -468,24 +468,6 @@ for disk in \${sorted_disks[@]}; do
     echo '</drive>' >> /tmp/profile/partition.xml
 done
 
-for disk in \${remove_disks[@]}; do
-    disk_name=\$(basename \$disk)
-    eval "used_disk=\\${used_disk_\${disk_name}}"
-    if [ ! -z "\${used_disk}" ]; then
-        # ignore disk that is already generated
-        echo "ignore disk \$disk that is already generated" >> /tmp/log
-        continue
-    fi
-    eval "used_disk_\${disk_name}=\$disk"
-    echo "add disk \$disk into disks" >> /tmp/log
-    echo '<drive>' >> /tmp/profile/partition.xml
-    echo "  <device>\$disk</device>" >> /tmp/profile/partition.xml
-    echo '  <initialize config:type="boolean">true</initialize>' >> /tmp/profile/partition.xml
-    echo '  <use>all</use>' >> /tmp/profile/partition.xml
-    echo '  <disklabel>gpt</disklabel>' >> /tmp/profile/partition.xml
-    echo '</drive>' >> /tmp/profile/partition.xml
-done
-
 echo "partition disks" >> /tmp/log
 
 if [ \${#vggroup[@]} -gt 0 ]; then
@@ -536,8 +518,10 @@ echo '  </device_map_entry>' >> /tmp/profile/bootloader.xml
 echo '</device_map>' >> /tmp/profile/bootloader.xml
 echo '<global>' >> /tmp/profile/bootloader.xml
 echo '  <activate>true</activate>' >> /tmp/profile/bootloader.xml
+echo '  <append>$kernel_options_post</append>' >> /tmp/profile/bootloader.xml
 echo '  <default>SUSE</default>' >> /tmp/profile/bootloader.xml
 echo '  <timeout config:type="integer">0</timeout>' >> /tmp/profile/bootloader.xml
+echo '  <generic_mbr>true</generic_mbr>' >> /tmp/profile/bootloader.xml
 echo '  <boot_mbr>true</boot_mbr>' >> /tmp/profile/bootloader.xml
 echo '  <boot_boot>true</boot_boot>' >> /tmp/profile/bootloader.xml
 echo '</global>' >> /tmp/profile/bootloader.xml

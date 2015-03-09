@@ -35,11 +35,23 @@ $SNIPPET('kickstart_network_config')
 $SNIPPET('kickstart_partition_disks')
 $SNIPPET('kickstart_yum_repo_config')
 
-# Root Password
-#if $getVar('password', '') != ""
-rootpw --iscrypted $password
-#else
+# Set User Password
+#if $getVar('username', 'root') != "root"
 rootpw root
+    #set username = $getVar('username', 'root')
+    #set crypted_param = ''
+    #set password_param = '--password=%s' % $username
+    #if $getVar('password', '') != ""
+        #set crypted_param = '--iscrypted'
+        #set password_param = '--password=%s' % $password
+    #end if
+user --name=$username $crypted_param $password_param
+#else
+    #if $getVar('password', '') != ""
+rootpw --iscrypted $password
+    #else
+rootpw root
+    #end if
 #end if
 
 # Selinux Disable

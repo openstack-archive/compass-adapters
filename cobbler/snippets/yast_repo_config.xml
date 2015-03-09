@@ -1,4 +1,4 @@
-# Repository Config
+## Repository Config
 #set $repo_data = $getVar("repo_data",[])
 <add-on>
   <add_on_products config:type="list">

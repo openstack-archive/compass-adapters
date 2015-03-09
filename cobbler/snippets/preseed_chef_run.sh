@@ -26,22 +26,22 @@ PIDFILE=/tmp/chef_client_run.pid
 if [ -f \\$PIDFILE ]; then
     pid=\\$(cat \\$PIDFILE)
     if [ -f /proc/\\$pid/exe ]; then
-	echo "there are chef_client_run.sh running with pid \\$pid" &>> /var/log/chef.log
+	echo "there are chef_client_run.sh running with pid \\$pid" >> /var/log/chef.log 2>&1
 	exit 1
     fi
 fi
 echo \\$$ > \\$PIDFILE
 while true; do
-    echo "run chef-client on \`date\`" &>> /var/log/chef.log
+    echo "run chef-client on \`date\`" >> /var/log/chef.log 2>&1
     clients=\\$(pgrep chef-client)
     if [[ "\\$?" == "0" ]]; then
-        echo "there are chef-clients '\\$clients' running" &>> /var/log/chef.log
+        echo "there are chef-clients '\\$clients' running" >> /var/log/chef.log 2>&1
         break
     else
-        echo "knife search nodes" &>> /var/log/chef.log
-        USER=root HOME=/root knife node list |grep \\$HOSTNAME. &>> /var/log/chef.log
+        echo "knife search nodes" >> /var/log/chef.log 2>&1
+        USER=root HOME=/root knife node list |grep \\$HOSTNAME. >> /var/log/chef.log 2>&1
         nodes=\\$(USER=root HOME=/root knife node list |grep \\$HOSTNAME.)
-        echo "found nodes \\$nodes" &>> /var/log/chef.log
+        echo "found nodes \\$nodes" >> /var/log/chef.log 2>&1
         all_nodes_success=1
         for node in \\$nodes; do
             mkdir -p /var/log/chef/\\$node
@@ -71,15 +71,15 @@ EOL
                 service rsyslog restart
             fi
             if [ -f "/etc/chef/\\$node.done" ]; then
-                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\$node.json --client_key /etc/chef/\\$node.pem &>> /var/log/chef.log
+                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\$node.json --client_key /etc/chef/\\$node.pem >> /var/log/chef.log 2>&1
             else
-                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\$node.json --client_key /etc/chef/\\$node.pem -L /var/log/chef/\\$node/chef-client.log &>> /var/log/chef.log
+                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\$node.json --client_key /etc/chef/\\$node.pem -L /var/log/chef/\\$node/chef-client.log >> /var/log/chef.log 2>&1
             fi
             if [ "\\$?" != "0" ]; then
-                echo "chef-client --node-name \\$node run failed"  &>> /var/log/chef.log
+                echo "chef-client --node-name \\$node run failed"  >> /var/log/chef.log 2>&1
                 all_nodes_success=0
             else
-                echo "chef-client --node-name \\$node run success" &>> /var/log/chef.log
+                echo "chef-client --node-name \\$node run success" >> /var/log/chef.log 2>&1
                 touch /etc/chef/\\$node.done
             fi
         done

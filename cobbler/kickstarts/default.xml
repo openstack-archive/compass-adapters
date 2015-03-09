@@ -148,12 +148,9 @@ $SNIPPET($suse_software)
     <skel>/etc/skel</skel>
   </user_defaults>
   <users config:type="list">
+#if $getVar('username', 'root') != "root"
     <user>
-#if $getVar('password', '') != ""
-      <encrypted config:type="boolean">true</encrypted>
-#else
       <encrypted config:type="boolean">false</encrypted>
-#end if
       <fullname>root</fullname>
       <gid>0</gid>
       <home>/root</home>
@@ -167,13 +164,55 @@ $SNIPPET($suse_software)
       </password_settings>
       <shell>/bin/bash</shell>
       <uid>0</uid>
+      <username>root</username>
+      <user_password>root</user_password>
+    </user>
+    #set username = $getVar('username', 'root')
+    <user>
 #if $getVar('password', '') != ""
+      <encrypted config:type="boolean">true</encrypted>
       <user_password>$password</user_password>
 #else
+      <encrypted config:type="boolean">false</encrypted>
+      <user_password>$username</user_password>
+#end if
+      <username>$username</username>
+      <fullname>$username</fullname>
+      <password_settings>
+        <expire></expire>
+        <flag></flag>
+        <inact></inact>
+        <max></max>
+        <min></min>
+        <warn></warn>
+      </password_settings>
+      <shell>/bin/bash</shell>
+    </user>
+#else
+    <user>
+#if $getVar('password', '') != ""
+      <encrypted config:type="boolean">true</encrypted>
+      <user_password>$password</user_password>
+#else
+      <encrypted config:type="boolean">false</encrypted>
       <user_password>root</user_password>
 #end if
       <username>root</username>
+      <fullname>root</fullname>
+      <gid>0</gid>
+      <home>/root</home>
+      <password_settings>
+        <expire></expire>
+        <flag></flag>
+        <inact></inact>
+        <max></max>
+        <min></min>
+        <warn></warn>
+      </password_settings>
+      <shell>/bin/bash</shell>
+      <uid>0</uid>
     </user>
+#end if
   </users>
   <scripts>
     ## we have to include the pre-scripts tag to get kickstart_start included
