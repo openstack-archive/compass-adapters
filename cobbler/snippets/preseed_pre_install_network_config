@@ -7,10 +7,10 @@ echo "generate pre network config" > /tmp/network_log
 #raw
 # generic functions to be used later for discovering NICs
 mac_exists() {
-    if [ -f /bin/ip ]; then
+    if type ip; then
         ip -o link | grep -i "$1" 2>/dev/null >/dev/null
         return $?
-    elif [ -f /bin/esxcfg-nics ]; then
+    elif type esxcfg-nics; then
         esxcfg-nics -l | grep -i "$1" 2>/dev/null >/dev/null
         return $?
     else
@@ -19,9 +19,9 @@ mac_exists() {
     fi
 }
 get_ifname() {
-    if [ -f /bin/ip ]; then
+    if type ip; then
         IFNAME=$(ip -o link | grep -i "$1" | sed -e 's/^[0-9]*: //' -e 's/:.*//')
-    elif [ -f /bin/esxcfg-nics ]; then
+    elif type esxcfg-nics; then
         IFNAME=$(esxcfg-nics -l | grep -i "$1" | cut -d " " -f 1)
     else
         IFNAME=$(ifconfig -a | grep -i "$1" | cut -d " " -f 1)
