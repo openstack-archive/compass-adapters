@@ -15,40 +15,51 @@
 
 declare -A disk_mapping
 declare -A disk_path_mapping
-set \$(ls -s -l /dev/disk/by-path | awk '{print \$10, \$12}')
-let disk_mapping_nums=\$#/2
-let disk_mapping_offset=0
-echo "disk_mapping_nums: \$disk_mapping_nums" > /tmp/log
-echo "disk_mapping: \$*" >> /tmp/log
-while [ \$disk_mapping_offset -lt \$disk_mapping_nums ]; do
-    let found_disk_type=0
+declare -A ignore_disk_mapping
+declare -A ignore_disk_path_mapping
+if [ -e /dev/disk/by-path ]; then
+    set \$(ls -s -l /dev/disk/by-path | awk '{print \$10, \$12}')
+    let disk_mapping_nums=\$#/2
+    let disk_mapping_offset=0
+    echo "disk_mapping_nums: \$disk_mapping_nums" > /tmp/log
+    echo "disk_mapping: \$*" >> /tmp/log
+    while [ \$disk_mapping_offset -lt \$disk_mapping_nums ]; do
+        let found_disk_type=0
 #if $getVar('disk_type_only','') != ""
-    if expr match "\$1" ".*-${disk_type_only}-.*"; then
-        let found_disk_type=1
-    fi
+        if expr match "\$1" ".*-${disk_type_only}-.*"; then
+            let found_disk_type=1
+        fi
 #else
-    let found_disk_type=1
+        let found_disk_type=1
 #end if
-    path_name=\$(basename \$1)
-    disk_name=\$(basename \$2)
-    let disk_mapping_offset=\$disk_mapping_offset+1 
-    shift 2
+        path_name=\$(basename \$1)
+        disk_name=\$(basename \$2)
+        let disk_mapping_offset=\$disk_mapping_offset+1 
+        shift 2
 
-    if [ \$found_disk_type -gt 0 ]; then
-        disk_mapping[\${disk_name}]="/dev/disk/by-path/\${path_name}"
-	disk_mapping[\${path_name}]="/dev/disk/by-path/\${path_name}"
-	disk_path_mapping[\${disk_name}]="/dev/\${disk_name}"
-	disk_path_mapping[\${path_name}]="/dev/\${disk_name}"
-    fi
-done
+        if [ \$found_disk_type -gt 0 ]; then
+            disk_mapping[\${disk_name}]="/dev/disk/by-path/\${path_name}"
+	    disk_mapping[\${path_name}]="/dev/disk/by-path/\${path_name}"
+	    disk_path_mapping[\${disk_name}]="/dev/\${disk_name}"
+	    disk_path_mapping[\${path_name}]="/dev/\${disk_name}"
+        else
+            ignore_disk_mapping[\${disk_name}]="/dev/disk/by-path/\${path_name}"
+            ignore_disk_mapping[\${path_name}]="/dev/disk/by-path/\${path_name}"
+            ignore_disk_path_mapping[\${disk_name}]="/dev/\${disk_name}"
+            ignore_disk_path_mapping[\${path_name}]="/dev/\${disk_name}"
+        fi
+    done
 
-for key in \${!disk_mapping[@]}; do
-    echo "disk mapping \$key => \${disk_mapping[\$key]}" >> /tmp/log
-done
+    for key in \${!disk_mapping[@]}; do
+        echo "disk mapping \$key => \${disk_mapping[\$key]}" >> /tmp/log
+    done
 
-for key in \${!disk_path_mapping[@]}; do
-    echo "disk path mapping \$key => \${disk_path_mapping[\$key]}" >> /tmp/log
-done
+    for key in \${!disk_path_mapping[@]}; do
+        echo "disk path mapping \$key => \${disk_path_mapping[\$key]}" >> /tmp/log
+    done
+else
+    echo "/dev/disk/by-path does not exist" >> /tmp/log
+fi
 
 declare -A partition_disks 
 declare -A disks
@@ -58,14 +69,26 @@ let disk_offset=0
 let found_disk_offset=0
 while [ \$disk_offset -lt \$disk_nums ]; do
     disk=\$1
-    disk_name=\$(basename \$1)
+    disk_name=\$(basename \$disk)
+    let offset=\${disk_offset}
+    let disk_offset=\${disk_offset}+1
     shift 2
     if [[ x"\${disk_mapping[\${disk_name}]}" == x"" ]]; then
-        echo "ignore disk \${disk_name} since it is not in disk_mapping" >> /tmp/log
-        let disk_offset=\$disk_offset+1
-        continue
+        if [[ x"\${ignore_disk_mapping[\${disk_name}]}" != x"" ]]; then
+            echo "ignore disk \${disk_name} since it is not in disk_mapping" >> /tmp/log
+            continue
+        else
+            echo "did not found disk path for \$disk but it is not ignored" >> /tmp/log
+            disk_mapping[\${disk_name}]="/dev/\${disk_name}"
+            disk_path_mapping[\${disk_name}]="/dev/\${disk_name}"
+        fi
     fi
     let found_disk=0
+
+#if $getVar('partition_by_path', '0') != "0"
+    disk=\${disk_mapping[\${disk_name}]}
+#end if
+    disks[\$offset]=\$disk
 
 #if $getVar('partitions_only',  '') != ""
     #for $partition_only in $partitions_only.split(',')
@@ -82,18 +105,11 @@ while [ \$disk_offset -lt \$disk_nums ]; do
     let found_disk=1
 #end if
 
-#if $getVar('partition_by_path', '0') != "0"
-    disk=\${disk_mapping[\${disk_name}]}
-#end if
-
     if [ \${found_disk} -gt 0 ]; then
         echo "add disk \${disk_name} in partitioning list" >> /tmp/log
-	partition_disks[\${found_disk_offset}]=\$disk
-        let found_disk_offset=\${found_disk_offset}+1
+        partition_disks[\${found_disk_offset}]=\$disk
+	let found_disk_offset=\${found_disk_offset}+1
     fi
-
-    disks[\${disk_offset}]=\$disk
-    let disk_offset=\${disk_offset}+1
 done
 echo "partition disks \${partition_disks[@]}" >> /tmp/log
 echo "disks \${disks[@]}" >> /tmp/log
@@ -114,13 +130,15 @@ echo "sorted disks \${sorted_disks[@]}" >> /tmp/log
     #end if
 set \${sorted_disks[@]}
 shift $disk_start_offset
+unset sorted_disks
 sorted_disks=(\$@)
 echo "sorted disks begin from the $start_from_disk: \${sorted_disks[@]}" >> /tmp/log
 #end if
 
 #if $getVar('disk_num', '') != ""
 set \${sorted_disks[@]}
-sorted_disks=\$(printf '%s\n' \$@ | head -n${disk_num})
+unset sorted_disks
+sorted_disks=(\$(printf '%s\n' \$@ | head -n${disk_num}))
 echo "sorted disks for $disk_num disks: \${sorted_disks[@]}" >> /tmp/log
 #end if
 
@@ -146,17 +164,20 @@ done
 echo "clearpart --all --initlabel" > /tmp/part-include
 
 declare -A remove_disks
+let remove_disk_offset=0
 #if $getVar('keep_old_partitions', '0') != "0"
 for disk in \${sorted_disks[@]}; do
     dd if=/dev/zero of=\${disk} bs=512 count=1
-    remove_disks+=(\$disk)
+    remove_disks[\${remove_disk_offset}]=\$disk
+    let remove_disk_offset=\${remove_disk_offset}+1
 done
 echo "only partition \$sorted_disks_str" >> /tmp/log
 echo "ignoredisk --only-use=\$sorted_disks_str" >> /tmp/part-include
 #else
 for disk in \${disks[@]}; do
     dd if=/dev/zero of=\${disk} bs=512 count=1
-    remove_disks+=(\$disk)
+    remove_disks[\${remove_disk_offset}]=\$disk
+    let remove_disk_offset=\${remove_disk_offset}+1
 done
 #end if
 echo "remove disks \${remove_disks[@]}" >> /tmp/log
@@ -401,7 +422,7 @@ for key in \${!partitions_name[@]}; do
 done
 
 for key in \${!partitions_percentage[@]}; do
-    echo "partition percentage \$key => \${partitions_percentage[\$key]}" >> /tmp/log
+echo "partition percentage \$key => \${partitions_percentage[\$key]}" >> /tmp/log
 done
 
 for key in \${!partitions_size[@]}; do
@@ -444,8 +465,9 @@ vggroup=''
 let disk_nums=\${#sorted_disks[@]}
 let disk_offset=0
 while [ \${disk_offset} -lt \${disk_nums} ]; do
-    let pv_id=\${disk_offset}+1
     disk=\${sorted_disks[\${disk_offset}]}
+    let disk_offset=\$disk_offset+1;
+    let pv_id=\${disk_offset}
     partname="pv.0\${pv_id}"
     if [ ! -z "\${max_disks_size[\${disk}]}" ]; then
         max_disk_size=\${max_disks_size[\${disk}]}
@@ -471,7 +493,6 @@ while [ \${disk_offset} -lt \${disk_nums} ]; do
         echo "part \${reserve_partname} --size=\${reserve_disk_size} --ondisk=\${disk}" >> /tmp/part-include
         reserve_vggroup="\${reserve_vggroup} \${reserve_partname}"
     fi
-    let disk_offset=\$disk_offset+1;
 done
 
 if [ ! -z "\$vggroup" ]; then
@@ -483,11 +504,11 @@ fi
 
 declare -A sorted_partitions
 sorted_partitions[0]=\${default_partition}
-partition_offset=1
+let sorted_partition_offset=1
 for key in \${!partitions_name[@]}; do
     if [[ "\$key" != "\${default_partition}" ]]; then
-        sorted_partitions[\${partition_offset}]=\$key
-	let partition_offset=\${partition_offset}+1
+        sorted_partitions[\${sorted_partition_offset}]=\$key
+        let sorted_partition_offset=\${sorted_partition_offset}+1
     fi
 done
 

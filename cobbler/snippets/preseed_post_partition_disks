@@ -1,34 +1,39 @@
-set \$(ls -l /dev/disk/by-label | tr -s '\t' ' ' | cut -d' ' -f9,11)
-label_mapping_nums=\$((\$#/2))
-label_mapping_offset=0
-echo "label_mapping_nums: \$label_mapping_nums" >> /tmp/preseed.log
-remove_partitions=""
-while [ \$label_mapping_offset -lt \$label_mapping_nums ]; do
-    partition_label=\$1
-    partition_name=\$(basename \$2)
-    shift 2
-    label_mapping_offset=\$((\${label_mapping_offset}+1))
-    if [ -z "\${partition_label}" -o -z "\${partition_name}" ]; then
-        continue
-    fi
-    partition=/dev/\${partition_name}
-    if expr match "\${partition_label}" "reserved_.*"; then
-        remove_partitions="\${remove_partitions} \${partition}"
-	echo "add \${partition} into remove list" >> /tmp/preseed.log
+partitions=\$(pvs --noheadings --separator :| cut -d: -f1,2)
+vg_remove=0
+remove_partitions=''
+echo "partitions \$partitions" >> /tmp/post_partition.log
+
+for partition in \$partitions; do
+    set \$(echo \$partition | tr ':' ' ')
+    partition=\$1
+    vg=\$2
+    if [ "\$vg" = "reserved" ]; then
+        echo "prepare remove partition \$partition" >> /tmp/post_partition.log
+        remove_partitions="\${remove_partitions} \$partition"
+        vg_remove=1
+    else
+        echo "ignore \$vg since it is not reserved" >> /tmp/post_partition.log
     fi
 done
-echo "remove partitions \${remove_partitions}" >> /tmp/preseed.log
 
-for partition in \${remove_partitions}; do
-    if [ -z "\$partition" ]; then
-        continue
-    fi
-    set \$(echo \${partition}  | sed -e 's/^\(.*\)\([0-9]\+\)\$/\1 \2/g')
+if [ "\${vg_remove}" != "0" ]; then
+    vgremove -f reserved
+fi
+
+for remove_partition in \${remove_partitions}; do
+    echo "remove pv \${remove_partition}" >> /tmp/post_partition.log
+    pvremove -ff -y \${remove_partition}
+    set \$(echo \${remove_partition}  | sed -e 's/^\(.*\)\([0-9]\+\)\$/\1 \2/g')
     partition_disk=\$1
     partition_number=\$2
-    echo "remove disk \${partition_disk} partition \${partition_number}" >> /tmp/preseed.log
-    if [ -z "\${partition_disk}" -o -z "\${partition_number}" ]; then
-        continue
+    if [ ! -z "\${partition_disk}" ]; then
+        if [ ! -z "\${partition_number}" ]; then
+            echo "remove partition \${remove_partition} on \${partition_disk} number \${partition_number}" >> /tmp/post_partition.log 
+            parted \${partition_disk} --script -- rm \${partition_number}
+        else
+            echo "no partition number found for \${remove_partition}" >> /tmp/post_partition.log
+        fi
+    else
+        echo "no partition disk found for \${remove_partition}" >> /tmp/post_partition.log
     fi
-    parted \${partition_disk} rm \${partition_number}
 done
