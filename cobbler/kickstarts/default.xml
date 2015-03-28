@@ -79,6 +79,7 @@
       <package>rsyslog</package>
       <package>iproute2</package>
       <package>parted</package>
+      <package>lsb-release</package>
 #if $getVar('tool', '') != ''
     #set $suse_software = "software_%s.xml" % $tool
 $SNIPPET($suse_software)

@@ -74,7 +74,9 @@ local3.info @$compass_server:514
 local3.info @server:514
 #end if
 EOL
-                rm -rf /var/lib/rsyslog/chef_\\$node_log
+                if [ -f "/var/lib/rsyslog/chef_\\${node}_log" ]; then 
+                    rm -rf /var/lib/rsyslog/chef_\\$node_log
+                fi
                 service rsyslog restart
             fi
             if [ -f "/etc/chef/\\$node.done" ]; then

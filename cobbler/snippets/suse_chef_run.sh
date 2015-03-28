@@ -67,13 +67,15 @@ EOL
 \\\\$InputFilePollInterval 1
 local3.info @$server:514
 EOL
-                rm -rf /var/lib/rsyslog/chef_\\$node_log
-                service rsyslog restart
+                if [ -f "/var/spool/rsyslog/chef_\\${node}_log" ]; then
+                    rm -rf /var/spool/rsyslog/chef_\\${node}_log
+                fi
+                service syslog restart
             fi
-            if [ -f "/etc/chef/\\$node.done" ]; then
-                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\$node.json --client_key /etc/chef/\\$node.pem >> /var/log/chef.log 2>&1
+            if [ -f "/etc/chef/\\${node}.done" ]; then
+                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\${node}.json --client_key /etc/chef/\\${node}.pem >> /var/log/chef.log 2>&1
             else
-                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\$node.json --client_key /etc/chef/\\$node.pem -L /var/log/chef/\\$node/chef-client.log >> /var/log/chef.log 2>&1
+                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\${node}.json --client_key /etc/chef/\\${node}.pem -L /var/log/chef/\\$node/chef-client.log >> /var/log/chef.log 2>&1
             fi
             if [ "\\$?" != "0" ]; then
                 echo "chef-client --node-name \\$node run failed"  >> /var/log/chef.log 2>&1

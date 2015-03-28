@@ -64,7 +64,9 @@ if [ -e /dev/disk/by-path ]; then
         eval "disk=\\${disk_path_\$key}"
         echo "disk path mapping \$key => \${disk}" >> /tmp/log
     done
-done
+else
+    echo "/dev/disk/by-path does not exist" >> /tmp/log
+fi
 
 declare -a partition_disks
 partition_disks=()
@@ -480,6 +482,31 @@ for disk in \${sorted_disks[@]}; do
     echo '  </partitions>' >> /tmp/profile/partition.xml
     echo '</drive>' >> /tmp/profile/partition.xml
 done
+
+#if $getVar('keep_old_partitions', '0') == "0"
+for disk in \${disks[@]}; do
+    disk_name=\$(basename \$disk)
+    eval "used_disk=\\${used_disk_\${disk_name}}"
+    if [[ -z "\$used_disk" ]]; then
+        partition_numer=\$(lsblk -n -o MAJ:MIN,TYPE \$disk | grep part | awk '{print \$1}' | cut -d: -f2)
+        parted \$disk --script -- rm \${partition_numer}
+    fi
+done
+#end if
+
+#if $getVar('keep_old_partitions', '0') == "0"
+for disk in \${disks[@]}; do
+    disk_name=\$(basename \$disk)
+    eval "used_disk=\\${used_disk_\${disk_name}}"
+    if [[ -z "\$used_disk" ]]; then
+        partition_numers=\$(parted \$disk --script -- p | awk '/^ / {print \$1}')
+        echo "remove partition numbers \${partition_numers} on disk \$disk" >> /tmp/log
+        for partition_numer in \${partition_numers}; do
+            parted \$disk --script -- rm \${partition_numer}
+        done
+    fi
+done
+#end if
 
 echo "partition disks" >> /tmp/log
 

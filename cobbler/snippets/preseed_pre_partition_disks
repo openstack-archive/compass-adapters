@@ -13,12 +13,13 @@
 #set $vgname = $hostname.split('.')[0]
 #end if
 
+echo "partman early script" >> /tmp/preseed.log
 if [ -e /dev/disk/by-path ]; then
     set \$(ls -s -l /dev/disk/by-path | tr -s '\t' ' ' | cut -d' ' -f11,13)
     disk_mapping_nums=\$((\$#/2))
     disk_mapping_offset=0
     echo "disk_mapping_nums: \$disk_mapping_nums" >> /tmp/preseed.log
-    echo "disk_mapping: \$*" >> /tmp/preseed.log
+    echo "disk_mapping: \$@" >> /tmp/preseed.log
     disk_mapping=""
     disk_path_mapping=""
     while [ \$disk_mapping_offset -lt \$disk_mapping_nums ]; do
@@ -69,7 +70,7 @@ if [ -e /dev/disk/by-path ]; then
         echo "disk path mapping \$key => \${disk}" >> /tmp/preseed.log
     done
 else
-    echo "/dev/disk/by-path does not exist" >> >> /tmp/preseed.log
+    echo "/dev/disk/by-path does not exist" >> /tmp/preseed.log
 fi
 
 partition_disks=""
@@ -259,13 +260,20 @@ done
 echo "remove disks \${remove_disks}" >> /tmp/preseed.log
 
 partition_disks=""
+#if $getVar('keep_old_partitions', '0') != "0"
 for disk in \${sorted_disks}; do
+#else
+for disk in \${disks}; do
+#end if
     if [ -z "\${partition_disks}" ]; then
         partition_disks="\${disk}"
     else
         partition_disks="\${partition_disks} \${disk}"
     fi
 done
+
+partition_disks_str=\$(echo \${partition_disks} | tr ' ' ',')
+echo "d-i partman-auto/select_disks multiselect \${partition_disks_str}" >> /tmp/part-include
 echo "d-i partman-auto/disk string \${partition_disks}" >> /tmp/part-include
 echo "disks \${partition_disks}" >> /tmp/preseed.log
 
@@ -606,6 +614,8 @@ for disk in \${sorted_disks}; do
 #else
     disk_name=\$(basename \$disk)
 #end if
+    eval "used_disk_\${disk_name}=\$disk"
+    echo "add disk \$disk into disks" >> /tmp/preseed.log
     eval "max_disk_size=\\${max_disk_size_\${disk_name}}"
     if [ -z "\${max_disk_size}" ]; then
         max_disk_size=\${default_max_disk_size}
@@ -628,15 +638,36 @@ method{ lvm } vg_name{ $vgname }"
     echo "disk \${disk} reserve disk size \${reserve_disk_size}" >> /tmp/preseed.log
     if [ \${reserve_disk_size} -gt 0 ]; then
         reserve_disk_param="\${partition_fstype} \
-device{ \${disk} } \
-method{ format } format{ } label{ reserved_\${disk_name} } \
-use_filesystem{ } filesystem{ \${partition_fstype} }"
+\\$defaultignore{ } device{ \${disk} } \
+method{ lvm } vg_name{ reserved }"
         recipe="\$recipe \${reserve_disk_size} \${reserve_disk_size} \${reserve_disk_size} \${reserve_disk_param} ."
 	echo "reserve partition param \${disk_name} => \${reserve_disk_param}" >> /tmp/preseed.log
     fi
 done
 
+
+#if $getVar('keep_old_partitions', '0') == "0"
+for disk in \$disks; do
+#if $getVar('partition_by_path', '0') != "0"
+    path_name=\$(basename \${disk})
+    disk_path_name=\$(echo \${path_name} | tr '-' '_' | tr ':' '_' | tr '.' '_')
+    eval "path_disk=\\${disk_path_\${disk_path_name}}"
+    disk_name=\$(basename \${path_disk})
+#else
+    disk_name=\$(basename \$disk)
+#end if
+    eval "used_disk=\\${used_disk_\${disk_name}}"
+    if [ -z "\${used_disk}" ]; then
+        reserve_disk_param="\${partition_fstype} \
+\\$defaultignore{ } device{ \${disk} } \
+method{ lvm } vg_name{ reserved }"
+        recipe="\$recipe 512 512+100% -1 \${reserve_disk_param} ."
+	echo "reserve partition param \${disk_name} => \${reserve_disk_param}" >> /tmp/preseed.log
+    fi
+done
+#end if
+
 echo "d-i partman-auto/expert_recipe string \$recipe" >> /tmp/part-include
 echo "d-i partman-auto/choose_recipe select boot-root" >> /tmp/part-include
-echo "d-i partman-lvm/vgcreate string $vgname" >> /tmp/part-include
-echo "d-i partman-auto-lvm/new_vg_name string $vgname" >> /tmp/part-include
+## echo "d-i partman-lvm/vgcreate string $vgname" >> /tmp/part-include
+## echo "d-i partman-auto-lvm/new_vg_name string $vgname" >> /tmp/part-include

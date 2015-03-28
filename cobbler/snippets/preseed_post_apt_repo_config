@@ -9,20 +9,14 @@ APT::Get::force-yes "true";
 #if $getVar('proxy', '') != ''
 Acquire::http::Proxy "$proxy";
 #end if
-#set $repo_data = $getVar("repo_data",[])
-#for $repo in $repo_data
-    #for $dist in $repo.apt_dists
-        #set $comps = " ".join($repo.apt_components)
-        #if $repo.mirror_locally
-Acquire::http::Proxy::$http_server "DIRECT";
-        #end if
-    #end for
-#end for
+Acquire::http::Proxy::$http_server DIRECT;
 #if $getVar("local_repo","") != ""
     #import urlparse
     #set $local_repo_url = $urlparse.urlparse($local_repo)
     #set $local_repo_server = $local_repo_url.hostname
+    #if $http_server != $local_repo_server
 Acquire::http::Proxy::${local_repo_server} DIRECT;
+    #end if
 #end if
 EOF
 
