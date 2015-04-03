@@ -21,13 +21,18 @@ default['apache']['root_group'] = 'root'
 
 default['apache']['version'] = '2.2'
 if node['platform_family'] == 'rhel' && node['platform_version'].to_i > 6
-  # mysql version is 5.6 on el7
+  # apache version is 2.4 on el7
+  default['apache']['version'] = '2.4'
+end
+
+if node['platform_family'] == 'debian' && node['platform_version'].to_i > 12
+  # apache version is 2.4 on ubuntu14.04
   default['apache']['version'] = '2.4'
 end
 
 # Where the various parts of apache are
 case node['platform']
-when 'redhat', 'centos', 'scientific', 'fedora', 'suse', 'amazon', 'oracle'
+when 'redhat', 'centos', 'scientific', 'fedora', 'amazon', 'oracle'
   default['apache']['package']     = 'httpd'
   default['apache']['perl_pkg']    = 'perl'
   default['apache']['dir']         = '/etc/httpd'
@@ -48,6 +53,24 @@ when 'redhat', 'centos', 'scientific', 'fedora', 'suse', 'amazon', 'oracle'
                                      end
   default['apache']['lib_dir']     = node['kernel']['machine'] =~ /^i[36]86$/ ? '/usr/lib/httpd' : '/usr/lib64/httpd'
   default['apache']['libexecdir']  = "#{node['apache']['lib_dir']}/modules"
+  default['apache']['default_site_enabled'] = false
+when 'suse'
+  default['apache']['package']     = 'apache2'
+  default['apache']['perl_pkg']    = 'perl'
+  default['apache']['dir']         = '/etc/apache2'
+  default['apache']['log_dir']     = '/var/log/apache2'
+  default['apache']['error_log']   = 'error.log'
+  default['apache']['access_log']  = 'access.log'
+  default['apache']['user']        = 'wwwrun'
+  default['apache']['group']       = 'www'
+  default['apache']['binary']      = '/usr/sbin/httpd2'
+  default['apache']['docroot_dir'] = '/srv/www'
+  default['apache']['cgibin_dir']  = '/srv/www/cgi-bin'
+  default['apache']['icondir']     = '/usr/share/apache2/icons'
+  default['apache']['cache_dir']   = '/var/cache/apache2'
+  default['apache']['pid_file']    = '/var/run/httpd2.pid'
+  default['apache']['lib_dir']     = node['kernel']['machine'] =~ /^i[36]86$/ ? '/usr/lib/apache2' : '/usr/lib64/apache2'
+  default['apache']['libexecdir']  = "#{node['apache']['lib_dir']}"
   default['apache']['default_site_enabled'] = false
 when 'debian', 'ubuntu'
   default['apache']['package']     = 'apache2'

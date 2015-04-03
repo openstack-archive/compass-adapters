@@ -255,8 +255,8 @@ when 'fedora', 'rhel' # :pragma-foodcritic: ~FC024 - won't fix this
   }
 when 'suse'
   # operating system user and group names
-  default['openstack']['block-storage']['user'] = 'openstack-cinder'
-  default['openstack']['block-storage']['group'] = 'openstack-cinder'
+  default['openstack']['block-storage']['user'] = 'cinder'
+  default['openstack']['block-storage']['group'] = 'cinder'
   default['openstack']['block-storage']['platform'] = {
     'mysql_python_packages' => ['python-mysql'],
     'postgresql_python_packages' => ['python-psycopg2'],

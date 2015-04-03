@@ -61,8 +61,8 @@ when 'fedora', 'rhel', 'debian'
   default['openstack']['compute']['user'] = 'nova'
   default['openstack']['compute']['group'] = 'nova'
 when 'suse'
-  default['openstack']['compute']['user'] = 'openstack-nova'
-  default['openstack']['compute']['group'] = 'openstack-nova'
+  default['openstack']['compute']['user'] = 'nova'
+  default['openstack']['compute']['group'] = 'nova'
 end
 
 # Options defined in nova.image.glance
@@ -187,8 +187,13 @@ default['openstack']['compute']['driver'] = 'libvirt.LibvirtDriver'
 default['openstack']['compute']['default_ephemeral_format'] = nil
 default['openstack']['compute']['preallocate_images'] = 'none'
 default['openstack']['compute']['use_cow_images'] = true
-default['openstack']['compute']['vif_plugging_is_fatal'] = 'True'
-default['openstack']['compute']['vif_plugging_timeout'] = 360
+if node['platform'] == 'suse'
+  default['openstack']['compute']['vif_plugging_is_fatal'] = 'False'
+  default['openstack']['compute']['vif_plugging_timeout'] = 10
+else
+  default['openstack']['compute']['vif_plugging_is_fatal'] = 'True'
+  default['openstack']['compute']['vif_plugging_timeout'] = 360
+end
 
 default['openstack']['compute']['libvirt']['virt_type'] = 'kvm'
 default['openstack']['compute']['libvirt']['virt_auto'] = false
@@ -375,13 +380,20 @@ when 'fedora', 'rhel', 'suse' # :pragma-foodcritic: ~FC024 - won't fix this
   }
   if platform_family == 'suse'
     default['openstack']['compute']['platform']['mysql_python_packages'] = ['python-mysql']
+    default['openstack']['compute']['platform']['libvirt_packages'] = ['libvirt', 'xrdp']
     default['openstack']['compute']['platform']['dbus_service'] = 'dbus'
+    default['openstack']['compute']['platform']['compute_vncproxy_consoleauth_packages'] = ['openstack-nova-console', 'openstack-nova-consoleauth']
+    default['openstack']['compute']['platform']['memcache_python_packages'] = ['python-python-memcached']
     default['openstack']['compute']['platform']['neutron_python_packages'] = ['python-neutronclient', 'python-pyparsing']
     default['openstack']['compute']['platform']['common_packages'] = ['openstack-nova']
     default['openstack']['compute']['platform']['kvm_packages'] = ['kvm']
     default['openstack']['compute']['platform']['xen_packages'] = ['kernel-xen', 'xen', 'xen-tools']
     default['openstack']['compute']['platform']['lxc_packages'] = ['lxc']
+    default['openstack']['compute']['platform']['mysql_service'] = 'mysql'
     default['openstack']['compute']['platform']['nfs_packages'] = ['nfs-utils']
+    default['openstack']['compute']['platform']['api_ec2_service'] = 'openstack-nova-api-ec2'
+    default['openstack']['compute']['platform']['api_os_compute_service'] = 'openstack-nova-api-os-compute'
+    default['openstack']['compute']['platform']['compute_api_metadata_service'] = 'openstack-nova-api-metadata'
   end
   # Since the bug (https://bugzilla.redhat.com/show_bug.cgi?id=788485) not released in epel yet
   # For 'fedora', 'redhat', 'centos', we need set the default value of force_dhcp_release is 'false'

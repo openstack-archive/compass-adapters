@@ -29,6 +29,8 @@ when 'rhel', 'fedora'
     include_recipe 'yum-epel'
   end
   package 'git'
+when 'suse'
+  package 'git-core'
 when 'windows'
   include_recipe 'git::windows'
 when 'mac_os_x'

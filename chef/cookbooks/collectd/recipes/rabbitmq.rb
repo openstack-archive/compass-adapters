@@ -17,25 +17,27 @@
 # limitations under the License.
 #
 
-package "python-requests" do
-  action :install
-end
+if node['platform_family'] != 'suse'
+  package "python-requests" do
+    action :install
+  end
 
-cookbook_file File.join(node['collectd']['plugin_dir'], "rabbitmq_info.py") do
-  source "rabbitmq_info.py"
-  owner "root"
-  group "root"
-  mode "0755"
-  notifies :restart, resources(:service => "collectd")
-end
+  cookbook_file File.join(node['collectd']['plugin_dir'], "rabbitmq_info.py") do
+    source "rabbitmq_info.py"
+    owner "root"
+    group "root"
+    mode "0755"
+    notifies :restart, resources(:service => "collectd")
+  end
 
-node.override["collectd"]["mq"]["vhost"] = node["openstack"]["mq"]["vhost"]
+  node.override["collectd"]["mq"]["vhost"] = node["openstack"]["mq"]["vhost"]
 
-collectd_python_plugin "rabbitmq_info" do
-  opts = { "Vhost" => node["collectd"]["mq"]["vhost"],
-           "Api" => "http://localhost:15672/api/queues",
-           "User" => "#{node["openstack"]["mq"]["user"]}",
-           "Pass" => "#{node["openstack"]["mq"]["password"]}"
-         }
-  options(opts)
+  collectd_python_plugin "rabbitmq_info" do
+    opts = { "Vhost" => node["collectd"]["mq"]["vhost"],
+             "Api" => "http://localhost:15672/api/queues",
+             "User" => "#{node["openstack"]["mq"]["user"]}",
+             "Pass" => "#{node["openstack"]["mq"]["password"]}"
+           }
+    options(opts)
+  end
 end

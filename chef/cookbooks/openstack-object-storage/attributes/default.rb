@@ -309,6 +309,27 @@ when 'centos'
     'override_options' => '',
     'swift_statsd_publish' => '/usr/bin/swift-statsd-publish.py'
   }
+when 'suse'
+  default['openstack']['object-storage']['platform'] = {
+    'disk_format' => 'xfs',
+    'proxy_packages' => %w{openstack-swift-proxy sudo python-iso8601 python-python-memcached},
+    'object_packages' => %w{openstack-swift-object sudo python-iso8601},
+    'container_packages' => %w{openstack-swift-container sudo python-iso8601},
+    'account_packages' => %w{openstack-swift-account sudo cronie python-iso8601},
+    'swift_packages' => %w{openstack-swift sudo python-iso8601},
+    'swift_client_packages' => ['python-swiftclient'],
+    'swauth_packages' => %w{python-swauth sudo python-iso8601},
+    'rsync_packages' => ['rsync'],
+    'git_packages' => ['xinetd', 'git-core'],
+    'service_prefix' => 'openstack-',
+    'service_suffix' => '',
+    'git_dir' => '/var/lib/git',
+    'git_service' => 'git',
+    'service_provider' => Chef::Provider::Service::Redhat,
+    'override_options' => '',
+    'swift_statsd_publish' => '/usr/bin/swift-statsd-publish.py'
+  }
+
 when 'fedora'
   default['openstack']['object-storage']['platform'] = {
     'disk_format' => 'xfs',

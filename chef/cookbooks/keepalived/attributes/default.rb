@@ -1,3 +1,5 @@
+default['keepalived']['use_distro_version'] = true
+default['keepalived']['rpm_package_url'] = nil
 default['keepalived']['shared_address'] = true
 default['keepalived']['global']['notification_emails'] = 'admin@example.com'
 default['keepalived']['global']['notification_email_from'] = "keepalived@#{node['domain'] || 'example.com'}"

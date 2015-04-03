@@ -68,7 +68,12 @@ when 'suse'
     # Ohai lsb does not work at all on SLES11SP3
     # See https://tickets.opscode.com/browse/OHAI-454
     # Until then, copy chef's lsb_release parsing code from its lsb module.
-    package 'lsb-release'
+    %w{lsb-release}.each do |pkg|
+      r = package pkg do
+        action :nothing
+      end
+      r.run_action(:install)
+    end
 
     Mixlib::ShellOut.new('lsb_release -a').run_command.stdout.split("\n").each do |line|
       case line

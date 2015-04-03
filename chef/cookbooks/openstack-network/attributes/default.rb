@@ -994,8 +994,8 @@ when 'fedora', 'rhel' # :pragma-foodcritic: ~FC024 - won't fix this
   }
 when 'suse'
   default['openstack']['network']['platform'] = {
-    'user' => 'openstack-neutron',
-    'group' => 'openstack-neutron',
+    'user' => 'neutron',
+    'group' => 'neutron',
     'mysql_python_packages' => ['python-mysql'],
     'postgresql_python_packages' => ['python-psycopg2'],
     'nova_network_packages' => ['openstack-nova-network'],
@@ -1011,8 +1011,7 @@ when 'suse'
     'neutron_openvswitch_packages' => ['openvswitch-switch'],
     'neutron_openvswitch_agent_packages' => ['openstack-neutron-openvswitch-agent'],
     'neutron_linuxbridge_agent_packages' => ['openstack-neutron-linuxbridge-agent'],
-    'neutron_metadata_agent_packages' => ['openstack-neutron-metadata-agent'],
-    'neutron_server_packages' => [],
+    'neutron_server_packages' => ['openstack-neutron-server'],
     'neutron_dhcp_agent_service' => 'openstack-neutron-dhcp-agent',
     'neutron_l3_agent_service' => 'openstack-neutron-l3-agent',
     'neutron_lb_agent_service' => 'openstack-neutron-lbaas-agent',

@@ -421,7 +421,7 @@ link plugin_file do
   owner node['openstack']['network']['platform']['user']
   group node['openstack']['network']['platform']['group']
   action :nothing
-  only_if { platform_family? %w{fedora rhel} }
+  only_if { platform_family? %w{fedora rhel suse debian} }
 end
 
 node.set['openstack']['network']['plugin_config_file'] = template_file

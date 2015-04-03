@@ -45,6 +45,8 @@ when 'debian'
   mycnf_template = '/etc/mysql/my.cnf'
 when 'rhel'
   mycnf_template = 'final-my.cnf'
+when 'suse'
+  mycnf_template = 'final-my.cnf'
 end
 
 r = resources("template[#{mycnf_template}]")
@@ -59,10 +61,12 @@ end
 mysql_connection_info = {
   host: 'localhost',
   username: 'root',
-  password: super_password
+  password: super_password,
+  socket: node['mysql']['server']['socket']
 }
 
 mysql_database 'FLUSH PRIVILEGES' do
+  database_name 'mysql'
   connection mysql_connection_info
   sql 'FLUSH PRIVILEGES'
   action :query
@@ -74,6 +78,7 @@ end
 #
 # http://bugs.mysql.com/bug.php?id=69644
 mysql_database 'drop empty localhost user' do
+  database_name 'mysql'
   sql "DELETE FROM mysql.user WHERE User = '' OR Password = ''"
   connection mysql_connection_info
   action :query
@@ -85,6 +90,7 @@ mysql_database 'test' do
 end
 
 mysql_database 'FLUSH PRIVILEGES' do
+  database_name 'mysql'
   connection mysql_connection_info
   sql 'FLUSH PRIVILEGES'
   action :query

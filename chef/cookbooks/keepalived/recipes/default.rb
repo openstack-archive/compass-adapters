@@ -55,7 +55,33 @@ when "debian"
   end
 end
 
-package "keepalived"
+if node['platform_family'] == 'suse'
+  node.default['keepalived']['use_distro_version'] = false
+  node.default['keepalived']['rpm_package_url']  = "http://download.opensuse.org/repositories/home:/H4T:/network:/ha-clustering/SLE_11_SP3/x86_64/keepalived-1.2.7-7.1.x86_64.rpm"
+  package "src_vipa"
+end
+ 
+if node['keepalived']['use_distro_version'] or (not node['local_repo'].nil? and not node['local_repo'].empty?)
+  package "keepalived"
+else
+  rpm_package = node['keepalived']['rpm_package_url']
+  if rpm_package
+    if not node['proxy_url'].nil? and not node['proxy_url'].empty?
+      execute "download_keepalived" do
+        command "wget #{rpm_package}"
+        cwd Chef::Config['file_cache_path']
+        not_if { ::File.exists?(::File.basename(rpm_package)) }
+        environment ({ 'http_proxy' =>  node['proxy_url'], 'https_proxy' => node['proxy_url'] })
+      end  
+    else
+      remote_file "#{Chef::Config[:file_cache_path]}/#{::File.basename(rpm_package)}" do
+        source rpm_package
+        action :create_if_missing
+      end
+    end
+    rpm_package "#{Chef::Config[:file_cache_path]}/#{::File.basename(rpm_package)}"
+  end
+end
 
 if node['keepalived']['shared_address']
   case node['platform_family']

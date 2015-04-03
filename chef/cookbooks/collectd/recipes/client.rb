@@ -33,15 +33,17 @@ when "debian"
   end
 end
 
-node["collectd"]["plugins"].each_pair do |plugin_key, options|
-  collectd_plugin plugin_key do
-    options  options
+if node["platform_family"] != 'suse'
+  node["collectd"]["plugins"].each_pair do |plugin_key, options|
+    collectd_plugin plugin_key do
+      options  options
+    end
   end
-end
 
-#for python plugins or more complicated ones, use seperate recipe to deploy them
-if node["collectd"].attribute?("included_plugins") and not node["collectd"]["included_plugins"].nil?
-  node["collectd"]["included_plugins"].each_pair do |plugin_key, options|
-    include_recipe("collectd::#{plugin_key}")
+  #for python plugins or more complicated ones, use seperate recipe to deploy them
+  if node["collectd"].attribute?("included_plugins") and not node["collectd"]["included_plugins"].nil?
+    node["collectd"]["included_plugins"].each_pair do |plugin_key, options|
+      include_recipe("collectd::#{plugin_key}")
+    end
   end
 end

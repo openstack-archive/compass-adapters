@@ -97,6 +97,26 @@ when 'fedora', 'rhel' # :pragma-foodcritic: ~FC024 - won't fix this
     'heat_api_process_name' => 'heat-api',
     'package_overrides' => ''
   }
+when 'suse'
+  default['openstack']['orchestration']['user'] = 'heat'
+  default['openstack']['orchestration']['group'] = 'heat'
+  default['openstack']['orchestration']['platform'] = {
+    'mysql_python_packages' => ['python-mysql'],
+    'postgresql_python_packages' => ['python-psycopg2'],
+    'heat_common_packages' => ['openstack-heat'],
+    'heat_client_packages' => ['python-heatclient'],
+    'heat_api_packages' => ['python-heatclient', 'openstack-heat-api'],
+    'heat_api_service' => 'openstack-heat-api',
+    'heat_api_cfn_packages' => ['python-heatclient', 'openstack-heat-api-cfn'],
+    'heat_api_cfn_service' => 'openstack-heat-api-cfn',
+    'heat_api_cloudwatch_packages' => ['python-heatclient', 'openstack-heat-api-cloudwatch'],
+    'heat_api_cloudwatch_service' => 'openstack-heat-api-cloudwatch',
+    'heat_engine_packages' => ['openstack-heat-engine'],
+    'heat_engine_service' => 'openstack-heat-engine',
+    'heat_api_process_name' => 'heat-api',
+    'package_overrides' => ''
+  }
+
 when 'debian'
   default['openstack']['orchestration']['user'] = 'heat'
   default['openstack']['orchestration']['group'] = 'heat'

@@ -22,6 +22,8 @@ LockFile logs/accept.lock
 <% end -%>
 <% elsif %w[freebsd].include?(node['platform_family']) -%>
 LockFile /var/log/accept.lock
+<% elsif %w[suse].include?(node['platform_family']) -%>
+LockFile logs/accept.lock
 <% else %>
 LockFile logs/accept.lock
 <% end -%>
@@ -101,6 +103,11 @@ Include conf.modules.d/*.conf
 User <%= node['apache']['user'] %>
 Group <%= node['apache']['group'] %>
 
+<% if %w[suse].include?(node['platform_family']) -%>
+# generated from APACHE_MODULES in /etc/sysconfig/apache2
+Include /etc/apache2/sysconfig.d/loadmodule.conf
+<% end -%>
+
 #
 # AccessFileName: The name of the file to look for in each directory
 # for additional configuration directives.  See also the AllowOverride
@@ -114,7 +121,7 @@ AccessFileName .htaccess
 # viewed by Web clients.
 #
 <Files ~ "^\.ht">
-    Order allow,deny
+    Order Allow,Deny
     Deny from all
 </Files>
 
@@ -221,7 +228,7 @@ LogFormat "%{User-agent}i" agent
 #        Options IncludesNoExec
 #        AddOutputFilter Includes html
 #        AddHandler type-map var
-#        Order allow,deny
+#        Order Allow,Deny
 #        Allow from all
 #        LanguagePriority en cs de es fr it nl sv pt-br ro
 #        ForceLanguagePriority Prefer Fallback
@@ -245,7 +252,14 @@ LogFormat "%{User-agent}i" agent
 #    ErrorDocument 503 /error/HTTP_SERVICE_UNAVAILABLE.html.var
 #    ErrorDocument 506 /error/HTTP_VARIANT_ALSO_VARIES.html.var
 
-
+<% if %w[suse].include?(node['platform_family']) -%>
+# Another way to include your own files
+#
+# The file below is generated from /etc/sysconfig/apache2,
+# include arbitrary files as named in APACHE_CONF_INCLUDE_FILES and
+# APACHE_CONF_INCLUDE_DIRS
+Include /etc/apache2/sysconfig.d/include.conf
+<% end -%>
 
 # Include generic snippets of statements
 Include <%= node['apache']['dir'] %>/conf.d/*.conf
