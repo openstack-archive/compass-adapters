@@ -135,8 +135,13 @@ when 'debian'
 end
 
 default['openstack']['dashboard']['dash_path'] = "#{node['openstack']['dashboard']['django_path']}/openstack_dashboard"
-default['openstack']['dashboard']['static_path'] = "#{node['openstack']['dashboard']['django_path']}/static"
-default['openstack']['dashboard']['stylesheet_path'] = '/usr/share/openstack-dashboard/openstack_dashboard/templates/_stylesheets.html'
+if node['platform_family'] == 'suse' 
+  default['openstack']['dashboard']['static_path'] = "#{node['openstack']['dashboard']['dash_path']}/static"
+  default['openstack']['dashboard']['stylesheet_path'] = "#{node['openstack']['dashboard']['dash_path']}/templates/_stylesheets.html"
+else
+  default['openstack']['dashboard']['static_path'] = "#{node['openstack']['dashboard']['django_path']}/static"
+  default['openstack']['dashboard']['stylesheet_path'] = '/usr/share/openstack-dashboard/openstack_dashboard/templates/_stylesheets.html'
+end
 default['openstack']['dashboard']['wsgi_path'] = node['openstack']['dashboard']['dash_path'] + '/wsgi/django.wsgi'
 default['openstack']['dashboard']['wsgi_socket_prefix'] = nil
 default['openstack']['dashboard']['session_backend'] = 'signed_cookies'

@@ -37,6 +37,17 @@ platform_options['image_client_packages'].each do |pkg|
   end
 end
 
+if node['platform_family'] == 'suse'
+  service 'glance-api restart before image upload' do
+    service_name platform_options['image_api_service']
+    action :restart
+  end
+end
+
+glance_user = node['openstack']['image']['user']
+glance_group = node['openstack']['image']['group']
+
+
 identity_endpoint = endpoint 'identity-api'
 
 # For glance client, only identity v2 is supported. See discussion on

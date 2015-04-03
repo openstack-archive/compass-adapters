@@ -19,6 +19,8 @@
 
 include_recipe "collectd"
 
-collectd_plugin "network" do
-  options :listen=>'0.0.0.0'
+if node['platform_family'] != 'suse'
+  collectd_plugin "network" do
+    options :listen=>'0.0.0.0'
+  end
 end

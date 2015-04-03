@@ -41,6 +41,8 @@
   #SSLSessionCache         dbm:/var/run/apache2/ssl_scache
   <% if %w[rhel fedora suse].include?(node['platform_family']) -%>
   SSLSessionCache        shmcb:/var/cache/mod_ssl/scache(512000)
+  <% elsif %w[suse].include?(node['platform_family']) -%>
+  SSLSessionCache        shmcb:/var/lib/apache2/ssl_scache(512000)
   <% elsif %w[freebsd].include?(node['platform_family']) -%>
   SSLSessionCache        shmcb:/var/run/ssl_scache(512000)
   <% else -%>

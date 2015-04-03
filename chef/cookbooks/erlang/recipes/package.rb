@@ -44,4 +44,7 @@ when 'rhel'
   end
 
   package 'erlang'
+when 'suse'
+  package 'erlang'
+  package 'erlang-debugger'
 end

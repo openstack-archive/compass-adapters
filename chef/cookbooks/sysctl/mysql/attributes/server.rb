@@ -23,8 +23,8 @@ default["susan2"]=0
 default['mysql']['bind_address']               = attribute?('cloud') ? cloud['local_ipv4'] : node["network"]["interfaces"]["eth1"]["addresses"].keys[1]
 default['mysql']['port']                       = 3306
 
-case node["platform"]
-when "centos", "redhat", "fedora", "suse", "scientific", "amazon"
+case node["platform_family"]
+when 'rhel'
   default['mysql']['package_name']            = "mysql-server"
   default['mysql']['service_name']            = "mysqld"
   default['mysql']['basedir']                 = "/usr"
@@ -39,9 +39,22 @@ when "centos", "redhat", "fedora", "suse", "scientific", "amazon"
   set['mysql']['pid_file']                    = "/var/run/mysqld/mysqld.pid"
   set['mysql']['old_passwords']               = 1
   set['mysql']['grants_path']                 = "/etc/mysql_grants.sql"
-  # RHEL/CentOS mysql package does not support this option.
-  set['mysql']['tunable']['innodb_adaptive_flushing'] = false
-when "freebsd"
+when 'debian'
+  default['mysql']['package_name']            = "mysql-server"
+  default['mysql']['service_name']            = "mysql"
+  default['mysql']['basedir']                 = "/usr"
+  default['mysql']['data_dir']                = "/var/lib/mysql"
+  default['mysql']['root_group']              = "root"
+  default['mysql']['mysqladmin_bin']          = "/usr/bin/mysqladmin"
+  default['mysql']['mysql_bin']               = "/usr/bin/mysql"
+
+  set['mysql']['conf_dir']                    = '/etc/mysql'
+  set['mysql']['confd_dir']                   = '/etc/mysql/conf.d'
+  set['mysql']['socket']                      = "/var/run/mysqld/mysqld.sock"
+  set['mysql']['pid_file']                    = "/var/run/mysqld/mysqld.pid"
+  set['mysql']['old_passwords']               = 0
+  set['mysql']['grants_path']                 = "/etc/mysql_grants.sql"
+when 'freebsd'
   default['mysql']['package_name']            = "mysql55-server"
   default['mysql']['service_name']            = "mysql-server"
   default['mysql']['basedir']                 = "/usr/local"
@@ -56,23 +69,6 @@ when "freebsd"
   set['mysql']['pid_file']                    = "/var/run/mysqld/mysqld.pid"
   set['mysql']['old_passwords']               = 0
   set['mysql']['grants_path']                 = "/var/db/mysql/grants.sql"
-when "windows"
-  default['mysql']['package_name']            = "MySQL Server 5.5"
-  default['mysql']['version']                 = '5.5.21'
-  default['mysql']['arch']                    = 'win32'
-  default['mysql']['package_file']            = "mysql-#{mysql['version']}-#{mysql['arch']}.msi"
-  default['mysql']['url']                     = "http://www.mysql.com/get/Downloads/MySQL-5.5/#{mysql['package_file']}/from/http://mysql.mirrors.pair.com/"
-
-  default['mysql']['service_name']            = "mysql"
-  default['mysql']['basedir']                 = "#{ENV['SYSTEMDRIVE']}\\Program Files (x86)\\MySQL\\#{mysql['package_name']}"
-  default['mysql']['data_dir']                = "#{mysql['basedir']}\\Data"
-  default['mysql']['bin_dir']                 = "#{mysql['basedir']}\\bin"
-  default['mysql']['mysqladmin_bin']          = "#{mysql['bin_dir']}\\mysqladmin"
-  default['mysql']['mysql_bin']               = "#{mysql['bin_dir']}\\mysql"
-
-  default['mysql']['conf_dir']                = "#{mysql['basedir']}"
-  default['mysql']['old_passwords']           = 0
-  default['mysql']['grants_path']             = "#{mysql['conf_dir']}\\grants.sql"
 when "mac_os_x"
   default['mysql']['package_name']            = "mysql"
   default['mysql']['basedir']                 = "/usr/local/Cellar"
@@ -80,6 +76,40 @@ when "mac_os_x"
   default['mysql']['root_group']              = "admin"
   default['mysql']['mysqladmin_bin']          = "/usr/local/bin/mysqladmin"
   default['mysql']['mysql_bin']               = "/usr/local/bin/mysql"
+when 'suse'
+  default['mysql']['package_name']            = "mysql-server"
+  default['mysql']['service_name']            = "mysql"
+  default['mysql']['basedir']                 = "/usr"
+  default['mysql']['data_dir']                = "/var/lib/mysql"
+  default['mysql']['root_group']              = "root"
+  default['mysql']['mysqladmin_bin']          = "/usr/bin/mysqladmin"
+  default['mysql']['mysql_bin']               = "/usr/bin/mysql"
+
+  set['mysql']['conf_dir']                    = '/etc'
+  set['mysql']['confd_dir']                   = '/etc/mysql/conf.d'
+  set['mysql']['socket']                      = "/var/run/mysql/mysql.sock"
+  set['mysql']['pid_file']                    = "/var/run/mysql/mysqld.pid"
+  set['mysql']['old_passwords']               = 1
+  set['mysql']['grants_path']                 = "/etc/mysql_grants.sql"
+when 'windows'
+  default['mysql']['package_name']            = "MySQL Server 5.5"
+  default['mysql']['service_name']            = "mysql"
+  default['mysql']['version']                 = '5.5.34'
+  default['mysql']['arch']                    = node['kernel']['machine'] == 'x86_64' ? 'winx64' : 'win32'
+  default['mysql']['package_file']            = "mysql-#{node['mysql']['version']}-#{node['mysql']['arch']}.msi"
+  default['mysql']['url']                     = "http://www.mysql.com/get/Downloads/MySQL-5.5/#{node['mysql']['package_file']}"
+
+  default['mysql']['programdir']              = node['kernel']['machine'] == 'x86_64' ? 'Program Files' : 'Program Files (x86)'
+  default['mysql']['service_name']            = "mysql"
+  default['mysql']['basedir']                 = "#{ENV['SYSTEMDRIVE']}\\#{node['mysql']['programdir']}\\MySQL\\#{mysql['package_name']}"
+  default['mysql']['data_dir']                = "#{ENV['ProgramData']}\\MySQL\\#{node['mysql']['package_name']}\\Data"
+  default['mysql']['bin_dir']                 = "#{mysql['basedir']}\\bin"
+  default['mysql']['mysqladmin_bin']          = "#{mysql['bin_dir']}\\mysqladmin"
+  default['mysql']['mysql_bin']               = "#{mysql['bin_dir']}\\mysql"
+
+  default['mysql']['conf_dir']                = "#{mysql['basedir']}"
+  default['mysql']['old_passwords']           = 0
+  default['mysql']['grants_path']             = "#{mysql['conf_dir']}\\grants.sql"
 else
   default['mysql']['package_name']            = "mysql-server"
   default['mysql']['service_name']            = "mysql"

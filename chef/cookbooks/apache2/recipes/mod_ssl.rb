@@ -20,8 +20,19 @@ unless node['apache']['listen_ports'].include?('443')
   node.set['apache']['listen_ports'] = node['apache']['listen_ports'] + ['443']
 end
 
-if platform_family?('rhel', 'fedora', 'suse')
+if platform_family?('rhel', 'fedora')
   package 'mod_ssl' do
+    notifies :run, 'execute[generate-module-list]', :immediately
+  end
+
+  file "#{node['apache']['dir']}/conf.d/ssl.conf" do
+    action :delete
+    backup false
+  end
+end
+
+if platform_family?('suse')
+  package 'apache2-mod_security2' do
     notifies :run, 'execute[generate-module-list]', :immediately
   end
 

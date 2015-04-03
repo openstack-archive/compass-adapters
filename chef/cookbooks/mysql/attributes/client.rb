@@ -25,7 +25,7 @@ case node['platform_family']
 when 'rhel', 'fedora'
   default['mysql']['client']['packages'] = %w[postfix mysql mysql-devel]
 when 'suse'
-  default['mysql']['client']['packages'] = %w[mysql-community-server-client libmysqlclient-devel]
+  default['mysql']['client']['packages'] = %w[mysql-community-client libmysqlclient15 mysql-community-devel]
 when 'debian'
   if debian_before_squeeze? || ubuntu_before_lucid?
     default['mysql']['client']['packages'] = %w[mysql-client libmysqlclient15-dev]

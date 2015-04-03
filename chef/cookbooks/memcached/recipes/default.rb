@@ -26,19 +26,27 @@ end
 
 package 'memcached'
 
-package 'libmemcache-dev' do
-  case node['platform_family']
-  when 'rhel', 'fedora'
+case node['platform_family']
+when 'rhel', 'fedora'
+  package 'libmemcache-dev' do
     package_name 'libmemcached-devel'
-  when 'smartos'
+  end
+when 'smartos'
+  package 'libmemcache-dev' do
     package_name 'libmemcached'
-  when 'suse'
-    if node['platform_version'].to_f < 12
-      package_name 'libmemcache-devel'
-    else
-      package_name 'libmemcached-devel'
+  end
+when 'suse'
+  unless node['lsb']['description'][/^SUSE Linux Enterprise Server/]
+    package 'libmemcache-dev' do
+      if node['platform_version'].to_f < 12
+        package_name 'libmemcache-devel'
+      else
+        package_name 'libmemcached-devel'
+      end
     end
-  else
+  end
+else
+  package 'libmemcache-dev' do
     package_name 'libmemcache-dev'
   end
 end

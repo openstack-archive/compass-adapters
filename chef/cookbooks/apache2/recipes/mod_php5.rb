@@ -20,6 +20,8 @@
 case node['platform_family']
 when 'debian'
   package 'libapache2-mod-php5'
+when 'suse'
+  package 'apache2-mod_php53'
 when 'arch'
   package 'php-apache' do
     notifies :run, 'execute[generate-module-list]', :immediately

@@ -21,6 +21,8 @@
 # to debian_before_squeeze? and ubuntu_before_lucid?
 ::Chef::Recipe.send(:include, Opscode::Mysql::Helpers)
 
+include_recipe "mysql"
+
 case node['platform']
 when 'windows'
   package_file = node['mysql']['client']['package_file']

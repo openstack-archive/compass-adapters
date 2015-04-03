@@ -122,6 +122,15 @@ when 'suse'
         action :upgrade
       end
     end
+    execute "loading qemu modules" do
+      command "/sbin/modprobe nbd"
+      not_if "/sbin/lsmod | /usr/bin/grep nbd"
+    end
+
+    execute "add nbd module into load on boot" do
+      command "/usr/bin/sysconf_addword /etc/sysconfig/kernel MODULES_LOADED_ON_BOOT nbd"
+      not_if "/usr/bin/grep MODULES_LOADED_ON_BOOT /etc/sysconfig/kernel | /usr/bin/grep nbd"
+    end
 
   when 'lxc'
     node['openstack']['compute']['platform']['lxc_packages'].each do |pkg|

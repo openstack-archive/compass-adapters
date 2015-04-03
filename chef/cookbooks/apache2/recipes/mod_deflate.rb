@@ -17,6 +17,8 @@
 # limitations under the License.
 #
 
-apache_module 'deflate' do
-  conf true
+if platform_family?('rhel', 'fedora', 'debian')
+  apache_module 'deflate' do
+    conf true
+  end
 end

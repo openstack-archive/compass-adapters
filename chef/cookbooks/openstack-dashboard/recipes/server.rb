@@ -130,6 +130,16 @@ execute 'openstack-dashboard syncdb' do
   end
 end
 
+case node['platform_family']
+when 'suse'
+  execute 'openstack-dashboard compress' do
+    cwd node['openstack']['dashboard']['django_path']
+    environment 'PYTHONPATH' => "/etc/openstack-dashboard:#{node['openstack']['dashboard']['django_path']}:$PYTHONPATH"
+    command 'python manage.py compress'
+    action :run
+  end
+end
+
 cert_file = "#{node['openstack']['dashboard']['ssl']['dir']}/certs/#{node['openstack']['dashboard']['ssl']['cert']}"
 cert_mode = 00644
 cert_owner = 'root'

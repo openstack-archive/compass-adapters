@@ -16,28 +16,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-cookbook_file "#{node['collectd']['plugin_dir']}/kairosdb_writer.py" do
-  source "kairosdb_writer.py"
-  owner "root"
-  group "root"
-  mode 00644
-  action :create_if_missing
-  notifies :restart, resources(:service => "collectd")
-end
 
-if ! node['cluster']
-  node.set['cluster'] = "no_cluster_defined"
-end
+if node['platform_family'] != 'suse'
+  cookbook_file "#{node['collectd']['plugin_dir']}/kairosdb_writer.py" do
+    source "kairosdb_writer.py"
+    owner "root"
+    group "root"
+    mode 00644
+    action :create_if_missing
+    notifies :restart, resources(:service => "collectd")
+  end
 
-node.set['collectd']['client']['fqdn'] = node['fqdn'] || node['hostname'] || node['ipaddress'] || "fqdn_unknown"
+  if ! node['cluster']
+    node.set['cluster'] = "no_cluster_defined"
+  end
 
-collectd_python_plugin "kairosdb_writer" do
-  opts  =    {"KairosDBHost"=>node['collectd']['server']['host'],
-              "KairosDBPort"=>node['collectd']['server']['port'],
-              "KairosDBProtocol"=>node['collectd']['server']['protocol'],
-              "Tags" => "host=#{node['fqdn']}\" \"role=OSROLE\" \"location=China.Beijing.TsingHua\" \"cluster=#{node['cluster']}",
-              "TypesDB" => node['collectd']['types_db'],
-              "LowercaseMetricNames"=>"true"
-             }
-  options(opts)
+  node.set['collectd']['client']['fqdn'] = node['fqdn'] || node['hostname'] || node['ipaddress'] || "fqdn_unknown"
+
+  collectd_python_plugin "kairosdb_writer" do
+    opts  =    {"KairosDBHost"=>node['collectd']['server']['host'],
+                "KairosDBPort"=>node['collectd']['server']['port'],
+                "KairosDBProtocol"=>node['collectd']['server']['protocol'],
+                "Tags" => "host=#{node['fqdn']}\" \"role=OSROLE\" \"location=China.Beijing.TsingHua\" \"cluster=#{node['cluster']}",
+                "TypesDB" => node['collectd']['types_db'],
+                "LowercaseMetricNames"=>"true"
+               }
+    options(opts)
+  end
 end

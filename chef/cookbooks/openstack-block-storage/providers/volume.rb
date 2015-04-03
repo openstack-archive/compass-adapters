@@ -22,10 +22,13 @@ include Chef::Mixin::ShellOut
 def partition_num resource
   cmd = "parted #{resource.device} --script -- p | awk '{print $1}'"
   rc = shell_out(cmd)
+  Chef::Log.info("#{cmd} output: #{rc.stdout}")
   p_num = rc.stdout.split.select{|e| e[/\d/]}
   if p_num.include? "Number"
     last_num = 0
     Chef::Log.info("There is not any partition created at #{resource.device} yet.")
+  else
+    Chef::Log.info("partition number is #{p_num}")
   end
   return p_num
 end
@@ -33,16 +36,22 @@ end
 def partition_start_size resource
   cmd = "parted #{resource.device} --script -- p | awk '{print $3}' | tail -n 2"
   rc = shell_out(cmd)
+  Chef::Log.info("#{cmd} output: #{rc.stdout}")
   resource.start_size = rc.stdout.split[0]
   if resource.start_size.include? "End"
     resource.start_size = 0
+    Chef::Log.info("There is no start size found at #{resource.device} yet.")
+  else
+    Chef::Log.info("#{resource.device} start size #{resource.start_size}")
   end
 end
 
 def disk_total_size resource
-  cmd = "parted #{resource.device} --script -- p | grep #{resource.device} | cut -f 2 -d ':'"
+  cmd = "parted #{resource.device} --script -- p | grep 'Disk #{resource.device}' | cut -f 2 -d ':'"
   rc = shell_out(cmd)
+  Chef::Log.info("#{cmd} output: #{rc.stdout}")
   resource.total_size = rc.stdout.split[0]
+  Chef::Log.info("#{resource.device} total size #{resource.total_size}")
 end
 
 def mklabel resource
@@ -50,8 +59,11 @@ def mklabel resource
   if not queryresult.include?(new_resource.label_type)
     cmd = "parted #{resource.device} --script -- mklabel #{resource.label_type}"
     rc = shell_out(cmd)
+    Chef::Log.info("#{cmd} output: #{rc.stdout}")
     if not rc.exitstatus.eql?(0)
       Chef::Log.error("Creating disk label was failed.")
+    else
+      Chef::Log.info("Creating disk label was successful.")
     end
   end
 end
@@ -62,12 +74,14 @@ def mkpart resource
   if not resource.start_size.eql?(resource.total_size)
     p_num_old = partition_num resource
     output = %x{parted #{resource.device} --script -- mkpart #{resource.part_type} #{resource.start_size} -1}
+    Chef::Log.info("mkpart output: #{output}")
     p_num_new = partition_num resource
     p_num = (p_num_new - p_num_old)[0]
     if p_num.nil?
       Chef::Log.error("Making partition was failed.")
     else
       resource.partition = resource.device + p_num
+      Chef::Log.info("making partition on #{resource.partition}")
       if node['partitions'].nil?
         node.set['partitions'] = resource.partition.lines.to_a
       else
@@ -81,6 +95,7 @@ end
   
 def file_partition_size
   output = %x{df -h /}
+  Chef::Log.info("df output: #{output}")
   available_size = (output.lines.to_a[1].split[3].nil?) \
                   ?(output.lines.to_a[1].split + output.lines.to_a[2].split)[3] \
                   :(output.lines.to_a[1].split[3])
@@ -91,9 +106,12 @@ end
 
 def select_loop_device resource
   output = %x{losetup -a|grep "/mnt/cinder-volumes"}.split(':')
+  Chef::Log.info("losetup output: #{output}")
   if output.empty?
     used_loop_device = %x{losetup -a |cut -f 1 -d ':'}.split
+    Chef::Log.info("used loop device: #{used_loop_device}")
     total_loop_device = %x{ls /dev/loop* | egrep 'loop[0-9]+'}.split
+    Chef::Log.info("total loop device: #{total_loop_device}")
     available_loop = total_loop_device - used_loop_device
     if available_loop.nil?
       resource.partition = nil
@@ -111,12 +129,15 @@ def create_file_partition resource
   if not ::File.exist?("/mnt/cinder-volumes")
     cmd = "dd if=/dev/zero of=/mnt/cinder-volumes bs=1 count=0 seek=#{file_partition_size}"
     rc = shell_out(cmd)
+    Chef::Log.info("#{cmd} output: #{rc.stdout}")
   end
-  output = %x{losetup -a|grep '/mnt/cinder-volumes'}  
+  output = %x{losetup -a|grep '/mnt/cinder-volumes'}
+  Chef::Log.info("losetup output: #{output}") 
   if not output.include?("/mnt/cinder-volumes")
     select_loop_device resource
     if not resource.partition.nil?
       output = %x{losetup #{resource.partition} /mnt/cinder-volumes}
+      Chef::Log.info("losetup output: #{output}")
     end
   else
     resource.partition = output.split(":")[0]
@@ -137,6 +158,7 @@ end
 
 action :create_partition do
   if ::File.exist?(new_resource.device)
+    Chef::Log.info("device #{new_resource.device} exists")
     if node['partitions'].nil? or not node['partitions'].any?{|s| s.include?(new_resource.device)}
       disk_total_size new_resource
       partition_start_size new_resource
@@ -145,8 +167,11 @@ action :create_partition do
       else
         create_disk_partition new_resource
       end
+    else
+      Chef::Log.info("node partitions: #{node['partitions']}")
     end
   else
+    Chef::Log.info("device #{new_resource.device} does not exist")
     create_file_partition new_resource
   end
   new_resource.updated_by_last_action(true)
@@ -157,14 +182,17 @@ action :mk_cinder_vol do
     Chef::Log.error("\nThere is not any partition created before trying to create a volume.")
   else
     node['partitions'].each do |partition| 
+      Chef::Log.info("mk cinder vol on #{partition}")
       if partition.include?(new_resource.device) or partition.include?("/dev/loop")
         query = %x{vgscan |grep cinder-volumes}
+        Chef::Log.info("vgscan output: #{query}")
         if query.eql?("")
           execute "vgcreate cinder-volumes #{partition}" do
             new_resource.updated_by_last_action(true)
           end
         else
           query = %x{pvscan |grep cinder-volumes|grep #{partition}}
+          Chef::Log.info("pvscan output: #{query}")
           if query.eql?("") 
             execute "vgextend cinder-volumes #{partition}" do
               new_resource.updated_by_last_action(true)

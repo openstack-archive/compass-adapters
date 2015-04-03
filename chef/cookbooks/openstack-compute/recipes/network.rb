@@ -43,11 +43,8 @@ if node['openstack']['compute']['network']['service_type'] == 'nova'
     subscribes :restart, resources('template[/etc/nova/nova.conf]')
     action :enable
   end
-
 else
-
   node['openstack']['compute']['network']['plugins'].each do |plugin|
     include_recipe "openstack-network::#{plugin}"
   end
-
 end

@@ -156,6 +156,11 @@ if node['platform_family'] == 'rhel' && node['platform_version'].to_i > 6
   default['mysql']['version'] = '5.6'
 end
 
+if node['platform_family'] == 'suse' && node['platform_version'].to_i >= 11
+  # mysql version is 5.6 on sles11sp3
+  default['mysql']['version'] = '5.6'
+end
+
 # security options
 # @see http://www.symantec.com/connect/articles/securing-mysql-step-step
 # @see http://dev.mysql.com/doc/refman/5.7/en/server-options.html#option_mysqld_chroot

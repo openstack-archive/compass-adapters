@@ -114,7 +114,15 @@ template '/etc/neutron/plugins/openvswitch/ovs_neutron_plugin.ini' do
   variables(
     local_ip: openvswitch
   )
-  only_if { platform_family?('rhel') }
+  only_if { platform_family?('rhel', 'suse', 'debian') }
+end
+
+template '/etc/init/neutron-plugin-openvswitch-agent.conf' do
+  source 'neutron-plugin-openvswitch-agent.conf.erb'
+  owner 'root'
+  group 'root'
+  mode 00644
+  only_if { platform_family?('debian') }
 end
 
 service 'neutron-plugin-openvswitch-agent' do
@@ -122,8 +130,11 @@ service 'neutron-plugin-openvswitch-agent' do
   supports status: true, restart: true
   action :enable
   subscribes :restart, 'template[/etc/neutron/neutron.conf]'
-  if platform_family?('rhel')
+  if platform_family?('rhel', 'suse', 'debian')
     subscribes :restart, 'template[/etc/neutron/plugins/openvswitch/ovs_neutron_plugin.ini]'
+  end
+  if platform_family?('debian')
+    subscribes :restart, 'template[/etc/init/neutron-plugin-openvswitch-agent.conf]'
   end
 end
 
@@ -164,7 +175,7 @@ unless ['nicira', 'plumgrid', 'bigswitch'].include?(main_plugin)
       ignore_failure true
       command cmd
       action :run
-      not_if "ovs-vsctl brexists #{bridge}"
+      not_if "ovs-vsctl br-exists #{bridge}"
       notifies :restart, "service[neutron-plugin-openvswitch-agent]", :delayed
     end
   end

@@ -20,6 +20,8 @@
 ::Chef::Recipe.send(:include, Opscode::OpenSSL::Password)
 ::Chef::Recipe.send(:include, Opscode::Mysql::Helpers)
 
+include_recipe "mysql"
+
 if Chef::Config[:solo]
   missing_attrs = %w[
     server_debian_password
@@ -44,6 +46,8 @@ when 'rhel'
   include_recipe 'mysql::_server_rhel'
 when 'debian'
   include_recipe 'mysql::_server_debian'
+when 'suse'
+  include_recipe 'mysql::_server_suse'
 when 'mac_os_x'
   include_recipe 'mysql::_server_mac_os_x'
 when 'windows'

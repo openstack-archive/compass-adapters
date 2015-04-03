@@ -23,13 +23,17 @@ end
 
 service 'apache2' do
   case node['platform_family']
-  when 'rhel', 'fedora', 'suse'
+  when 'rhel', 'fedora'
     service_name 'httpd'
     # If restarted/reloaded too quickly httpd has a habit of failing.
     # This may happen with multiple recipes notifying apache to restart - like
     # during the initial bootstrap.
     restart_command '/sbin/service httpd restart && sleep 1'
     reload_command '/sbin/service httpd reload && sleep 1'
+  when 'suse'
+    service_name 'apache2'
+    restart_command '/sbin/service apache2 restart && sleep 1'
+    reload_command '/sbin/service apache2 reload && sleep 1'
   when 'debian'
     service_name 'apache2'
     restart_command '/usr/sbin/invoke-rc.d apache2 restart && sleep 1'
@@ -67,15 +71,26 @@ if platform_family?('rhel', 'fedora', 'arch', 'suse', 'freebsd')
 
   execute 'generate-module-list' do
     command "/usr/local/bin/apache2_module_conf_generate.pl #{node['apache']['lib_dir']} #{node['apache']['dir']}/mods-available"
-    action  :nothing
+    action  :run
   end
 
-  %w[a2ensite a2dissite a2enmod a2dismod].each do |modscript|
-    template "/usr/sbin/#{modscript}" do
-      source "#{modscript}.erb"
-      mode  '0700'
-      owner 'root'
-      group node['apache']['root_group']
+  if platform_family?('suse')
+    %w[a2ensite a2dissite].each do |modscript|
+      template "/usr/sbin/#{modscript}" do
+        source "#{modscript}.erb"
+        mode  '0700'
+        owner 'root'
+        group node['apache']['root_group']
+      end
+    end
+  else
+    %w[a2ensite a2dissite a2enmod a2dismod].each do |modscript|
+      template "/usr/sbin/#{modscript}" do
+        source "#{modscript}.erb"
+        mode  '0700'
+        owner 'root'
+        group node['apache']['root_group']
+      end
     end
   end
 
@@ -146,13 +161,22 @@ template '/etc/sysconfig/httpd' do
   only_if  { platform_family?('rhel', 'fedora') }
 end
 
+template '/etc/sysconfig/apache2' do
+  source   'etc-sysconfig-apache2.erb'
+  owner    'root'
+  group    node['apache']['root_group']
+  mode     '0644'
+  notifies :restart, 'service[apache2]'
+  only_if  { platform_family?('suse') }
+end
+
 template 'apache2.conf' do
   case node['platform_family']
   when 'rhel', 'fedora', 'arch'
     path "#{node['apache']['dir']}/conf/httpd.conf"
   when 'debian'
     path "#{node['apache']['dir']}/apache2.conf"
-  when 'freebsd'
+  when 'freebsd', 'suse'
     path "#{node['apache']['dir']}/httpd.conf"
   end
   source   'apache2.conf.erb'

@@ -25,4 +25,7 @@ when "debian"
   package "xfslibs-dev"
 when "rhel", "fedora"
   package"xfsprogs-devel"
+when "suse"
+  package "xfsdump"
+  package "xfsprogs"
 end

@@ -20,8 +20,10 @@
 
 package 'libapache2-mod-jk' do
   case node['platform_family']
-  when 'rhel', 'fedora', 'suse'
+  when 'rhel', 'fedora'
     package_name 'mod_jk'
+  when 'suse'
+    package 'apache2-mod_jk'
   else
     package_name 'libapache2-mod-jk'
   end

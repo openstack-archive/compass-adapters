@@ -201,8 +201,8 @@ when 'fedora', 'rhel' # :pragma-foodcritic: ~FC024 - won't fix this
     'package_options' => ''
   }
 when 'suse'
-  default['openstack']['identity']['user'] = 'openstack-keystone'
-  default['openstack']['identity']['group'] = 'openstack-keystone'
+  default['openstack']['identity']['user'] = 'keystone'
+  default['openstack']['identity']['group'] = 'keystone'
   default['openstack']['identity']['platform'] = {
     'mysql_python_packages' => ['python-mysql'],
     'postgresql_python_packages' => ['python-psycopg2'],

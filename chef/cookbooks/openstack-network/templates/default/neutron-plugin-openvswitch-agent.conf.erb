@@ -1,0 +1,16 @@
+description "Neutron OpenvSwitch Plugin Agent"
+author "Chuck Short <zulcss@ubuntu.com>"
+
+start on runlevel [2345] and started neutron-ovs-cleanup
+stop on runlevel [!2345]
+
+respawn
+
+chdir /var/run
+
+pre-start script
+  mkdir -p /var/run/neutron
+  chown neutron:root /var/run/neutron
+end script
+
+exec start-stop-daemon --start --chuid neutron --exec /usr/bin/neutron-openvswitch-agent -- --config-file=/etc/neutron/neutron.conf --config-file=/etc/neutron/plugins/openvswitch/ovs_neutron_plugin.ini --log-file=/var/log/neutron/openvswitch-agent.log

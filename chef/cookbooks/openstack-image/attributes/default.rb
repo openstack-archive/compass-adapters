@@ -141,8 +141,8 @@ when 'fedora', 'rhel' # :pragma-foodcritic: ~FC024 - won't fix this
     'package_overrides' => ''
   }
 when 'suse'
-  default['openstack']['image']['user'] = 'openstack-glance'
-  default['openstack']['image']['group'] = 'openstack-glance'
+  default['openstack']['image']['user'] = 'glance'
+  default['openstack']['image']['group'] = 'glance'
   default['openstack']['image']['platform'] = {
     'postgresql_python_packages' => ['python-psycopg2'],
     'mysql_python_packages' => ['python-mysql'],

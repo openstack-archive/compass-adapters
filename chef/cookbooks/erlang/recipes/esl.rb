@@ -49,6 +49,10 @@ when 'rhel'
     version node['erlang']['esl']['version'] if node['erlang']['esl']['version']
   end
 
+when 'suse'
+  package 'erlang' do
+    version node['erlang']['esl']['version'] if node['erlang']['esl']['version']
+  end
 end
 
 # There's a small bug in the package for Ubuntu 10.04... this fixes

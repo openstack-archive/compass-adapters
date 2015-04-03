@@ -29,6 +29,13 @@ service_pass = get_password 'service', 'openstack-network'
 metadata_secret = get_secret node['openstack']['network']['metadata']['secret_name']
 compute_api_endpoint = endpoint 'compute-api' || {}
 
+platform_options['neutron_metadata_agent_packages'].each do |pkg|
+  package pkg do
+    action :upgrade
+    options platform_options['package_overrides']
+  end
+end
+
 template '/etc/neutron/metadata_agent.ini' do
   source 'metadata_agent.ini.erb'
   owner node['openstack']['network']['platform']['user']
@@ -42,13 +49,6 @@ template '/etc/neutron/metadata_agent.ini' do
   )
   notifies :restart, 'service[neutron-metadata-agent]', :immediately
   action :create
-end
-
-platform_options['neutron_metadata_agent_packages'].each do |pkg|
-  package pkg do
-    action :upgrade
-    options platform_options['package_overrides']
-  end
 end
 
 service 'neutron-metadata-agent' do
