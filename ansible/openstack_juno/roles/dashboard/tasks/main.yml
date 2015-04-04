@@ -1,0 +1,29 @@
+---
+- name: install dashboard packages
+  apt: name={{ item }} state=present force=yes
+  with_items:
+    - apache2
+    - memcached
+    - libapache2-mod-wsgi
+    - openstack-dashboard
+
+- name: remove ubuntu theme
+  apt: name=openstack-dashboard-ubuntu-theme
+       state=absent
+
+## horizon configuration is already enabled in apache2/conf-enabled
+## by openstack-dashboard package deploy script.
+#- name: update dashboard conf
+#  template: src=openstack-dashboard.conf
+#            dest=/etc/apache2/sites-available/openstack-dashboard.conf
+#            backup=yes
+
+- name: update horizon settings
+  template: src=local_settings.py dest=/etc/openstack-dashboard/local_settings.py
+            backup=yes
+
+- name: restart apache2
+  service: name=apache2 state=restarted
+
+- name: restart memcached
+  service: name=memcached state=restarted

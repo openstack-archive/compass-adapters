@@ -19,6 +19,11 @@
     #set $proxy_url = $proxy
 #end if
 
+#if $getVar('compass_server', '') != ""
+    #set srv = $getVar('compass_server','')
+#else
+    #set srv = $getVar('server','')
+#end if
 
 cat << EOF > /etc/chef/chef_client_run.sh
 #!/bin/bash
@@ -74,9 +79,7 @@ local3.info @$compass_server:514
 local3.info @server:514
 #end if
 EOL
-                if [ -f "/var/lib/rsyslog/chef_\\${node}_log" ]; then 
-                    rm -rf /var/lib/rsyslog/chef_\\$node_log
-                fi
+                rm -rf /var/lib/rsyslog/chef_\\$node_log
                 service rsyslog restart
             fi
             if [ -f "/etc/chef/\\$node.done" ]; then
@@ -90,6 +93,7 @@ EOL
             else
                 echo "chef-client --node-name \\$node run success" >> /var/log/chef.log 2>&1
                 touch /etc/chef/\\$node.done
+                wget -O /tmp/package_state.\\$node --post-data='{"ready": true}' --header=Content-Type:application/json "http://$srv/api/clusterhosts/\\${node}/state_internal"
             fi
         done
         if [ \\$all_nodes_success -eq 0 ]; then

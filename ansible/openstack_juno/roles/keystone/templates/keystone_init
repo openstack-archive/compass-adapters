@@ -1,0 +1,43 @@
+# create an administrative user
+
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 user-create --name=admin --pass={{ ADMIN_PASS }} --email=admin@admin.com
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 role-create --name=admin
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 user-create --name=admin --pass={{ ADMIN_PASS }} --email=admin@admin.com
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 tenant-create --name=admin --description="Admin Tenant"
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 user-role-add --user=admin --tenant=admin --role=admin
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 user-role-add --user=admin --role=_member_ --tenant=admin
+
+# create a normal user
+
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 user-create --name=demo --pass={{ DEMO_PASS }} --email=DEMO_EMAIL
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 tenant-create --name=demo --description="Demo Tenant"
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 user-role-add --user=demo --role=_member_ --tenant=demo
+
+# create a service tenant
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 tenant-create --name=service --description="Service Tenant"
+
+# regist keystone
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 service-create --name=keystone --type=identity --description="OpenStack Identity"
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 endpoint-create --service_id=$(keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 service-list | awk '/ identity / {print $2}') --publicurl=http://{{ identity_host }}:5000/v2.0 --internalurl=http://{{ identity_host }}:5000/v2.0 --adminurl=http://{{ identity_host }}:35357/v2.0
+
+# Create a glance user that the Image Service can use to authenticate with the Identity service
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 user-create --name=glance --pass={{ GLANCE_PASS }} --email=glance@example.com
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 user-role-add --user=glance --tenant=service --role=admin
+
+#Register the Image Service with the Identity service so that other OpenStack services can locate it
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 service-create --name=glance --type=image --description="OpenStack Image Service"
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 endpoint-create --service-id=$(keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 service-list | awk '/ image / {print $2}') --publicurl=http://{{ image_host }}:9292 --internalurl=http://{{ image_host }}:9292 --adminurl=http://{{ image_host }}:9292
+
+#Create a nova user that Compute uses to authenticate with the Identity Service
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 user-create --name=nova --pass={{ NOVA_PASS }} --email=nova@example.com
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 user-role-add --user=nova --tenant=service --role=admin
+
+# register Compute with the Identity Service so that other OpenStack services can locate it
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 service-create --name=nova --type=compute --description="OpenStack Compute"
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 endpoint-create --service-id=$(keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 service-list | awk '/ compute / {print $2}') --publicurl=http://{{ identity_host }}:8774/v2/%\(tenant_id\)s --internalurl=http://{{ compute_controller_host }}:8774/v2/%\(tenant_id\)s --adminurl=http://{{ compute_controller_host }}:8774/v2/%\(tenant_id\)s
+
+# register netron user, role and service
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 user-create --name neutron --pass {{ NEUTRON_PASS }} --email neutron@example.com
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 user-role-add --user neutron --tenant service --role admin
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 service-create --name neutron --type network --description "OpenStack Networking"
+keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 endpoint-create --service-id $(keystone --os-token={{ ADMIN_TOKEN }} --os-endpoint=http://{{ identity_host }}:35357/v2.0 service-list | awk '/ network / {print $2}') --publicurl http://{{ network_server_host }}:9696 --adminurl http://{{ network_server_host }}:9696 --internalurl http://{{ network_server_host }}:9696

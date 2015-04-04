@@ -1,0 +1,8 @@
+---
+- name: install rabbitmq-server
+  apt: name=rabbitmq-server state=present
+
+- name: start and enable rabbitmq-server
+  service: name=rabbitmq-server
+           state=restarted
+           enabled=yes
