@@ -1,33 +1,43 @@
 #set ssh_keys = $getVar("push_ssh_keys", "/root/.ssh/id_rsa.pub")
 #if $ssh_keys != ""
+    #set user_name = $getVar("username", "root")
+    #if $user_name == "root"
+        #set home = "/root"
+    #else
+        #set home = "/home/%s" % $user_name
+    #end if
 <file>
-  <file_path>/root/.ssh/authorized_keys</file_path>
-  <file_owner>root.root</file_owner>
+  <file_path>$home/.ssh/authorized_keys</file_path>
+  <file_owner>${user_name}.${user_name}</file_owner>
   <file_permissions>600</file_permissions>
   <file_script>
     <interpreter>shell</interpreter>
     <source>
 <![CDATA[
 \#!/bin/bash
-mkdir -p /root/.ssh
-chmod 700 -R /root/.ssh
+mkdir -p $home/.ssh
+chmod 700 -R $home/.ssh
     #set $firstline = True
     #for $ssh_key in $ssh_keys.split(',') 
         #if not $ssh_key
             #continue
         #end if
-        #set f = $open($ssh_key)
-        #if $firstline
-cat << EOL > /root/.ssh/authorized_keys
-            #echo $f.read()
+        #try
+            #set f = $open($ssh_key)
+            #if $firstline
+cat << EOL > $home/.ssh/authorized_keys
+                #echo $f.read()
 EOL
-        #else
-cat << EOL >> /root/.ssh/authorized_keys
-            #echo $f.read()
+            #else
+cat << EOL >> $home/.ssh/authorized_keys
+                #echo $f.read()
 EOL
-        #end if
-        #silent $f.close()
-        #set $firstline = False
+            #end if
+            #set $firstline = False
+            #silent $f.close()
+        #except
+# failed to read from $ssh_key
+        #end try
     #end for
 ]]>
     </source>
