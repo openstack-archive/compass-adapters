@@ -1,0 +1,37 @@
+---
+- name: install nova related packages
+  apt: name={{ item }} state=present force=yes
+  with_items:
+    - nova-api
+    - nova-cert
+    - nova-conductor
+    - nova-consoleauth
+    - nova-novncproxy
+    - nova-scheduler
+    - python-novaclient
+    - python-oslo.rootwrap
+
+- name: update nova conf
+  template: src=nova.conf
+            dest=/etc/nova/nova.conf
+            backup=yes
+  notify:
+    - restart nova-api
+    - restart nova-cert
+    - restart nova-consoleauth
+    - restart nova-scheduler
+    - restart nova-conductor
+    - restart nova-novncproxy
+    - remove nova-sqlite-db
+
+- name: nova db sync
+  command: su -s /bin/sh -c "nova-manage db sync" nova
+  notify:
+    - restart nova-api
+    - restart nova-cert
+    - restart nova-consoleauth
+    - restart nova-scheduler
+    - restart nova-conductor
+    - restart nova-novncproxy
+
+- meta: flush_handlers

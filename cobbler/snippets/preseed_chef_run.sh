@@ -19,6 +19,12 @@
     #set $proxy_url = $proxy
 #end if
 
+#if $getVar('compass_server', '') != ""
+    #set srv = $getVar('compass_server','')
+#else
+    #set srv = $getVar('server','')
+#end if
+
 cat << EOF > /etc/chef/chef_client_run.sh
 #!/bin/bash
 touch /var/log/chef.log
@@ -67,15 +73,13 @@ EOL
 \\\\$InputFilePollInterval 1
 local3.info @$server:514
 EOL
-                if [ -f "/var/spool/rsyslog/chef_\\${node}_log" ]; then
-                    rm -rf /var/spool/rsyslog/chef_\\${node}_log
-                fi
+                rm -rf /var/lib/rsyslog/chef_\\$node_log
                 service rsyslog restart
             fi
-            if [ -f "/etc/chef/\\${node}.done" ]; then
-                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\${node}.json --client_key /etc/chef/\\${node}.pem >> /var/log/chef.log 2>&1
+            if [ -f "/etc/chef/\\$node.done" ]; then
+                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\$node.json --client_key /etc/chef/\\$node.pem >> /var/log/chef.log 2>&1
             else
-                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\${node}.json --client_key /etc/chef/\\${node}.pem -L /var/log/chef/\\$node/chef-client.log >> /var/log/chef.log 2>&1
+                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\$node.json --client_key /etc/chef/\\$node.pem -L /var/log/chef/\\$node/chef-client.log >> /var/log/chef.log 2>&1
             fi
             if [ "\\$?" != "0" ]; then
                 echo "chef-client --node-name \\$node run failed"  >> /var/log/chef.log 2>&1
@@ -83,6 +87,7 @@ EOL
             else
                 echo "chef-client --node-name \\$node run success" >> /var/log/chef.log 2>&1
                 touch /etc/chef/\\$node.done
+                wget -O /tmp/package_state.\\$node --post-data='{"ready": true}' --header=Content-Type:application/json "http://$srv/api/clusterhosts/\\${node}/state_internal"
             fi
         done
         if [ \\$all_nodes_success -eq 0 ]; then

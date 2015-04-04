@@ -1,0 +1,33 @@
+---
+- name: add juno cloudarchive
+  apt_repository: repo='deb http://ubuntu-cloud.archive.canonical.com/ubuntu trusty-updates/juno main' state=present
+
+- name: add juno apt key
+  apt_key: keyserver=keyserver.ubuntu.com id=5EDB1B62EC4926EA
+
+- name: update packages once
+  apt: update_cache=yes 
+
+- name: update hosts files to all hosts
+  template: src=hosts
+            dest=/etc/hosts
+            backup=yes
+
+- name: install common packages
+  apt: name={{ item }} state=latest
+  with_items:
+    - python-pip
+    - python-dev
+    - python-mysqldb
+    - ntp
+
+- name: update ntp conf
+  template: src=ntp.conf dest=/etc/ntp.conf backup=yes
+  notify:
+    - restart ntp
+
+- name: update pip
+  pip: name={{ item }} state=latest
+  with_items:
+    - pip
+

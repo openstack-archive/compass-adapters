@@ -25,6 +25,32 @@ mv /etc/init.d/anamon.init /tmp/anamon.init
 EOF
 
 chmod 755 /etc/init.d/anamon.init /usr/local/sbin/anamon
-chmod +x /etc/init.d/anamon.init
 chkconfig anamon.init on
 #end if
+
+## place start-up script for updating os state
+#if $getVar('compass_server', '') != ""
+    #set srv = $getVar('compass_server','')
+#else
+    #set srv = $getVar('server','')
+#end if
+
+cat << EOF > /etc/init.d/set_state
+#raw
+#!/bin/bash
+## BEGIN INIT INFO
+# Required-Start:  $network $sshd
+# Default-Start:  3 5
+# Default-Stop:   0 1 2 4 6
+# Short-Description: Notifies the os installation is finished
+# Description: set_state runs the first time a machine is booted after
+#              installation.
+## END INIT INFO
+#end raw
+wget -O /tmp/os_state --post-data='{"ready": true}' --header=Content-Type:application/json "http://$srv/api/hosts/${hostname}/state_internal"
+chkconfig -d set_state
+mv /etc/init.d/set_state /tmp/set_state
+EOF
+
+chmod 755 /etc/init.d/set_state
+chkconfig set_state on

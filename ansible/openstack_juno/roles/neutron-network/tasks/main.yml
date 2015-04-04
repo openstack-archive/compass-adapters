@@ -1,0 +1,92 @@
+---
+- name: activate ipv4 forwarding
+  sysctl: name=net.ipv4.ip_forward value=1 state=present reload=yes
+
+- name: deactivate ipv4 rp filter
+  sysctl: name=net.ipv4.conf.all.rp_filter value=0 state=present reload=yes
+
+- name: deactivate ipv4 default rp filter
+  sysctl: name=net.ipv4.conf.default.rp_filter value=0 state=present reload=yes
+
+- name: install neutron network related packages
+  apt: name={{ item }} state=present force=yes
+  with_items:
+    - neutron-plugin-ml2
+    - openvswitch-datapath-dkms
+    - openvswitch-switch
+    - neutron-l3-agent
+    - neutron-dhcp-agent
+
+- name: install neutron openvswitch agent
+  apt: name=neutron-plugin-openvswitch-agent state=present force=yes
+  when: "'openvswitch' in {{ NEUTRON_MECHANISM_DRIVERS }}"
+
+- name: config neutron
+  template: src=neutron-network.conf dest=/etc/neutron/neutron.conf backup=yes
+  notify:
+    - restart neutron-plugin-openvswitch-agent
+    - restart neutron-l3-agent
+    - kill dnsmasq
+    - restart neutron-dhcp-agent
+    - restart neutron-metadata-agent
+
+- name: config l3 agent
+  template: src=l3_agent.ini dest=/etc/neutron/l3_agent.ini backup=yes
+  notify:
+    - restart neutron-l3-agent
+
+- name: config dhcp agent
+  template: src=dhcp_agent.ini dest=/etc/neutron/dhcp_agent.ini backup=yes
+  notify:
+    - kill dnsmasq
+    - restart neutron-dhcp-agent
+
+- name: update dnsmasq-neutron.conf
+  template: src=dnsmasq-neutron.conf dest=/etc/neutron/dnsmasq-neutron.conf
+  notify:
+    - kill dnsmasq
+    - restart neutron-dhcp-agent
+
+- name: config metadata agent
+  template: src=metadata_agent.ini dest=/etc/neutron/metadata_agent.ini backup=yes
+  notify:
+    - restart neutron-metadata-agent
+
+- name: config ml2 plugin
+  template: src=ml2_conf.ini dest=/etc/neutron/plugins/ml2/ml2_conf.ini backup=yes
+  notify:
+    - restart neutron-plugin-openvswitch-agent
+
+- meta: flush_handlers
+
+- name: add br-int
+  openvswitch_bridge: bridge=br-int state=present
+
+- name: add br-ex
+  openvswitch_bridge: bridge=br-ex state=present 
+  when: "'openvswitch' in {{ NEUTRON_MECHANISM_DRIVERS }}"
+
+- name: assign a port to br-ex for physical ext interface
+  openvswitch_port: bridge=br-ex port={{ INTERFACE_NAME }} state=present
+  when: "'openvswitch' in {{ NEUTRON_MECHANISM_DRIVERS }}"
+
+- include: igmp-router.yml
+  when: "'vxlan' in {{ NEUTRON_TUNNEL_TYPES }}"
+
+- name: assert kernel support for vxlan
+  command: modinfo -F version vxlan
+  when: "'vxlan' in {{ NEUTRON_TUNNEL_TYPES }}"
+
+- name: assert iproute2 suppport for vxlan
+  command: ip link add type vxlan help
+  register: iproute_out
+  failed_when: iproute_out.rc == 255
+  when: "'vxlan' in {{ NEUTRON_TUNNEL_TYPES }}"
+
+- include: odl.yml
+  when: "'opendaylight' in {{ NEUTRON_MECHANISM_DRIVERS }}"
+
+- name: restart ovs service
+  service: name=openvswitch-switch state=restarted
+
+- meta: flush_handlers

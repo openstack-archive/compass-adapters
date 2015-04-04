@@ -1,0 +1,29 @@
+---
+- name: install cinder packages
+  apt: name={{ item }} state=present force=yes
+  with_items:
+    - cinder-api
+    - cinder-scheduler
+    - python-cinderclient
+
+- name: upload cinder conf
+  template: src=cinder.conf dest=/etc/cinder/cinder.conf
+  notify:
+    - restart cinder-scheduler
+    - restart cinder-api
+
+- name: sync cinder db
+  shell: su -s /bin/sh -c "cinder-manage db sync" cinder && cinder
+  notify:
+    - restart cinder-scheduler
+    - restart cinder-api
+
+- meta: flush_handlers
+
+- name: upload cinder keystone register script
+  template: src=cinder_init.sh dest=/opt/cinder_init.sh mode=0744
+
+- name: run cinder register script
+  shell: /opt/cinder_init.sh && touch cinder_init_complete
+  args:
+    creates: cinder_init_complete
