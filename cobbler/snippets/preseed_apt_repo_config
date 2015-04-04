@@ -1,6 +1,8 @@
 # Uncomment this if you don't want to use a network mirror
 d-i apt-setup/use_mirror boolean false
-
+d-i apt-setup/services-select multiselect
+d-i apt-setup/security_host string $http_server 
+d-i apt-setup/security_path string $install_source_directory
 # Additional repositories, local[0-9] available
 #set $cur=0
 #set $repo_data = $getVar("repo_data",[])

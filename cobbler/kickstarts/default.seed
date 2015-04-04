@@ -56,6 +56,9 @@ d-i mirror/country string manual
 d-i mirror/http/hostname string $http_server
 d-i mirror/http/directory string $install_source_directory
 d-i mirror/http/proxy string
+d-i mirror/http/mirror select $http_server
+d-i mirror/protocol select http
+d-i mirror/udeb/components multiselect main, restricted
 
 #set $os_v = $getVar('os_version','')
 #if $os_v and $os_v.lower()[0] > 'p'

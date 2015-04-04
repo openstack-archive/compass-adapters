@@ -19,3 +19,5 @@ d-i partman/choose_partition select Finish partitioning and write changes to dis
 d-i mdadm/boot_degraded boolean true
 d-i partman-auto-lvm/no_boot boolean true
 d-i partman-basicfilesystems/no_mount_point false
+d-i partman/filter_mounted boolean false
+d-i partman/unmount_active boolean false

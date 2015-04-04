@@ -29,5 +29,5 @@ for remove_partition in \${remove_partitions}; do
     if [ -z "\${partition_disk}" -o -z "\${partition_number}" ]; then
         continue
     fi
-    parted \${partition_disk} rm \${partition_number}
+    parted \${partition_disk} --script -- rm \${partition_number}
 done

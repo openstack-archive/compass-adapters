@@ -488,22 +488,23 @@ for disk in \${disks[@]}; do
     disk_name=\$(basename \$disk)
     eval "used_disk=\\${used_disk_\${disk_name}}"
     if [[ -z "\$used_disk" ]]; then
-        partition_numer=\$(lsblk -n -o MAJ:MIN,TYPE \$disk | grep part | awk '{print \$1}' | cut -d: -f2)
-        parted \$disk --script -- rm \${partition_numer}
-    fi
-done
-#end if
-
-#if $getVar('keep_old_partitions', '0') == "0"
-for disk in \${disks[@]}; do
-    disk_name=\$(basename \$disk)
-    eval "used_disk=\\${used_disk_\${disk_name}}"
-    if [[ -z "\$used_disk" ]]; then
-        partition_numers=\$(parted \$disk --script -- p | awk '/^ / {print \$1}')
-        echo "remove partition numbers \${partition_numers} on disk \$disk" >> /tmp/log
-        for partition_numer in \${partition_numers}; do
-            parted \$disk --script -- rm \${partition_numer}
-        done
+        echo '<drive>' >> /tmp/profile/partition.xml
+        echo "  <device>\$disk</device>" >> /tmp/profile/partition.xml
+        echo '  <initialize config:type="boolean">true</initialize>' >> /tmp/profile/partition.xml
+        echo '  <use>all</use>' >> /tmp/profile/partition.xml
+        echo '  <disklabel>gpt</disklabel>' >> /tmp/profile/partition.xml
+        echo '  <partitions config:type="list">' >> /tmp/profile/partition.xml
+        echo "add partition /reserved_\${disk_name} into partitions" >> /tmp/log
+        echo '    <partition>' >> /tmp/profile/partition.xml
+        echo "      <filesystem config:type=\"symbol\">\${partition_fstype}</filesystem>" >> /tmp/profile/partition.xml
+        echo '      <format config:type="boolean">true</format>' >> /tmp/profile/partition.xml
+        echo "      <mount>/reserved_\${disk_name}</mount>" >> /tmp/profile/partition.xml
+        echo '      <mountby config:type="symbol">label</mountby>' >> /tmp/profile/partition.xml
+        echo "      <label>reserved_\${disk_name}</label>" >> /tmp/profile/partition.xml
+        echo "      <size>max</size>" >> /tmp/profile/partition.xml
+        echo '    </partition>' >> /tmp/profile/partition.xml
+        echo '  </partitions>' >> /tmp/profile/partition.xml
+        echo '</drive>' >> /tmp/profile/partition.xml
     fi
 done
 #end if
