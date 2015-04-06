@@ -13,6 +13,20 @@ rm -f /etc/sysconfig/network
 mv -f /etc/sysconfig/network.cobbler /etc/sysconfig/network
 #end if
 
+cat << EOF > /sbin/ifup-local
+#raw
+#!/bin/bash
+RC=0
+PROM=\$(egrep -i 'promisc' /etc/sysconfig/network-scripts/ifcfg-\$1 | awk -F"=" '{ print \$2 }')
+if [[ "\$PROM" == "yes" ]]; then
+  ip link set dev \$1 promisc on
+  RC=\$?
+fi
+exit \$RC
+#end raw
+EOF
+chmod +x /sbin/ifup-local 
+
 #if $hostname != ""
 # set the hostname in the network configuration file
 grep -v HOSTNAME /etc/sysconfig/network > /etc/sysconfig/network.cobbler
