@@ -36,12 +36,23 @@ mv -f /etc/yum.repos.d/* /root/repo_backup/
 #set os_info = $profile_name.split('-')
 #set osname = $os_info[0].lower()
 #set osversion = $os_info[1]
+#set osversion_flat = $osversion.replace('.', '_') 
+
+cat << EOF > /etc/yum.repos.d/${osname}_${osversion_flat}_os_repo.repo
+[${osname}_${osversion_flat}_os_repo]
+name=${osname} - ${osversion}
+proxy=_none_
+baseurl=$tree
+enabled=1
+gpgcheck=0
+skip_if_unavailable=1
+EOF
 
 #set $repo_data = $getVar("repo_data",[])
 #for $repo in $repo_data
 cat << EOF > /etc/yum.repos.d/${repo.name}.repo
 [$repo.name]
-name=CentOS - $repo.name
+name=${osname} - $repo.name
     #if $repo.mirror_locally
 baseurl=http://$http_server/cblr/repo_mirror/${repo.name}
 proxy=_none_
@@ -74,7 +85,8 @@ skip_if_unavailable=1
 EOF
 
     #if $getVar("local_repo_only","1") != "0"
-yum -y update
 rm -rf /etc/yum.repos.d/CentOS-*.repo
     #end if
 #end if
+
+yum -y update
