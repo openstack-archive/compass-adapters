@@ -2,6 +2,7 @@
 #set os_info = $profile_name.split('-')
 #set osname = $os_info[0].lower()
 #set osversion = $os_info[1]
+#set osversion_flat = $osversion.replace('.', '_') 
 
 #if $getVar("local_repo", "") == "" or $getVar("local_repo_only","1") == "0"
     #set repos_snippet = 'zypp.repos.d/%s/%s/autoyast_repos' % ($osname, $osversion)
@@ -21,7 +22,7 @@ type=rpm-md
 keeppackages=1
 EOF
 
-    #if $getVar("local_repo_only","1") != "0"
-zypper -n update
+    #if $getVar("local_repo_only","1") != "0"		
+zypper -n update		
     #end if
 #end if
