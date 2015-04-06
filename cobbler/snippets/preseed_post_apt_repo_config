@@ -2,6 +2,7 @@
 #set os_info = $profile_name.split('-')
 #set osname = $os_info[0].lower()
 #set osversion = $os_info[1]
+#set osversion_flat = $osversion.replace('.', '_')
 
 cat << EOF > /etc/apt/apt.conf
 APT::Get::Assume-Yes "true";
@@ -34,6 +35,10 @@ $SNIPPET($repos_snippet)
 #end if
 
 cat << EOF >> /etc/apt/sources.list
+deb ${rarch} $tree $os_version main restricted
+EOF
+
+cat << EOF >> /etc/apt/sources.list
     #set $repo_data = $getVar("repo_data",[])
     #for $repo in $repo_data
         #for $dist in $repo.apt_dists
@@ -55,8 +60,4 @@ cat << EOF >> /etc/apt/sources.list
 #set compass_repo = 'apt.repos.d/%s/%s/ubuntu_repo' % ($osname, $osversion)
 deb ${rarch} $local_repo/$compass_repo/ local_repo main
 EOF
-
-    #if $getVar("local_repo_only","1") != "0"
-apt-get -y update
-    #end if
 #end if
