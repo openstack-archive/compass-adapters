@@ -12,7 +12,7 @@
   notify:
     - restart mysql
 
-- name: manually restart mysql server first before creating db models
+- name: manually restart mysql server
   service: name=mysql
            state=restarted
 

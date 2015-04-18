@@ -1,13 +1,16 @@
 ---
 
 - name: activate ipv4 forwarding
-  sysctl: name=net.ipv4.ip_forward value=1 state=present reload=yes
+  sysctl: name=net.ipv4.ip_forward value=1
+          state=present reload=yes
 
 - name: deactivate ipv4 rp filter
-  sysctl: name=net.ipv4.conf.all.rp_filter value=0 state=present reload=yes
+  sysctl: name=net.ipv4.conf.all.rp_filter value=0
+          state=present reload=yes
 
 - name: deactivate ipv4 default rp filter
-  sysctl: name=net.ipv4.conf.default.rp_filter value=0 state=present reload=yes
+  sysctl: name=net.ipv4.conf.default.rp_filter
+          value=0 state=present reload=yes
 
 - name: install compute-related neutron packages
   apt: name={{ item }} state=present force=yes
@@ -18,16 +21,20 @@
     - openvswitch-switch
 
 - name: install neutron openvswitch agent
-  apt: name=neutron-plugin-openvswitch-agent state=present force=yes
+  apt: name=neutron-plugin-openvswitch-agent
+       state=present force=yes
   when: "'opendaylight' not in {{ NEUTRON_MECHANISM_DRIVERS }}"
 
 - name: config neutron
-  template: src=neutron-network.conf dest=/etc/neutron/neutron.conf backup=yes
+  template: src=neutron-network.conf
+            dest=/etc/neutron/neutron.conf backup=yes
   notify:
     - restart neutron-plugin-openvswitch-agent
 
 - name: config ml2 plugin
-  template: src=ml2_conf.ini dest=/etc/neutron/plugins/ml2/ml2_conf.ini backup=yes
+  template: src=ml2_conf.ini
+            dest=/etc/neutron/plugins/ml2/ml2_conf.ini
+            backup=yes
   notify:
     - restart neutron-plugin-openvswitch-agent 
 

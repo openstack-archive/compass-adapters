@@ -6,7 +6,8 @@
     - python-glanceclient
 
 - name: update glance conf
-  template: src={{ item }} dest=/etc/glance/{{ item }} backup=yes
+  template: src={{ item }} dest=/etc/glance/{{ item }}
+            backup=yes
   with_items:
     - glance-api.conf
     - glance-registry.conf

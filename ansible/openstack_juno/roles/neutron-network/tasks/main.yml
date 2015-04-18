@@ -1,12 +1,15 @@
 ---
 - name: activate ipv4 forwarding
-  sysctl: name=net.ipv4.ip_forward value=1 state=present reload=yes
+  sysctl: name=net.ipv4.ip_forward value=1
+          state=present reload=yes
 
 - name: deactivate ipv4 rp filter
-  sysctl: name=net.ipv4.conf.all.rp_filter value=0 state=present reload=yes
+  sysctl: name=net.ipv4.conf.all.rp_filter value=0
+          state=present reload=yes
 
 - name: deactivate ipv4 default rp filter
-  sysctl: name=net.ipv4.conf.default.rp_filter value=0 state=present reload=yes
+  sysctl: name=net.ipv4.conf.default.rp_filter
+          value=0 state=present reload=yes
 
 - name: install neutron network related packages
   apt: name={{ item }} state=present force=yes
@@ -18,11 +21,13 @@
     - neutron-dhcp-agent
 
 - name: install neutron openvswitch agent
-  apt: name=neutron-plugin-openvswitch-agent state=present force=yes
+  apt: name=neutron-plugin-openvswitch-agent
+       state=present force=yes
   when: "'openvswitch' in {{ NEUTRON_MECHANISM_DRIVERS }}"
 
 - name: config neutron
-  template: src=neutron-network.conf dest=/etc/neutron/neutron.conf backup=yes
+  template: src=neutron-network.conf
+            dest=/etc/neutron/neutron.conf backup=yes
   notify:
     - restart neutron-plugin-openvswitch-agent
     - restart neutron-l3-agent
@@ -31,29 +36,35 @@
     - restart neutron-metadata-agent
 
 - name: config l3 agent
-  template: src=l3_agent.ini dest=/etc/neutron/l3_agent.ini backup=yes
+  template: src=l3_agent.ini dest=/etc/neutron/l3_agent.ini
+            backup=yes
   notify:
     - restart neutron-l3-agent
 
 - name: config dhcp agent
-  template: src=dhcp_agent.ini dest=/etc/neutron/dhcp_agent.ini backup=yes
+  template: src=dhcp_agent.ini dest=/etc/neutron/dhcp_agent.ini
+            backup=yes
   notify:
     - kill dnsmasq
     - restart neutron-dhcp-agent
 
 - name: update dnsmasq-neutron.conf
-  template: src=dnsmasq-neutron.conf dest=/etc/neutron/dnsmasq-neutron.conf
+  template: src=dnsmasq-neutron.conf
+            dest=/etc/neutron/dnsmasq-neutron.conf
   notify:
     - kill dnsmasq
     - restart neutron-dhcp-agent
 
 - name: config metadata agent
-  template: src=metadata_agent.ini dest=/etc/neutron/metadata_agent.ini backup=yes
+  template: src=metadata_agent.ini
+            dest=/etc/neutron/metadata_agent.ini backup=yes
   notify:
     - restart neutron-metadata-agent
 
 - name: config ml2 plugin
-  template: src=ml2_conf.ini dest=/etc/neutron/plugins/ml2/ml2_conf.ini backup=yes
+  template: src=ml2_conf.ini
+            dest=/etc/neutron/plugins/ml2/ml2_conf.ini
+            backup=yes
   notify:
     - restart neutron-plugin-openvswitch-agent
 
@@ -67,7 +78,8 @@
   when: "'openvswitch' in {{ NEUTRON_MECHANISM_DRIVERS }}"
 
 - name: assign a port to br-ex for physical ext interface
-  openvswitch_port: bridge=br-ex port={{ INTERFACE_NAME }} state=present
+  openvswitch_port: bridge=br-ex port={{ INTERFACE_NAME }}
+                    state=present
   when: "'openvswitch' in {{ NEUTRON_MECHANISM_DRIVERS }}"
 
 - include: igmp-router.yml

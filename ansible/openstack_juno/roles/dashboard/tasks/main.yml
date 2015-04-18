@@ -19,7 +19,8 @@
 #            backup=yes
 
 - name: update horizon settings
-  template: src=local_settings.py dest=/etc/openstack-dashboard/local_settings.py
+  template: src=local_settings.py
+            dest=/etc/openstack-dashboard/local_settings.py
             backup=yes
 
 - name: restart apache2
