@@ -1,9 +1,11 @@
 ---
+- name: install ubuntu-cloud-keyring(ubuntu)
+  apt: name={{ item }} state=latest
+  with_items:
+    - ubuntu-cloud-keyring
+
 - name: add juno cloudarchive
   apt_repository: repo='deb http://ubuntu-cloud.archive.canonical.com/ubuntu trusty-updates/juno main' state=present
-
-- name: add juno apt key
-  apt_key: keyserver=keyserver.ubuntu.com id=5EDB1B62EC4926EA
 
 - name: update packages once
   apt: update_cache=yes 
