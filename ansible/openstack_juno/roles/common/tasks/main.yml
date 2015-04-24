@@ -1,11 +1,14 @@
 ---
+- name: first update pkgs
+  apt: update_cache=yes
+
 - name: install ubuntu-cloud-keyring(ubuntu)
   apt: name={{ item }} state=latest
   with_items:
     - ubuntu-cloud-keyring
 
 - name: add juno cloudarchive
-  apt_repository: repo={{ juno_cloud_archive }} state=present
+  apt_repository: repo="{{ juno_cloud_archive }}" state=present
 
 - name: update packages once
   apt: update_cache=yes 
