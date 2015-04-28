@@ -1,0 +1,59 @@
+{
+    "CinderVolumes.create_snapshot_and_attach_volume": [
+        {
+            "args": {
+                "volume_type": false,
+                "min_volume_size": 1,
+                "max_volume_size": 5
+            },
+            "runner": {
+                "type": "constant",
+                "times": 1,
+                "concurrency": 1
+            },
+            "context": {
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant": 1
+                },
+                "servers": {
+                    "image": {
+                        "name": "^cirros.*"
+                    },
+                    "flavor": {
+                        "name": "m1.tiny"
+                    },
+                    "servers_per_tenant": 1
+                }
+            }
+        },
+        {
+            "args": {
+                "volume_type": false,
+                "min_volume_size": 1,
+                "max_volume_size": 5
+            },
+            "runner": {
+                "type": "constant",
+                "times": 1,
+                "concurrency": 1
+            },
+            "context": {
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant": 1
+                },
+                "servers": {
+                    "image": {
+                        "name": "^cirros.*"
+                    },
+                    "flavor": {
+                        "name": "m1.tiny"
+                    },
+                    "servers_per_tenant": 1
+                }
+            }
+        }
+
+    ]
+}

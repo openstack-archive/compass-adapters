@@ -1,0 +1,21 @@
+{
+    "NovaSecGroup.create_and_delete_secgroups": [
+        {
+            "args": {
+                "security_group_count": 2,
+                "rules_per_security_group": 2
+            },
+            "runner": {
+                "type": "constant",
+                "times": 1,
+                "concurrency": 2
+            },
+            "context": {
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant": 2
+                }
+            }
+        }
+    ]
+}
