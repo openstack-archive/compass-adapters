@@ -1,0 +1,27 @@
+{
+    "NovaServers.boot_server_from_volume_and_delete": [
+        {
+            "args": {
+                "flavor": {
+                    "name": "m1.tiny"
+                },
+                "image": {
+                    "name": "^cirros.*"
+                },
+                "volume_size": 1,
+                "force_delete": false
+            },
+            "runner": {
+                "type": "constant",
+                "times": 1,
+                "concurrency": 1
+            },
+            "context": {
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant": 1
+                }
+            }
+        }
+    ]
+}
