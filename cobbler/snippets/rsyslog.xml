@@ -13,9 +13,9 @@
 \$ActionResumeRetryCount -1
 \$ActionQueueSaveOnShutDown on
 #if $getVar("compass_server", "") != ""
-*.* @@$compass_server:514
+\# *.* @@$compass_server:514
 #else
-*.* @@$server:514
+\# *.* @@$server:514
 #end if
 
 \# Provides UDP syslog reception

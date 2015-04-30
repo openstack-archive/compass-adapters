@@ -71,7 +71,11 @@ EOL
 \\\\$InputFileFacility local3
 \\\\$InputRunFileMonitor
 \\\\$InputFilePollInterval 1
-local3.info @$server:514
+#if $getVar("compass_server","") != ""
+local3.info @$compass_server:514
+#else
+local3.info @@$server:514
+#end if
 EOL
                 rm -rf /var/lib/rsyslog/chef_\\$node_log
                 service rsyslog restart
