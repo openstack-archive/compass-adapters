@@ -11,12 +11,14 @@
     - dashboard
     - cinder-controller
     - glance
+    - plumgrid
+    - plumgrid-plugin
 
 - hosts: network
   sudo: True
   roles:
     - common
-    - neutron-network
+    - plumgrid
 
 - hosts: storage
   sudo: True
@@ -30,3 +32,4 @@
     - common
     - nova-compute
     - neutron-compute
+    - plumgrid
