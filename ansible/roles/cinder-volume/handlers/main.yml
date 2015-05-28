@@ -3,4 +3,4 @@
   service: name=cinder-volume state=restarted
 
 - name: restart tgt
-  service: name=tgt state=restarted
+  shell: service tgt restart
