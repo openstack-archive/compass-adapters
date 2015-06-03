@@ -1,7 +1,9 @@
 FROM ubuntu:trusty
 RUN apt-get update && \
-    apt-get -y install git python2.7 bash-completion python-dev libffi-dev \
-                       libxml2-dev libxslt1-dev libssl-dev python-pip libmysqlclient-dev && \
+    apt-get -y install vim git python2.7 bash-completion python-dev libffi-dev \
+                       libxml2-dev libxslt1-dev libssl-dev libmysqlclient-dev libpq-dev wget build-essential && \
+    wget https://raw.github.com/pypa/pip/master/contrib/get-pip.py -O /tmp/pip.py &&\
+    python /tmp/pip.py && rm /tmp/pip.py &&\
     pip install mysql-python
 RUN mkdir -p /tmp/rally-src && \
     cd /tmp/rally-src && \
@@ -17,6 +19,6 @@ RUN mkdir -p /opt/rally/database && \
 
 ADD check_health.py /opt/compass/check_health.py
 
-RUN git clone https://github.com/stackforge/rally.git
-RUN cd rally && \
+#RUN git clone https://github.com/stackforge/rally.git
+RUN cd /tmp/rally-src/rally && \
     ./install_rally.sh
