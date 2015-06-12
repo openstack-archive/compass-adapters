@@ -1,0 +1,75 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          openstack-keystone
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Should-Start:      mysql postgresql
+# Should-Stop:       mysql postgresql
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 6
+# Short-Description: OpenStack Identity (Keystone)
+# Description:       OpenStack Identity (Keystone)
+### END INIT INFO
+
+USER="<%= node['openstack']['identity']['user'] %>"
+CONFFILE="/etc/keystone/keystone.conf"
+RUNDIR="/var/run/keystone"
+
+# $RUNDIR can be tmpfs, thus we have to create/own it here:
+mkdir -p $RUNDIR && chown $USER. $RUNDIR
+
+. /etc/rc.status
+
+case "$1" in
+    start)
+        echo -n "Checking DB Migrations for Keystone"
+        su $USER -s /bin/sh -c "keystone-manage --config-file=$CONFFILE db_sync" &> /dev/null
+        rc_status -v
+
+        echo -n "Starting keystone"
+        su $USER -s /bin/sh -c "/sbin/startproc -q -s /usr/bin/keystone-all --config-file=$CONFFILE"
+        rc_status -v
+        ;;
+    stop)
+        echo -n "Shutting down keystone"
+        /sbin/killproc /usr/bin/keystone-all
+        rc_status -v
+        ;;
+    restart)
+        $0 stop
+        $0 start
+        rc_status
+        ;;
+    force-reload)
+        $0 try-restart
+        rc_status
+        ;;
+    reload)
+        echo -n "Reload service keystone"
+        rc_failed 3
+        rc_status -v
+        ;;
+    status)
+        echo -n "Checking for service keystone"
+        /sbin/checkproc /usr/bin/keystone-all
+        rc_status -v
+        ;;
+    try-restart|condrestart)
+        if test "$1" = "condrestart"; then
+            echo "${attn} Use try-restart ${done}(LSB)${attn} rather than condrestart ${warn}(RH)${norm}"
+        fi
+        $0 status
+        if test $? = 0; then
+            $0 restart
+        else
+            rc_reset # Not running is not a failure.
+        fi
+        rc_status # Remember status and be quiet
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|status|try-restart|restart|force-reload|reload}"
+        exit 1
+        ;;
+esac
+rc_exit

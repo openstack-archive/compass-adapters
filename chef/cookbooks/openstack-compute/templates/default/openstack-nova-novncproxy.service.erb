@@ -1,0 +1,64 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          openstack-nova-novncproxy
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Should-Start:      mysql postgresql rabbitmq-server
+# Should-Stop:       mysql postgresql rabbitmq-server
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 6
+# Short-Description: OpenStack Compute (Nova) - novncproxy
+# Description:       OpenStack Compute (Nova) - novncproxy
+### END INIT INFO
+
+DAEMON="novncproxy"
+USER="<%= node['openstack']['compute']['user'] %>"
+CONFFILE="/etc/nova/nova.conf"
+LOGFILE="/var/log/nova/$DAEMON.log"
+
+OPTIONS="--config-file=$CONFFILE --logfile=$LOGFILE --nodaemon"
+
+. /etc/rc.status
+
+case "$1" in
+    start)
+        echo -n "Starting nova-$DAEMON"
+        /sbin/startproc -q -u $USER /usr/bin/nova-$DAEMON $OPTIONS
+        rc_status -v
+        ;;
+    stop)
+        echo -n "Shutting down nova-$DAEMON"
+        /sbin/killproc /usr/bin/nova-$DAEMON
+        rc_status -v
+        ;;
+    restart)
+        $0 stop
+        $0 start
+        rc_status
+        ;;
+    reload)
+        ;;
+    status)
+        echo -n "Checking for service nova-$DAEMON"
+        /sbin/checkproc /usr/bin/nova-$DAEMON
+        rc_status -v
+        ;;
+    try-restart|condrestart)
+        if test "$1" = "condrestart"; then
+            echo "${attn} Use try-restart ${done}(LSB)${attn} rather than condrestart ${warn}(RH)${norm}"
+        fi
+        $0 status
+        if test $? = 0; then
+            $0 restart
+        else
+            rc_reset # Not running is not a failure.
+        fi
+        rc_status # Remember status and be quiet
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|status|try-restart|restart}"
+        exit 1
+        ;;
+esac
+rc_exit

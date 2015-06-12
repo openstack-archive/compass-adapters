@@ -110,7 +110,7 @@ openstack_identity_register 'Register Identity Service' do
 end
 
 node.set['openstack']['identity']['adminURL'] = identity_admin_endpoint.to_s
-node.set['openstack']['identity']['internalURL'] = identity_endpoint.to_s
+node.set['openstack']['identity']['internalURL'] = identity_admin_endpoint.to_s
 node.set['openstack']['identity']['publicURL'] = identity_endpoint.to_s
 
 Chef::Log.info "Keystone AdminURL: #{identity_admin_endpoint.to_s}"

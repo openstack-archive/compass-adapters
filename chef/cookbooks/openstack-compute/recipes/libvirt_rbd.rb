@@ -37,7 +37,7 @@ end
 # which one should be used for each single volume mount request
 Chef::Log.info("rbd_secret_name: #{node['openstack']['compute']['libvirt']['rbd']['rbd_secret_name']}")
 secret_uuid = get_secret node['openstack']['compute']['libvirt']['rbd']['rbd_secret_name']
-ceph_key = get_password 'service', 'rbd_block_storage'
+ceph_key = get_password 'service', node["openstack"]["compute"]["service_user"]
 
 require 'securerandom'
 filename = SecureRandom.hex

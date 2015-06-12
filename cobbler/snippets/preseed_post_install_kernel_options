@@ -10,5 +10,3 @@ else
 fi
 # End post install kernel options update
 #end if
-
-

@@ -49,6 +49,29 @@ platform_options['memcache_python_packages'].each do |pkg|
   end
 end
 
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    group node['openstack']['identity']['group']
+    user node['openstack']['identity']['user'] do
+      shell "/bin/bash"
+      comment "Openstack Identity Server"
+      gid node['openstack']['identity']['group']
+      system true
+      supports :manage_home => false
+    end
+    directory '/var/log/keystone' do
+      owner node['openstack']['identity']['user']
+      group node['openstack']['identity']['group']
+      mode  00750
+    end
+    directory '/var/run/keystone' do
+      owner node['openstack']['identity']['user']
+      group node['openstack']['identity']['group']
+      mode  0755
+    end
+  end
+end
+
 platform_options['keystone_packages'].each do |pkg|
   package pkg do
     options platform_options['package_options']
@@ -62,15 +85,6 @@ execute 'Keystone: sleep' do
   action :nothing
 end
 
-service 'keystone' do
-  service_name platform_options['keystone_service']
-  supports status: true, restart: true
-
-  action [:enable]
-
-  notifies :run, 'execute[Keystone: sleep]', :immediately
-end
-
 directory '/etc/keystone' do
   owner node['openstack']['identity']['user']
   group node['openstack']['identity']['group']
@@ -82,30 +96,35 @@ file '/var/lib/keystone/keystone.db' do
   not_if { node['openstack']['db']['identity']['service_type'] == 'sqlite' }
 end
 
-if node['openstack']['auth']['strategy'] == 'pki'
-  certfile_url = node['openstack']['identity']['signing']['certfile_url']
-  keyfile_url = node['openstack']['identity']['signing']['keyfile_url']
-  ca_certs_url = node['openstack']['identity']['signing']['ca_certs_url']
-  signing_basedir = node['openstack']['identity']['signing']['basedir']
 
-  directory signing_basedir do
-    owner node['openstack']['identity']['user']
-    group node['openstack']['identity']['group']
-    mode  00700
-  end
-
-  directory "#{signing_basedir}/certs" do
+if node['openstack']['identity']['signing']['basedir']
+  directory "#{node['openstack']['identity']['signing']['basedir']}" do
     owner node['openstack']['identity']['user']
     group node['openstack']['identity']['group']
     mode  00755
   end
+end
 
-  directory "#{signing_basedir}/private" do
+if node['openstack']['identity']['signing']['certdir']
+  directory "#{node['openstack']['identity']['signing']['certdir']}" do
     owner node['openstack']['identity']['user']
     group node['openstack']['identity']['group']
-    mode  00750
+    mode  00755
   end
+end
 
+if node['openstack']['identity']['signing']['keydir']
+  directory "#{node['openstack']['identity']['signing']['keydir']}" do
+    owner node['openstack']['identity']['user']
+    group node['openstack']['identity']['group']
+    mode  00755
+  end
+end
+
+if node['openstack']['auth']['strategy'] == 'pki'
+  certfile_url = node['openstack']['identity']['signing']['certfile_url']
+  keyfile_url = node['openstack']['identity']['signing']['keyfile_url']
+  ca_certs_url = node['openstack']['identity']['signing']['ca_certs_url']
   if certfile_url.nil? || keyfile_url.nil? || ca_certs_url.nil?
     keygen_node = node_election('os-identity', 'keystone_keygen')
     if node.name.eql?(keygen_node.name)
@@ -144,7 +163,7 @@ if node['openstack']['auth']['strategy'] == 'pki'
       source certfile_url
       owner  node['openstack']['identity']['user']
       group  node['openstack']['identity']['group']
-      mode   00640
+      mode   00644
 
       notifies :restart, 'service[keystone]', :delayed
     end
@@ -162,8 +181,50 @@ if node['openstack']['auth']['strategy'] == 'pki'
       source ca_certs_url
       owner  node['openstack']['identity']['user']
       group  node['openstack']['identity']['group']
-      mode   00640
+      mode   00644
 
+      notifies :restart, 'service[keystone]', :delayed
+    end
+  end
+end
+
+if node['openstack']['identity']['signing']['certfile']
+  file "#{node['openstack']['identity']['signing']['certfile']}" do
+    owner node['openstack']['identity']['user']
+    group node['openstack']['identity']['group']
+    mode 00644
+  end
+end
+
+if node['openstack']['identity']['signing']['keyfile']
+  file "#{node['openstack']['identity']['signing']['keyfile']}" do
+    owner node['openstack']['identity']['user']
+    group node['openstack']['identity']['group']
+    mode 00640
+  end
+end
+
+if node['openstack']['identity']['signing']['ca_certs']
+  file "#{node['openstack']['identity']['signing']['ca_certs']}" do
+    owner node['openstack']['identity']['user']
+    group node['openstack']['identity']['group']
+    mode 00644
+  end
+end
+
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    template '/etc/init.d/openstack-keystone' do
+      source 'openstack-keystone.service.erb'
+      owner "root"
+      group "root"
+      mode 00755
+    end
+
+    # fix middleware bug that does not respect admin_token
+    template '/usr/lib64/python2.6/site-packages/keystone/middleware/core.py' do
+      source 'middleware_core.py.erb'
+      mode 0644
       notifies :restart, 'service[keystone]', :delayed
     end
   end
@@ -191,13 +252,6 @@ bind_address = bind_endpoint.host
 # memcache.servers attribute.
 if node['openstack']['identity']['token']['backend'].eql?('memcache')
   memcache_servers = memcached_servers('os-ops-caching').join ','  # from openstack-common lib
-  # number of seconds to wait before sockets timeout when the memcached server is down
-  # the default number is 3, here is going to set it as 0.1
-  ruby_block "Set memcache socket timeout" do
-    block do
-      `sed -i "s/_SOCKET_TIMEOUT = 3/_SOCKET_TIMEOUT = 0.1/g" /usr/lib/python[0-9].[0-9]/site-packages/memcache.py`
-    end
-  end
 end
 
 # These configuration endpoints must not have the path (v2.0, etc)
@@ -238,7 +292,7 @@ template '/etc/keystone/keystone.conf' do
     token_expiration: node['openstack']['identity']['token']['expiration']
   )
 
-  notifies :restart, 'service[keystone]', :immediately
+  notifies :restart, 'service[keystone]', :delayed
 end
 
 # populate the templated catlog, if you're using the templated catalog backend
@@ -261,7 +315,7 @@ template '/etc/keystone/default_catalog.templates' do
     uris: uris
   )
 
-  notifies :restart, 'service[keystone]', :immediately
+  notifies :restart, 'service[keystone]', :delayed
   only_if { node['openstack']['identity']['catalog']['backend'] == 'templated' }
 end
 
@@ -269,8 +323,25 @@ end
 execute 'keystone-manage db_sync' do
   user node['openstack']['identity']['user']
   group node['openstack']['identity']['group']
-
+  command 'keystone-manage db_sync &> /dev/null'
   only_if { node['openstack']['db']['identity']['migrate'] }
+end
+
+service 'keystone' do
+  service_name platform_options['keystone_service']
+  supports status: true, restart: true
+
+  action [:enable, :start]
+
+  notifies :run, 'execute[Keystone: sleep]', :immediately
+end
+
+ruby_block "service keystone restart if necessary" do
+  block do
+    Chef::Log.info("service keystone restart")
+  end
+  not_if "service #{platform_options['keystone_service']} status"
+  notifies :restart, 'service[keystone]', :immediately
 end
 
 # Configure the flush tokens cronjob

@@ -5,6 +5,7 @@
 #else
 #set $what = "profile"
 #end if
+
 $SNIPPET('suse_pre_log')
 $SNIPPET('suse_pre_install_network')
 $SNIPPET('suse_pre_partition_disks')

@@ -63,3 +63,6 @@ vxlan_group = <%= node['openstack']['network']['ml2']['vxlan_group'] %>
 # Controls if neutron security group is enabled or not.
 # It should be false when you use nova security group.
 enable_security_group = <%= node['openstack']['network']['ml2']['enable_security_group'] %>
+<% if node['openstack']['network']['ml2']['firewall_driver'] -%>
+firewall_driver = <%= node['openstack']['network']['ml2']['firewall_driver'] %>
+<% end -%>

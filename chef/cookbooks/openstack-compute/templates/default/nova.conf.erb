@@ -18,6 +18,67 @@ instance_name_template=<%= node["openstack"]["compute"]["instance_name_template"
 network_allocate_retries=<%= node['openstack']['compute']['network_allocate_retries'] %>
 lock_path=<%= node["openstack"]["compute"]["lock_path"] %>
 
+<% if node['openstack']['compute']['instance_memory_qos'] -%>
+instance_memory_qos = <%= node['openstack']['compute']['instance_memory_qos'] %>
+<% end -%>
+<% if node['openstack']['compute']['instance_console_log'] -%>
+instance_console_log = <%= node['openstack']['compute']['instance_console_log'] %>
+<% end -%>
+<% if node['platform_family'] == 'suse' -%>
+<% if node['lsb']['codename'] == 'UVP' -%>
+instances_console0_log_path = <%= node["openstack"]["compute"]["instances_path"] %>
+libvirt_type = <%= node["openstack"]["compute"]["libvirt"]["virt_type"] %>
+<% end -%>
+<% end -%>
+<% if node['openstack']['compute']['compute_api_class'] -%>
+compute_api_class = <%= node['openstack']['compute']['compute_api_class'] %>
+<% end -%>
+<% if node['openstack']['compute']['libvirt_iscsi_use_ultrapath'] -%>
+libvirt_iscsi_use_ultrapath = <%= node['openstack']['compute']['libvirt_iscsi_use_ultrapath'] %>
+<% end -%>
+<% if node['openstack']['compute']['instances_ha_info_record_path'] -%>
+instances_ha_info_record_path = <%= node['openstack']['compute']['instances_ha_info_record_path'] %>
+<% end -%>
+<% if node['openstack']['compute']['running_deleted_instance_poll_interval'] -%>
+running_deleted_instance_poll_interval = <%= node['openstack']['compute']['running_deleted_instance_poll_interval'] %>
+<% end -%>
+<% if node['openstack']['compute']['volume_clear'] -%>
+volume_clear = <%= node['openstack']['compute']['volume_clear'] %>
+<% end -%>
+<% if node['openstack']['compute']['instance_panic_reboot'] -%>
+instance_panic_reboot = <%= node['openstack']['compute']['instance_panic_reboot'] %>
+<% end -%>
+<% if node['openstack']['compute']['running_deleted_instance_action'] -%>
+running_deleted_instance_action = <%= node['openstack']['compute']['running_deleted_instance_action']  %>
+<% end -%>
+<% if node['openstack']['compute']['nic_suspension'] -%>
+nic_suspension = <%= node['openstack']['compute']['nic_suspension'] %>
+<% end -%>
+<% if node['openstack']['compute']['libvirt_ovs_bridge'] -%>
+libvirt_ovs_bridge = <%= node['openstack']['compute']['libvirt_ovs_bridge'] %>
+<% end -%>
+<% if node['openstack']['compute']['close_instance_memballoon'] -%>
+close_instance_memballoon = <%= node['openstack']['compute']['close_instance_memballoon'] %>
+<% end -%>
+<% if node['openstack']['compute']['reschedule_delay_rebuild_time'] -%>
+reschedule_delay_rebuild_time = <%= node['openstack']['compute']['reschedule_delay_rebuild_time'] %>
+<% end -%>
+<% if node['openstack']['compute']['local_resume_instance'] -%>
+local_resume_instance = <%= node['openstack']['compute']['local_resume_instance'] %>
+<% end -%>
+<% if node['openstack']['compute']['rebuild_extdata_keep'] -%>
+rebuild_extdata_keep = <%= node['openstack']['compute']['rebuild_extdata_keep'] %>
+<% end -%>
+<% if node['openstack']['compute']['running_deleted_instance_notify_interval'] -%>
+running_deleted_instance_notify_interval = <%= node['openstack']['compute']['running_deleted_instance_notify_interval'] %>
+<% end -%>
+<% if node['openstack']['compute']['download_instance_disk'] -%>
+download_instance_disk = <%= node['openstack']['compute']['download_instance_disk'] %>
+<% end -%>
+<% if node['openstack']['compute']['vnc_enabled'] -%>
+vnc_enabled = <%= node['openstack']['compute']['vnc_enabled'] %>
+<% end -%>
+
 # Command prefix to use for running commands as root (default: sudo)
 rootwrap_config=/etc/nova/rootwrap.conf
 
@@ -50,11 +111,15 @@ rabbit_ha_queues=True
 <% else -%>
 rabbit_host=<%= node["openstack"]["mq"]["compute"]["rabbit"]["host"] %>
 rabbit_port=<%= node["openstack"]["mq"]["compute"]["rabbit"]["port"] %>
-rabbit_use_ssl=<%= node["openstack"]["mq"]["compute"]["rabbit"]["use_ssl"] %>
+<% end -%>
+<% if node["openstack"]["mq"]["compute"]["rabbit"]["use_ssl"] -%>
+rabbit_use_ssl=True
+<% else -%>
+rabbit_use_ssl=False
 <% end -%>
 <% end -%>
 
-<% if @mq_service_type == "qpid"  %>
+<% if @mq_service_type == "qpid"  -%>
 ##### QPID #####
 qpid_hostname=<%= node["openstack"]["mq"]["compute"]["qpid"]["host"] %>
 qpid_port=<%= node["openstack"]["mq"]["compute"]["qpid"]["port"] %>
@@ -71,7 +136,7 @@ qpid_heartbeat=<%= node["openstack"]["mq"]["compute"]["qpid"]["heartbeat"] %>
 qpid_protocol=<%= node["openstack"]["mq"]["compute"]["qpid"]["protocol"] %>
 qpid_tcp_nodelay=<%= node["openstack"]["mq"]["compute"]["qpid"]["tcp_nodelay"] %>
 qpid_topology_version=<%= node['openstack']['mq']['compute']['qpid']['topology_version'] %>
-<% end %>
+<% end -%>
 
 
 ##### SCHEDULER #####
@@ -96,9 +161,7 @@ scheduler_host_subset_size=<%= node['openstack']['compute']['scheduler']['host_s
 
 ##### NETWORK #####
 <% case node["openstack"]["compute"]["network"]["service_type"]
-
 when "neutron" -%>
-
 # N.B. due to https://bugs.launchpad.net/nova/+bug/1206330
 # we override the endpoint scheme below, ignore the port
 # and essentially force http
@@ -121,7 +184,6 @@ service_neutron_metadata_proxy=<%= node["openstack"]["compute"]["network"]["neut
 neutron_metadata_proxy_shared_secret=<%= @neutron_metadata_proxy_shared_secret %>
 default_floating_pool=<%= node["openstack"]["compute"]["network"]["neutron"]["public_network_name"] %>
 dns_server=<%= node["openstack"]["compute"]["network"]["neutron"]["dns_server"] %>
-
 <% when "nova" -%>
 multi_host=<%= node["openstack"]["compute"]["network"]["multi_host"] %>
 network_manager=<%= node["openstack"]["compute"]["network"]["network_manager"] %>
@@ -130,8 +192,8 @@ dmz_cidr=<%= node["openstack"]["compute"]["network"]["dmz_cidr"] %>
 force_dhcp_release=<%= node["openstack"]["compute"]["network"]["force_dhcp_release"] %>
 <% if node["openstack"]["compute"]["dhcp_domain"] -%>
 dhcp_domain=<%= node["openstack"]["compute"]["dhcp_domain"] %>
-<% end %>
-send_arp_for_ha=true
+<% end -%>
+send_arp_for_ha=True
 use_single_default_gateway=<%= node["openstack"]["compute"]["network"]["use_single_default_gateway"] %>
 vlan_interface=<%= node["openstack"]["compute"]["network"]["vlan_interface"] %>
 auto_assign_floating_ip=<%= node["openstack"]["compute"]["network"]["auto_assign_floating_ip"] %>
@@ -141,6 +203,9 @@ auto_assign_floating_ip=<%= node["openstack"]["compute"]["network"]["auto_assign
 image_service=nova.image.glance.GlanceImageService
 glance_api_servers=<%= @glance_api_ipaddress %>:<%= @glance_api_port %>
 glance_num_retries= <%= node['openstack']['compute']['glance_num_retries'] %>
+<% if node['openstack']['compute']['glance_api_insecure'] -%>
+glance_api_insecure = <%= node['openstack']['compute']['glance_api_insecure']  %>
+<% end -%>
 
 ##### COMPUTE #####
 compute_driver=<%= node["openstack"]["compute"]["driver"] %>
@@ -151,7 +216,7 @@ preallocate_images=<%= node["openstack"]["compute"]["preallocate_images"] %>
 use_cow_images=<%= node["openstack"]["compute"]["use_cow_images"] %>
 vif_plugging_is_fatal=<%= node["openstack"]["compute"]["vif_plugging_is_fatal"] %>
 vif_plugging_timeout=<%= node["openstack"]["compute"]["vif_plugging_timeout"] %>
-compute_manager=nova.compute.manager.ComputeManager
+compute_manager=<%= node['openstack']['compute']['compute_manager']  %>
 connection_type=libvirt
 live_migration_retry_count=30
 force_config_drive=true
@@ -170,7 +235,6 @@ instance_usage_audit=<%= node['openstack']['compute']['config']['instance_usage_
 # Time period to generate instance usages for.  Time period
 # must be hour, day, month or year (string value)
 instance_usage_audit_period=<%= node['openstack']['compute']['config']['instance_usage_audit_period'] %>
-
 <% unless node['openstack']['compute']['config']['notify_on_state_change'].empty? -%>
 # If set, send compute.instance.update notifications on
 # instance state changes.  Valid values are None for no
@@ -178,8 +242,7 @@ instance_usage_audit_period=<%= node['openstack']['compute']['config']['instance
 # changes, or "vm_and_task_state" for notifications on VM and
 # task state changes. (string value)
 notify_on_state_change=<%= node['openstack']['compute']['config']['notify_on_state_change'] %>
-<% end %>
-
+<% end -%>
 <% if node["openstack"]["compute"]["enabled_apis"].include?("osapi_compute") -%>
 # The IP address on which the OpenStack API will listen. (string value)
 osapi_compute_listen=<%= @compute_api_bind_ip %>
@@ -201,7 +264,6 @@ novncproxy_port=<%= @novncproxy_bind_port %>
 
 vncserver_listen=<%= @vncserver_listen %>
 vncserver_proxyclient_address=<%= @vncserver_proxyclient_address %>
-
 # store consoleauth tokens in memcached
 <% unless @memcache_servers.empty? -%>
 memcached_servers=<%= @memcache_servers %>
@@ -250,7 +312,6 @@ quota_metadata_items=<%= node["openstack"]["compute"]["config"]["quota_metadata_
 # megabytes of instance ram allowed per project (default: 51200)
 quota_ram=<%= node["openstack"]["compute"]["config"]["quota_ram"] %>
 
-
 <%- if /FilterScheduler/.match(node["openstack"]["compute"]["scheduler"]["scheduler_driver"]) or
        /MultiScheduler/.match(node["openstack"]["compute"]["scheduler"]["scheduler_driver"]) %>
 # FilterScheduler Only Options
@@ -271,19 +332,16 @@ disk_allocation_ratio=<%= node["openstack"]["compute"]["config"]["disk_allocatio
 # maximum number of instance cores to allow per host
 max_cores=<%= node["openstack"]["compute"]["config"]["cpu_allocation_ratio"].to_i * node["cpu"]["total"].to_i %>
 <%- end %>
-
-<% if node["openstack"]["compute"]["config"]["force_config_drive"] %>
+<% if node["openstack"]["compute"]["config"]["force_config_drive"] -%>
 force_config_drive=<%= node["openstack"]["compute"]["config"]["force_config_drive"] %>
-<% end %>
+<% end -%>
 mkisofs_cmd=<%= node["openstack"]["compute"]["config"]["mkisofs_cmd"] %>
 injected_network_template=<%= node["openstack"]["compute"]["config"]["injected_network_template"] %>
-
-<% if node["openstack"]["compute"]["enabled_apis"].include?("ec2") %>
+<% if node["openstack"]["compute"]["enabled_apis"].include?("ec2") -%>
 # The IP address on which the EC2 API will listen. (string value)
 ec2_listen=<%= @ec2_api_bind_ip %>
 # The port on which the EC2 API will listen. (integer value)
 ec2_listen_port=<%= @ec2_api_bind_port %>
-
 <% if %w(fedora rhel).include? node.platform_family -%>
 # Adding support for non-modded euca2ools to display ip address info
 # https://bugs.launchpad.net/nova/+bug/901594
@@ -291,9 +349,9 @@ ec2_private_dns_show_ip=True
 <% end -%>
 
 ##### WORKERS ######
-<% if node["openstack"]["compute"]["ec2_workers"] %>
+<% if node["openstack"]["compute"]["ec2_workers"] -%>
 ec2_workers=<%= node["openstack"]["compute"]["ec2_workers"] %>
-<% end %>
+<% end -%>
 
 ##### KEYSTONE #####
 keystone_ec2_url=<%= @identity_endpoint.scheme %>://<%= @identity_endpoint.host %>:<%= @identity_endpoint.port %>/v2.0/ec2tokens
@@ -303,12 +361,12 @@ keystone_ec2_url=<%= @identity_endpoint.scheme %>://<%= @identity_endpoint.host 
 enabled_apis=<%= node["openstack"]["compute"]["enabled_apis"] %>
 
 ##### WORKERS ######
-<% if node["openstack"]["compute"]["osapi_compute_workers"] %>
+<% if node["openstack"]["compute"]["osapi_compute_workers"] -%>
 osapi_compute_workers=<%= node["openstack"]["compute"]["osapi_compute_workers"] %>
-<% end %>
-<% if node["openstack"]["compute"]["metadata_workers"] %>
+<% end -%>
+<% if node["openstack"]["compute"]["metadata_workers"] -%>
 metadata_workers=<%= node["openstack"]["compute"]["metadata_workers"] %>
-<% end %>
+<% end -%>
 
 ##### VOLUMES #####
 # iscsi target user-land tool to use
@@ -318,26 +376,28 @@ volume_api_class=<%= node["openstack"]["compute"]["config"]["volume_api_class"] 
 os_region_name=<%= node['openstack']['region'] %>
 
 ##### THIRD PARTY ADDITIONS #####
-<% if node["openstack"]["compute"]["plugins"] %>
-<% node["openstack"]["compute"]["plugins"].each do |p| %>
+<% if node["openstack"]["compute"]["plugins"] -%>
+<% node["openstack"]["compute"]["plugins"].each do |p| -%>
 osapi_compute_extension=<%= p %>
-<% end %>
-<% end %>
-
-<% if node["openstack"]["compute"]["misc_nova"] %>
-<% node["openstack"]["compute"]["misc_nova"].each do |m| %>
+<% end -%>
+<% end -%>
+<% if node["openstack"]["compute"]["misc_nova"] -%>
+<% node["openstack"]["compute"]["misc_nova"].each do |m| -%>
 <%= m %>
-<% end %>
-<% end %>
+<% end -%>
+<% end -%>
+<% if node['openstack']['compute']['api_paste_config'] -%>
+api_paste_config = <%= node['openstack']['compute']['api_paste_config'] %>
+<% end -%>
 
 [conductor]
 
 use_local=<%= node["openstack"]["compute"]["conductor"]["use_local"] %>
-<% if node["openstack"]["compute"]["conductor"]["workers"] %>
+<% if node["openstack"]["compute"]["conductor"]["workers"] -%>
 workers=<%= node["openstack"]["compute"]["conductor"]["workers"] %>
-<% end %>
+<% end -%>
 
-<% if %w(vmwareapi.VMwareESXDriver vmwareapi.VMwareVCDriver).include?(node['openstack']['compute']['driver']) %>
+<% if %w(vmwareapi.VMwareESXDriver vmwareapi.VMwareVCDriver).include?(node['openstack']['compute']['driver']) -%>
 [vmware]
 
 #
@@ -354,19 +414,17 @@ host_username = <%= node['openstack']['compute']['vmware']['host_username'] %>
 # Password for connection to VMware ESX/VC host. (string
 # value)
 host_password = <%= @vmware_host_pass %>
-
-<% if node['openstack']['compute']['vmware']['cluster_name'] %>
+<% if node['openstack']['compute']['vmware']['cluster_name'] -%>
 # Name of a VMware Cluster ComputeResource. Used only if
 # compute_driver is vmwareapi.VMwareVCDriver. (multi valued)
   <% node['openstack']['compute']['vmware']['cluster_name'].each do |cluster| %>
 cluster_name = <%= cluster %>
-  <% end %>
-<% end %>
-
-<% if node['openstack']['compute']['vmware']['datastore_regex'] %>
+  <% end -%>
+<% end -%>
+<% if node['openstack']['compute']['vmware']['datastore_regex'] -%>
 # Regex to match the name of a datastore. (string value)
 datastore_regex = <%= node['openstack']['compute']['vmware']['datastore_regex'] %>
-<% end %>
+<% end -%>
 
 # The interval used for polling of remote tasks. (floating
 # point value)
@@ -393,9 +451,7 @@ use_linked_clone = <%= node['openstack']['compute']['vmware']['use_linked_clone'
 # Physical ethernet adapter name for vlan networking (string
 # value)
 vlan_interface = <%= node['openstack']['compute']['vmware']['vlan_interface'] %>
-
-
-<% if node['openstack']['compute']['vmware']['wsdl_location'] %>
+<% if node['openstack']['compute']['vmware']['wsdl_location'] -%>
 #
 # Options defined in nova.virt.vmwareapi.vim
 #
@@ -403,7 +459,7 @@ vlan_interface = <%= node['openstack']['compute']['vmware']['vlan_interface'] %>
 # http://<server>/vimService.wsdl. Optional over-ride to
 # default location for bug work-arounds (string value)
 wsdl_location = <%= node['openstack']['compute']['vmware']['wsdl_location'] %>
-<% end %>
+<% end -%>
 
 #
 # Options defined in nova.virt.vmwareapi.vim_util
@@ -537,9 +593,9 @@ cpu_mode=none
 
 # Specific cachemodes to use for different disk types e.g:
 # file=directsync,block=none (list value)
-<% if node["openstack"]["compute"]["config"]["disk_cachemodes"] %>
+<% if node["openstack"]["compute"]["config"]["disk_cachemodes"] -%>
 disk_cachemodes=<%= node["openstack"]["compute"]["config"]["disk_cachemodes"] %>
-<% end %>
+<% end -%>
 
 # A path to a device that will be used as source of entropy on
 # the host. Permitted options are: /dev/random or /dev/hwrng

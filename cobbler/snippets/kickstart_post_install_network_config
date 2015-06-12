@@ -13,20 +13,6 @@ rm -f /etc/sysconfig/network
 mv -f /etc/sysconfig/network.cobbler /etc/sysconfig/network
 #end if
 
-cat << EOF > /sbin/ifup-local
-#raw
-#!/bin/bash
-RC=0
-PROM=\$(egrep -i 'promisc' /etc/sysconfig/network-scripts/ifcfg-\$1 | awk -F"=" '{ print \$2 }')
-if [[ "\$PROM" == "yes" ]]; then
-  ip link set dev \$1 promisc on
-  RC=\$?
-fi
-exit \$RC
-#end raw
-EOF
-chmod +x /sbin/ifup-local 
-
 #if $hostname != ""
 # set the hostname in the network configuration file
 grep -v HOSTNAME /etc/sysconfig/network > /etc/sysconfig/network.cobbler
@@ -427,7 +413,7 @@ declare -A used_logical_interfaces
 used_logical_interfaces[$iname]=$iname
 
     #if $iface_type in ("slave","bond_slave","bridge_slave","bonded_bridge_slave")
-        #set $static = 1
+        #set $static = 0
     #end if
 echo "DEVICE=$iname" > $devfile
 echo "ONBOOT=yes" >> $devfile
@@ -478,7 +464,7 @@ EOF
     #elif $iface_type in ("slave","bond_slave") and $iface_master != ""
 echo "SLAVE=yes" >> $devfile
 echo "MASTER=$iface_master" >> $devfile
-echo "HOTPLUG=no" >> $devfile
+echo "HOTPLUG=yes" >> $devfile
     #end if
 
     #if $iface_type == "bridge"
@@ -490,7 +476,7 @@ echo "$bridge_opt" >> $devfile
         #end for
     #elif $iface_type in ["bridge_slave", "bonded_bridge_slave"] and $iface_master != ""
 echo "BRIDGE=$iface_master" >> $devfile
-echo "HOTPLUG=no" >> $devfile
+echo "HOTPLUG=yes" >> $devfile
     #end if
 
     #if $iface_type != "bridge"

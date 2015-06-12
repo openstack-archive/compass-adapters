@@ -37,12 +37,12 @@ platform_options['image_client_packages'].each do |pkg|
   end
 end
 
-if node['platform_family'] == 'suse'
-  service 'glance-api restart before image upload' do
-    service_name platform_options['image_api_service']
-    action :restart
-  end
-end
+# if node['platform_family'] == 'suse'
+#   service 'glance-api restart before image upload' do
+#     service_name platform_options['image_api_service']
+#     action :restart
+#   end
+# end
 
 identity_endpoint = endpoint 'identity-api'
 
@@ -51,9 +51,10 @@ identity_endpoint = endpoint 'identity-api'
 # So here auth_uri can not be transformed.
 auth_uri = identity_endpoint.to_s
 
-service_pass = get_password 'service', 'openstack-image'
+# service_pass = get_password 'service', 'openstack-image'
 service_tenant_name = node['openstack']['image']['service_tenant_name']
 service_user = node['openstack']['image']['service_user']
+service_pass = get_password 'service', node["openstack"]["image"]["service_user"]
 
 unless node['proxy_url'].nil? or node['proxy_url'].empty?
   node['openstack']['image']['upload_images'].each do |img|

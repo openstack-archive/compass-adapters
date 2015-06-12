@@ -43,6 +43,21 @@ end
 # else migrate the database to latest version.
 # The node['openstack']['network']['plugin_config_file'] attribute is set in the common.rb recipe
 
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    bash 'migrate network database preparation' do
+      plugin_config_file = node['openstack']['network']['plugin_config_file']
+      migrate_command = "neutron-db-manage --config-file /etc/neutron/neutron.conf --config-file #{plugin_config_file}"
+      code <<-EOF
+        #{migrate_command} revision -m "Description" --autogenerate
+        #{migrate_command} upgrade head
+EOF
+      action :nothing
+      subscribes :run, 'template[/usr/lib64/python2.6/site-packages/neutron/plugins/ml2/models.py]', :delayed
+    end
+  end
+end
+
 =begin
 bash 'migrate network database' do
   plugin_config_file = node['openstack']['network']['plugin_config_file']
@@ -59,12 +74,6 @@ fi
 EOF
 end
 =end
-
-service 'neutron-server' do
-  service_name platform_options['neutron_server_service']
-  supports status: true, restart: true
-  action :enable
-end
 
 cookbook_file 'neutron-ha-tool' do
   source 'neutron-ha-tool.py'
@@ -104,5 +113,30 @@ template '/etc/sysconfig/neutron' do
   variables(
     plugin_conf: node['openstack']['network']['plugin_conf_map'][core_plugin.split('.').last.downcase]
   )
-  notifies :restart, 'service[neutron-server]'
+  notifies :restart, 'service[neutron-server]', :delayed
+end
+
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    template '/etc/init.d/openstack-neutron' do
+      source 'openstack-neutron.service.erb'
+      owner "root"
+      group "root"
+      mode 00755
+    end
+  end
+end
+
+service 'neutron-server' do
+  service_name platform_options['neutron_server_service']
+  supports status: true, restart: true
+  action [:enable, :start]
+end
+
+ruby_block "service neutron-server restart if necessary" do
+  block do
+    Chef::Log.info("service neutron-server restart")
+  end
+  not_if "service #{platform_options['neutron_server_service']} status"
+  notifies :restart, 'service[neutron-server]', :immediately
 end

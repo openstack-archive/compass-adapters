@@ -1,0 +1,29 @@
+#if $getVar("image_url", "") != ""
+#if $getVar("image_kernel_version", "") != ""
+cp -rn /backup/boot/* /boot/
+rm /boot/initrd
+rm /boot/vmlinuz
+ln -s /boot/vmlinuz-${image_kernel_version}-default /boot/vmlinuz
+ln -s /boot/initrd-${image_kernel_version}-default /boot/initrd
+cp -rn /backup/lib/modules/${image_kernel_version}-default /lib/modules/
+depmod -a
+mkinitrd -k /boot/vmlinuz-${image_kernel_version}-default -i /boot/initrd-${image_kernel_version}-default -M /boot/System.map-${image_kernel_version}-default > /tmp/mkinitrd.log 2>&1
+sed -i 's/[0-9]\+\.[0-9]\+\.[0-9]\+-[0-9]\+\.[0-9]\+/${image_kernel_version}/g' /boot/grub/menu.lst
+sed -i 's/kernel=\(.*\)\+/kernel=\1 $kernel_options_post/g' /boot/grub/menu.lst
+#end if
+sed -i 's/retunr/return/g' /bin/ethalias
+cat << EOF > /etc/init.d/after.local
+#raw
+#!/bin/bash
+#end raw
+EOF
+rm -rf /etc/rsyslog.d/*
+cat << EOF > /etc/lsb-release
+DISTRIB_ID="Suse-UVP"
+DISTRIB_RELEASE="11.3"
+DISTRIB_CODENAME="UVP"
+DISTRIB_DESCRIPTION="Huaiwei UVP"
+EOF
+
+rm -rf /backup
+#end if

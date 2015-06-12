@@ -50,10 +50,28 @@ default['openstack']['image']['api']['workers'] = [8, node['cpu']['total'].to_i]
 
 # Return the URL that references where the data is stored on the backend.
 default['openstack']['image']['api']['show_image_direct_url'] = 'False'
+default['openstack']['image']['api']['enable_v1_api'] = 'True'
+default['openstack']['image']['api']['enable_v2_api'] = 'True'
+default['openstack']['image']['api']['sql_idle_timeout'] = nil
+default['openstack']['image']['api']['certdir'] = nil
+default['openstack']['image']['api']['keydir'] = nil
+default['openstack']['image']['api']['certfile'] = nil
+default['openstack']['image']['api']['keyfile'] = nil
+default['openstack']['image']['api']['api_client_protocol'] = 'http'
+default['openstack']['image']['api']['registry_client_protocol'] = 'http'
+default['openstack']['image']['api']['notifier_strategy'] = 'default'
+default['openstack']['image']['api']['property_protection_file'] = nil
 
 default['openstack']['image']['api']['auth']['version'] = node['openstack']['api']['auth']['version']
 default['openstack']['image']['registry']['auth']['version'] = node['openstack']['api']['auth']['version']
-
+default['openstack']['image']['registry']['sql_idle_timeout'] = nil
+default['openstack']['image']['registry']['admin_role'] = nil
+default['openstack']['image']['registry']['db_auto_create'] = nil
+default['openstack']['image']['registry']['certdir'] = nil
+default['openstack']['image']['registry']['keydir'] = nil
+default['openstack']['image']['registry']['certfile'] = nil
+default['openstack']['image']['registry']['keyfile'] = nil
+ 
 # Keystone PKI signing directories
 # XXX keystoneclient wants these dirs to exist even if it doesn't use them
 default['openstack']['image']['api']['auth']['cache_dir'] = '/var/cache/glance/api'
@@ -63,7 +81,19 @@ default['openstack']['image']['registry']['auth']['cache_dir'] = '/var/cache/gla
 default['openstack']['image']['api']['caching'] = false
 default['openstack']['image']['api']['cache_management'] = false
 
+default['openstack']['image']['api']['pipeline']['glance-api-trusted-auth'] = []
+default['openstack']['image']['api']['pipeline']['glance-api-trusted-auth+cachemanagement'] = []
+default['openstack']['image']['api']['pipeline']['pipeapiversion'] = []
+default['openstack']['image']['api']['pipeline']['apiv1pipe'] = []
+default['openstack']['image']['api']['pipeline']['apiv2pipe'] = []
+default['openstack']['image']['api']['filter']['access_log'] = nil
+default['openstack']['image']['api']['filter']['gzip'] = nil
+default['openstack']['image']['registry']['pipeline']['glance-registry-trusted-auth'] = []
+
+default['openstack']['image']['registry']['filter_attrs']['authtoken']['delay_auth_decision'] = 'true'
+ 
 default['openstack']['image']['api']['default_store'] = 'file'
+default['openstack']['image']['api']['known_stores'] = []
 
 default['openstack']['image']['filesystem_store_datadir'] = '/var/lib/glance/images'
 
@@ -141,20 +171,63 @@ when 'fedora', 'rhel' # :pragma-foodcritic: ~FC024 - won't fix this
     'package_overrides' => ''
   }
 when 'suse'
-  default['openstack']['image']['user'] = 'glance'
-  default['openstack']['image']['group'] = 'glance'
-  default['openstack']['image']['platform'] = {
-    'postgresql_python_packages' => ['python-psycopg2'],
-    'mysql_python_packages' => ['python-mysql'],
-    'image_packages' => ['openstack-glance', 'python-glanceclient'],
-    'image_client_packages' => ['python-glanceclient'],
-    'ceph_packages' => [],
-    'swift_packages' => ['openstack-swift'],
-    'image_api_service' => 'openstack-glance-api',
-    'image_registry_service' => 'openstack-glance-registry',
-    'image_api_process_name' => 'glance-api',
-    'package_overrides' => ''
-  }
+  if node['lsb']['codename'] == 'UVP'
+    default['openstack']['image']['user'] = 'openstack'
+    default['openstack']['image']['group'] = 'openstack'
+    default['openstack']['image']['platform'] = {
+      'postgresql_python_packages' => ['python-psycopg2'],
+      'mysql_python_packages' => ['python-mysql'],
+      'image_packages' => ['glance', 'python-glanceclient'],
+      'image_client_packages' => ['python-glanceclient'],
+      'ceph_packages' => [],
+      'swift_packages' => ['swift-proxy', 'swift-store', 'swift-util'],
+      'image_api_service' => 'openstack-glance-api',
+      'image_registry_service' => 'openstack-glance-registry',
+      'image_api_process_name' => 'glance-api',
+      'package_overrides' => ''
+    }
+    default['openstack']['image']['api']['known_stores'] = ['glance.store.filesystem.Store', 'glance.store.uds.Store', 'glance.store.swift.Store']
+    default['openstack']['image']['api']['sql_idle_timeout'] = 200
+    default['openstack']['image']['api']['show_image_direct_url'] = 'True'
+    default['openstack']['image']['api']['certdir'] = '/etc/FSSecurity/server-cert'
+    default['openstack']['image']['api']['keydir'] = '/etc/FSSecurity/server-cert'
+    default['openstack']['image']['api']['certfile'] = '/etc/FSSecurity/server-cert/glance_server.crt'
+    default['openstack']['image']['api']['keyfile'] = '/etc/FSSecurity/server-cert/glance_server.key'
+    default['openstack']['image']['api']['registry_client_protocol'] = 'http'
+    default['openstack']['image']['api']['notifier_strategy'] = 'noop'
+    default['openstack']['image']['registry']['sql_idle_timeout'] = 200
+    default['openstack']['image']['registry']['admin_role'] = 'admin'
+    default['openstack']['image']['registry']['db_auto_create'] = 'True'
+    default['openstack']['image']['registry']['certdir'] = '/etc/FSSecurity/server-cert'
+    default['openstack']['image']['registry']['keydir'] = '/etc/FSSecurity/server-cert'
+    default['openstack']['image']['registry']['certfile'] = '/etc/FSSecurity/server-cert/glance_server.crt'
+    default['openstack']['image']['registry']['keyfile'] = '/etc/FSSecurity/server-cert/glance_server.key'
+    default['openstack']['image']['api']['pipeline']['glance-api-trusted-auth'] = ['versionnegotiation', 'context', 'rootapp']
+    default['openstack']['image']['api']['pipeline']['glance-api-trusted-auth+cachemanagement'] = ['versionnegotiation', 'context', 'cache', 'cachemanage', 'rootapp']
+    default['openstack']['image']['api']['pipeline']['pipeapiversion'] = ['access_log', 'apiversions']
+    default['openstack']['image']['api']['pipeline']['apiv1pipe'] = ['access_log', 'apiv1app']
+    default['openstack']['image']['api']['pipeline']['apiv2pipe'] = ['access_log', 'apiv2app']
+    default['openstack']['image']['api']['filter']['access_log'] = 'glance.common.accesslog:AccessLogMiddleware.factory'
+    default['openstack']['image']['api']['filter']['gzip'] = 'glance.api.middleware.gzip:GzipMiddleware.factory'
+    default['openstack']['image']['registry']['pipeline']['glance-registry-trusted-auth'] = ['context', 'registryapp']
+    default['openstack']['image']['registry']['filter_attrs']['authtoken']['delay_auth_decision'] = nil
+    default['openstack']['image']['api']['property_protection_file'] = '/etc/glance/property-protections.conf'
+  else
+    default['openstack']['image']['user'] = 'glance'
+    default['openstack']['image']['group'] = 'glance'
+    default['openstack']['image']['platform'] = {
+      'postgresql_python_packages' => ['python-psycopg2'],
+      'mysql_python_packages' => ['python-mysql'],
+      'image_packages' => ['openstack-glance', 'python-glanceclient'],
+      'image_client_packages' => ['python-glanceclient'],
+      'ceph_packages' => [],
+      'swift_packages' => ['openstack-swift'],
+      'image_api_service' => 'openstack-glance-api',
+      'image_registry_service' => 'openstack-glance-registry',
+      'image_api_process_name' => 'glance-api',
+      'package_overrides' => ''
+    }
+  end
 when 'debian'
   default['openstack']['image']['user'] = 'glance'
   default['openstack']['image']['group'] = 'glance'

@@ -17,10 +17,3 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-#create swift endpoint to ceph
-
-execute 'modify swiftclient' do
-  command "sed -i 's/header = header.lower()/#header = header.lower()/g' /usr/lib/python2.6/site-packages/swiftclient/client.py"
-  not_if "grep '#header = header.lower()' /usr/lib/python2.6/site-packages/swiftclient/client.py"
-end

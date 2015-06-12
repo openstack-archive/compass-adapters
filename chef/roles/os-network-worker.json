@@ -9,10 +9,7 @@
   "chef_type": "role",
   "run_list": [
     "role[os-base]",
-    "role[os-network-openvswitch]",
-    "role[os-network-l3-agent]",
-    "role[os-network-dhcp-agent]",
-    "role[os-network-metadata-agent]"
+    "role[os-network-agent]"
   ],
   "env_run_lists": {
   }
