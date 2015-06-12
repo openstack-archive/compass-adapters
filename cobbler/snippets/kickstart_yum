@@ -40,7 +40,7 @@ mv -f /etc/yum.repos.d/* /root/repo_backup/
 
 cat << EOF > /etc/yum.repos.d/${osname}_${osversion_flat}_os_repo.repo
 [${osname}_${osversion_flat}_os_repo]
-name=${osname} - ${osname}_${osversion_flat}_os_repo
+name=${osname} - ${osversion}
 proxy=_none_
 baseurl=$tree
 enabled=1
@@ -83,9 +83,6 @@ priority=1
 proxy=_none_
 skip_if_unavailable=1
 EOF
-
-    #if $getVar("local_repo_only","1") != "0"
-yum -y update
-rm -rf /etc/yum.repos.d/CentOS-*.repo
-    #end if
 #end if
+
+yum -y update

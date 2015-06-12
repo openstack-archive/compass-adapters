@@ -21,6 +21,28 @@ if node['openstack']['block-storage']['syslog']['use']
   include_recipe 'openstack-common::logging'
 end
 
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    user node['openstack']['block-storage']['user'] do
+      shell "/bin/bash"
+      comment "Openstack Network Server"
+      gid node['openstack']['block-storage']['group']
+      system true
+      supports :manage_home => false
+    end
+    directory '/var/log/cinder' do
+      owner node['openstack']['block-storage']['user']
+      group node['openstack']['block-storage']['group']
+      mode  00750
+    end
+    directory '/var/run/cinder' do
+      owner node['openstack']['block-storage']['user']
+      group node['openstack']['block-storage']['group']
+      mode  0755
+    end
+  end
+end
+
 platform_options = node['openstack']['block-storage']['platform']
 
 platform_options['cinder_common_packages'].each do |pkg|
@@ -31,7 +53,7 @@ platform_options['cinder_common_packages'].each do |pkg|
 end
 
 db_user = node['openstack']['db']['block-storage']['username']
-db_pass = get_password 'db', 'cinder'
+db_pass = get_password 'db', node["openstack"]["block-storage"]["service_user"]
 sql_connection = db_uri('block-storage', db_user, db_pass)
 
 mq_service_type = node['openstack']['mq']['block-storage']['service_type']

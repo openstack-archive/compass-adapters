@@ -5,13 +5,23 @@
 #else
 #set $what = "profile"
 #end if
+
+$SNIPPET('suse_post_install_from_image')
+$SNIPPET('suse_post_install_kernel_options')
+
 $SNIPPET('suse_post_log')
 $SNIPPET('suse_post_install_network')
+
 $SNIPPET('suse_post_partition_disks')
+
+$SNIPPET('suse_zypp')
+
 #if $getVar('tool', '') != ''
     #set $suse_tool = "suse_%s" % $tool
 $SNIPPET($suse_tool)
 #end if
+
 $SNIPPET('suse_post_anamon')
+
 # End suse_late_default
 

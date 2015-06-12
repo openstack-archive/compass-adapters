@@ -34,7 +34,42 @@ class ::Chef::Resource::RubyBlock
   include ::Openstack
 end
 
+include_recipe "openstack-network::client"
+
 platform_options = node['openstack']['network']['platform']
+
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    group platform_options['group']
+    user platform_options['user'] do
+      shell "/bin/bash"
+      comment "Openstack Network Server"
+      gid platform_options['group']
+      system true
+      supports :manage_home => false
+    end
+    directory "#{node['openstack']['network']['log_dir']}" do
+      owner platform_options['user']
+      group platform_options['group']
+      mode  00750
+    end
+    directory '/var/run/neutron' do
+      owner platform_options['user']
+      group platform_options['group']
+      mode  0755
+    end
+    directory "#{node['openstack']['network']['state_path']}" do
+      owner platform_options['user']
+      group platform_options['group']
+      mode  0755
+    end
+    directory "#{node['openstack']['network']['state_path']}/lock" do
+      owner platform_options['user']
+      group platform_options['group']
+      mode  0755
+    end
+  end
+end
 
 core_plugin = node['openstack']['network']['core_plugin']
 main_plugin = node['openstack']['network']['core_plugin_map'][core_plugin.split('.').last.downcase]
@@ -100,7 +135,19 @@ if node['openstack']['network']['policyfile_url']
     owner node['openstack']['network']['platform']['user']
     group node['openstack']['network']['platform']['group']
     mode 00644
-    notifies :restart, 'service[neutron-server]'
+    notifies :restart, 'service[neutron-server]', :delayed
+  end
+else
+  if node['platform_family'] == 'suse'
+    if node['lsb']['codename'] == 'UVP'
+      template '/etc/neutron/policy.json' do
+        source 'policy.json.erb'
+        owner node['openstack']['network']['platform']['user']
+        group node['openstack']['network']['platform']['group']
+        mode 00644
+        notifies :restart, 'service[neutron-server]', :delayed
+      end
+    end
   end
 end
 
@@ -122,18 +169,11 @@ auth_uri = ::URI.decode identity_endpoint.to_s
 auth_uri = auth_uri_transform identity_endpoint.to_s, node['openstack']['network']['api']['auth']['version']
 
 db_user = node['openstack']['db']['network']['username']
-db_pass = get_password 'db', 'neutron'
+db_pass = get_password 'db', node["openstack"]["network"]["service_user"]
 sql_connection = db_uri('network', db_user, db_pass)
 
 network_api_bind = endpoint 'network-api-bind'
-service_pass = get_password 'service', 'openstack-network'
-
-platform_options['neutron_client_packages'].each do |pkg|
-  package pkg do
-    action :upgrade
-    options platform_options['package_overrides']
-  end
-end
+service_pass = get_password 'service', node["openstack"]["network"]["service_user"]
 
 # all recipes include common.rb, and some servers
 # may just be running a subset of agents (like l3_agent)
@@ -157,7 +197,7 @@ nova_endpoint = endpoint 'compute-api'
 # https://github.com/openstack/neutron/blob/master/neutron/notifiers/nova.py#L43
 nova_version = node['openstack']['network']['nova']['url_version']
 nova_endpoint = uri_from_hash('host' => nova_endpoint.host.to_s, 'port' => nova_endpoint.port.to_s, 'path' => nova_version)
-nova_admin_pass = get_password 'service', 'openstack-compute'
+nova_admin_pass = get_password 'service', node["openstack"]["compute"]["service_user"]
 ruby_block 'query service tenant uuid' do
   # query keystone for the service tenant uuid
   block do
@@ -171,7 +211,7 @@ ruby_block 'query service tenant uuid' do
       # Chef::Log.error('service tenant UUID for nova_admin_tenant_id not found.') if tenant_id.nil?
       node.set['openstack']['network']['nova']['admin_tenant_id'] = tenant_id
     rescue RuntimeError => e
-      # Chef::Log.error("Could not query service tenant UUID for nova_admin_tenant_id. Error was #{e.message}")
+      Chef::Log.error("Could not query service tenant UUID for nova_admin_tenant_id. Error was #{e.message}")
     end
   end
   action :run
@@ -324,6 +364,15 @@ when 'midonet'
 
 when 'ml2'
 
+  if node['platform_family'] == 'suse'
+    if node['lsb']['codename'] == 'UVP'
+      template '/usr/lib64/python2.6/site-packages/neutron/plugins/ml2/models.py' do
+        source 'ml2_models.py.erb'
+        mode 0755
+      end
+    end
+  end
+
   template_file = '/etc/neutron/plugins/ml2/ml2_conf.ini'
 
   template template_file do
@@ -425,6 +474,15 @@ link plugin_file do
 end
 
 node.set['openstack']['network']['plugin_config_file'] = template_file
+
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    template '/usr/lib64/python2.6/site-packages/neutron/db/models_v2.py' do
+      source 'db_models_v2.py.erb'
+      mode 0755
+    end
+  end
+end
 
 template '/etc/default/neutron-server' do
   source 'neutron-server.erb'

@@ -26,6 +26,18 @@ when 'fedora', 'rhel' # :pragma-foodcritic: ~FC024 - won't fix this
 when 'suse'
   default['openstack']['db']['platform']['mysql_python_packages'] = ['python-mysql']
   default['openstack']['db']['platform']['postgresql_python_packages'] = ['python-psycopg2']
+  if node['lsb']['codename'] == 'UVP'
+    default['openstack']['secret']['nova'] = 'ComputeNova123'
+    default['openstack']['secret']['horizon'] = 'DashboardHorizon123'
+    default['openstack']['secret']['keystone'] = 'IdentityKeystone123'
+    default['openstack']['secret']['glance'] = 'ImageGlance123'
+    default['openstack']['secret']['ceilometer'] = 'TelemetryCeilometer123'
+    default['openstack']['secret']['neutron'] = 'NetworkNeutron123'
+    default['openstack']['secret']['cinder'] = 'BlockStorageCinder123'
+    default['openstack']['secret']['heat'] = 'OrchestrationHeat123'
+    default['openstack']['secret']['admin'] = 'AdminPassword123'
+    default['openstack']['secret']['demo'] = 'DemoPassword123'
+  end
 when 'debian'
   default['openstack']['db']['platform']['mysql_python_packages'] = ['python-mysqldb']
   default['openstack']['db']['platform']['postgresql_python_packages'] = ['python-psycopg2']

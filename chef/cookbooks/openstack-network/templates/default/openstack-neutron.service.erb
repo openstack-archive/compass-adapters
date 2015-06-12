@@ -1,0 +1,69 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          neutron-server
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Should-Start:      mysql postgresql rabbitmq-server
+# Should-Stop:       mysql postgresql rabbitmq-server
+# Default-Start:     2 3 5
+# Default-Stop:      0 1 6
+# Short-Description: neutron-server
+# Description:       Provides the Neutron networking service
+### END INIT INFO
+
+NEUTRON_LOGFILE="<%= node['openstack']['network']['log_dir'] %>/neutron-server.log"
+NEUTRON_SYSCONFIG=/etc/sysconfig/neutron
+test -r $NEUTRON_SYSCONFIG || exit 6
+. $NEUTRON_SYSCONFIG
+
+CONF_ARGS="--config-file /etc/neutron/neutron.conf"
+for i in $NEUTRON_PLUGIN_CONF; do
+        CONF_ARGS="$CONF_ARGS --config-file $i"
+done
+USER="<%= node['openstack']['network']['platform']['user'] %>"
+DAEMON=/usr/bin/neutron-server
+DAEMON_ARGS="--log-file $NEUTRON_LOGFILE $CONF_ARGS"
+DAEMON_DIR=/var/run
+
+export TMPDIR=<%= node['openstack']['network']['state_path'] %>/tmp
+
+if [ ! -x ${DAEMON} ] ; then
+	exit 0
+fi
+
+. /etc/rc.status
+
+case "$1" in
+  start)
+    echo -n "Checking for DB Migrations"
+    su $USER -s /bin/sh -c "/usr/bin/neutron-db-manage $CONF_ARGS upgrade head" &> /dev/null
+    rc_status -v
+ 
+    echo -n "Starting neutron server"
+    startproc -t ${STARTUP_TIMEOUT:-5} -q -s -u $USER $DAEMON $DAEMON_ARGS
+    rc_status -v
+    ;;
+  stop)
+    echo -n "Stopping neutron server"
+    killproc $DAEMON
+    rc_status -v
+    ;;
+  restart|force-reload)
+    $0 stop
+    sleep 1
+    $0 start
+    ;;
+  reload)
+    ;;
+  status)
+    echo -n "Checking status of neutron server"
+    /sbin/checkproc $DAEMON
+    rc_status -v
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|restart|force-reload|status}"
+    exit 2
+    ;;
+esac
+
+exit $?

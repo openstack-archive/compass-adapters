@@ -51,42 +51,16 @@ end
 # Include the right "family" recipe for installing the server
 # since they do things slightly differently.
 case node['platform_family']
-when "rhel", "fedora", "suse"
+when "rhel", "fedora"
   include_recipe "postgresql::server_redhat"
+when "suse"
+  if node['lsb']['codename'] == 'UVP'
+    include_recipe "postgresql::server_uvp"
+  else
+    include_recipe "postgresql::server_suse"
+  end
 when "debian"
   include_recipe "postgresql::server_debian"
 end
 
-change_notify = node['postgresql']['server']['config_change_notify']
 
-template "#{node['postgresql']['dir']}/postgresql.conf" do
-  source "postgresql.conf.erb"
-  owner "postgres"
-  group "postgres"
-  mode 0600
-  notifies change_notify, 'service[postgresql]', :immediately
-end
-
-template "#{node['postgresql']['dir']}/pg_hba.conf" do
-  source "pg_hba.conf.erb"
-  owner "postgres"
-  group "postgres"
-  mode 00600
-  notifies change_notify, 'service[postgresql]', :immediately
-end
-
-# NOTE: Consider two facts before modifying "assign-postgres-password":
-# (1) Passing the "ALTER ROLE ..." through the psql command only works
-#     if passwordless authorization was configured for local connections.
-#     For example, if pg_hba.conf has a "local all postgres ident" rule.
-# (2) It is probably fruitless to optimize this with a not_if to avoid
-#     setting the same password. This chef recipe doesn't have access to
-#     the plain text password, and testing the encrypted (md5 digest)
-#     version is not straight-forward.
-bash "assign-postgres-password" do
-  user 'postgres'
-  code <<-EOH
-echo "ALTER ROLE postgres ENCRYPTED PASSWORD '#{node['postgresql']['password']['postgres']}';" | psql
-  EOH
-  action :run
-end

@@ -397,7 +397,7 @@ default['openstack']['sysctl']['net.ipv4.conf.default.rp_filter'] = 0
 default['openstack']['ceph']['key-url'] = 'https://ceph.com/git/?p=ceph.git;a=blob_plain;f=keys/release.asc'
 
 # Default OpenStack Network Type: nova (optional: neutron)
-default['openstack']['compute']['network']['service_type'] = 'nova'
+default['openstack']['compute']['network']['service_type'] = 'neutron'
 
 case platform_family
 when 'debian'
