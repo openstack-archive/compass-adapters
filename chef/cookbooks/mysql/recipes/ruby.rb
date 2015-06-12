@@ -44,7 +44,6 @@ node['mysql']['client']['packages'].each do |name|
   resources("package[#{name}]").run_action(:install)
 end
 
-gem_package 'mysql' do
-  action :install
-  version '2.9.1'
-end
+chef_gem 'mysql' do
+  action :nothing
+end.run_action(:install)

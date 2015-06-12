@@ -27,6 +27,43 @@ end
 
 include_recipe 'openstack-common::logging' if node['openstack']['compute']['syslog']['use']
 
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    user node['openstack']['compute']['user'] do
+      shell "/bin/bash"
+      comment "Openstack Network Server"
+      gid node['openstack']['compute']['group']
+      system true
+      supports :manage_home => false
+    end
+    directory "#{node['openstack']['compute']['log_dir']}" do
+      owner node['openstack']['compute']['user']
+      group node['openstack']['compute']['group']
+      mode  00750
+    end
+    directory '/var/run/nova' do
+      owner node['openstack']['compute']['user']
+      group node['openstack']['compute']['group']
+      mode  0755
+    end
+    directory "#{node['openstack']['compute']['state_path']}" do
+      owner node['openstack']['compute']['user']
+      group node['openstack']['compute']['group']
+      mode  0755
+    end
+    directory "#{node['openstack']['compute']['lock_path']}" do
+      owner node['openstack']['compute']['user']
+      group node['openstack']['compute']['group']
+      mode  0755
+    end
+    directory "#{node['openstack']['compute']['instances_path']}" do
+      owner node['openstack']['compute']['user']
+      group node['openstack']['compute']['group']
+      mode  0755
+    end
+  end
+end
+
 platform_options = node['openstack']['compute']['platform']
 
 platform_options['common_packages'].each do |pkg|
@@ -60,7 +97,7 @@ directory '/etc/nova' do
 end
 
 db_user = node['openstack']['db']['compute']['username']
-db_pass = get_password 'db', 'nova'
+db_pass = get_password 'db', node["openstack"]["compute"]["service_user"]
 sql_connection = db_uri('compute', db_user, db_pass)
 
 mq_service_type = node['openstack']['mq']['compute']['service_type']
@@ -77,13 +114,6 @@ end
 
 if node['openstack']['compute']['consoleauth']['token']['backend'].eql?('memcache')
   memcache_servers = memcached_servers('os-ops-caching').join ','
-  # number of seconds to wait before sockets timeout when the memcached server is down
-  # the default number is 3, here is going to set it as 0.1
-  ruby_block "Set memcache socket timeout" do
-    block do
-      `sed -i "s/_SOCKET_TIMEOUT = 3/_SOCKET_TIMEOUT = 0.1/g" /usr/lib/python[0-9].[0-9]/site-packages/memcache.py`
-    end
-  end
 end
 
 # find the node attribute endpoint settings for the server holding a given role
@@ -109,8 +139,8 @@ Chef::Log.debug("openstack-compute::nova-common:network_endpoint|#{network_endpo
 Chef::Log.debug("openstack-compute::nova-common:image_endpoint|#{image_endpoint.to_s}")
 
 if node['openstack']['compute']['network']['service_type'] == 'neutron'
-  neutron_admin_password = get_password 'service', 'openstack-network'
-  neutron_metadata_proxy_shared_secret = get_secret 'neutron_metadata_secret'
+  neutron_admin_password = get_password 'service', node["openstack"]["network"]["service_user"]
+  neutron_metadata_proxy_shared_secret = get_secret node['openstack']['network']['metadata']['secret_name']
 end
 
 if node['openstack']['compute']['libvirt']['images_type'] == 'rbd'

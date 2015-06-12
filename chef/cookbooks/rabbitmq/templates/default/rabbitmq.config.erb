@@ -15,7 +15,7 @@
 <% end %>
   {rabbit, [
 <% if node['rabbitmq']['cluster'] && node['rabbitmq']['cluster_disk_nodes'] -%>
-    {cluster_nodes, [<%= node['rabbitmq']['cluster_disk_nodes'].map{|n| "\'#{n}\'"}.join(',') %>]},
+    {cluster_nodes, {[<%= node['rabbitmq']['cluster_disk_nodes'].map{|n| "\'#{n}\'"}.join(',') %>], disc}},
 <% end %>
 <% if node['rabbitmq']['ssl'] -%>
     {ssl_listeners, [<%= node['rabbitmq']['ssl_port'] %>]},
@@ -38,6 +38,7 @@
     {vm_memory_high_watermark, <%= node['rabbitmq']['vm_memory_high_watermark'] %>},
 <% end %>
     {default_user, <<"<%= node['rabbitmq']['default_user'] %>">>},
-    {default_pass, <<"<%= node['rabbitmq']['default_pass'] %>">>}
+    {default_pass, <<"<%= node['rabbitmq']['default_pass'] %>">>},
+    {loopback_users, []}
   ]}
 ].

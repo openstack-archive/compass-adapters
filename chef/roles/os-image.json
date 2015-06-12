@@ -8,8 +8,8 @@
   },
   "chef_type": "role",
   "run_list": [
-    "role[os-image-api]",
     "role[os-image-registry]",
+    "role[os-image-api]",
     "recipe[openstack-image::identity_registration]",
     "role[os-image-upload]"
   ],

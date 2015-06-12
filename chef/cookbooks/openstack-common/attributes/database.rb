@@ -80,6 +80,14 @@ default['openstack']['endpoints']['db']['bind_interface'] = nil
 # Default database attributes
 default['openstack']['db']['server_role'] = 'os-ops-database'
 default['openstack']['db']['service_type'] = 'mysql'
+case platform_family
+when 'suse'
+  default['openstack']['db']['service_type'] = 'postgresql'
+end
+if node['openstack']['db']['service_type'] == 'postgresql'
+  default['openstack']['endpoints']['db']['port'] = '5432'
+end
+
 # Database connection options. Should include starting '?'
 default['openstack']['db']['options'] = {
    mysql: '?charset=utf8',

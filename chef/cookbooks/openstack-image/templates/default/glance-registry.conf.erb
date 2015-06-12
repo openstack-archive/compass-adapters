@@ -32,7 +32,11 @@ sql_connection = <%= @sql_connection %>
 # idle connections. This can result in 'MySQL Gone Away' exceptions. If you
 # notice this, you can lower this value to ensure that SQLAlchemy reconnects
 # before MySQL can drop the connection.
+<% if node["openstack"]["image"]["registry"]["sql_idle_timeout"] %>
+sql_idle_timeout = <%= node["openstack"]["image"]["registry"]["sql_idle_timeout"] %>
+<% else %>
 sql_idle_timeout = 3600
+<% end %>
 
 # Limit the api to return `param_limit_max` items in a call to a container. If
 # a larger `limit` query param is provided, it will be reduced to this value.
@@ -41,6 +45,21 @@ api_limit_max = 1000
 # If a `limit` query param is not provided in an api request, it will
 # default to `limit_param_default`
 limit_param_default = 25
+
+# Role used to identify an authenticated user as administrator
+<% if node['openstack']['image']['registry']['admin_role'] %>
+admin_role = <%= node['openstack']['image']['registry']['admin_role'] %>
+<% else %>
+# admin_role = admin
+<% end %>
+
+# Whether to automatically create the database tables.
+# Default: False
+<% if node['openstack']['image']['registry']['db_auto_create'] %>
+db_auto_create = <%= node['openstack']['image']['registry']['db_auto_create'] %>
+<% else %>
+# db_auto_create = False
+<% end %>
 
 # ================= Syslog Options ============================
 
@@ -55,10 +74,26 @@ log_file = /var/log/glance/registry.log
 # ================= SSL Options ===============================
 
 # Certificate file to use when starting registry server securely
+<% if node['openstack']['image']['registry']['certfile'] %>
+<% if node['openstack']['image']['api']['registry_client_protocol'] == 'https' %>
+cert_file = <%= node['openstack']['image']['registry']['certfile'] %>
+<% else %>
+# cert_file = <%= node['openstack']['image']['registry']['certfile'] %>
+<% end %>
+<% else %>
 # cert_file = /path/to/certfile
+<% end %>
 
 # Private key file to use when starting registry server securely
+<% if node['openstack']['image']['registry']['keyfile'] %>
+<% if node['openstack']['image']['api']['registry_client_protocol'] == 'https' %>
+key_file = <%= node['openstack']['image']['registry']['keyfile'] %>
+<% else %>
+# key_file = <%= node['openstack']['image']['registry']['keyfile'] %>
+<% end %>
+<% else %>
 # key_file = /path/to/keyfile
+<% end %>
 
 # ================= Keystone authtoken ===============================
 [keystone_authtoken]

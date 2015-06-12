@@ -17,18 +17,12 @@
 # limitations under the License.
 #
 
-actions :create_partition, :mk_cinder_vol
+actions :create_disk_partition, :create_file_partition, :mk_cinder_vol
 
 attribute :device, :kind_of => String, :name_attribute => true
 attribute :label_type, :kind_of => String, :default => "gpt"
 attribute :file_system, :kind_of => String, :default => "ext4"
 attribute :part_type, :kind_of => String, :default => "primary"
-#attribute :partition, :kind_of => String, :default => "0"
-
-attr_accessor :last_num
-attr_accessor :start_size
-attr_accessor :total_size
-attr_accessor :partition
 
 def initialize(*args)
   super

@@ -55,6 +55,41 @@ when 'debian'
     dpkg_package "#{Chef::Config[:file_cache_path]}/rabbitmq-server_#{node['rabbitmq']['version']}-1_all.deb"
   end
 
+  if node['rabbitmq']['logdir']
+    directory node['rabbitmq']['logdir'] do
+      owner 'rabbitmq'
+      group 'rabbitmq'
+      mode '775'
+      recursive true
+    end
+  end
+
+  directory node['rabbitmq']['mnesiadir'] do
+    owner 'rabbitmq'
+    group 'rabbitmq'
+    mode '775'
+    recursive true
+  end
+
+  template "#{node['rabbitmq']['config_root']}/rabbitmq-env.conf" do
+    source 'rabbitmq-env.conf.erb'
+    owner 'root'
+    group 'root'
+    mode 00644
+    notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :delayed
+  end
+
+  template "#{node['rabbitmq']['config_root']}/rabbitmq.config" do
+    source 'rabbitmq.config.erb'
+    owner 'root'
+    group 'root'
+    mode 00644
+    variables(
+      :kernel => format_kernel_parameters
+    )
+    notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :delayed
+  end
+
   # Configure job control
   if node['rabbitmq']['job_control'] == 'upstart'
     # We start with stock init.d, remove it if we're not using init.d, otherwise leave it alone
@@ -82,8 +117,16 @@ when 'debian'
     service node['rabbitmq']['service_name'] do
       provider Chef::Provider::Service::Upstart
       action [:enable, :start]
-      # restart_command "stop #{node['rabbitmq']['service_name']} && start #{node['rabbitmq']['service_name']}"
     end
+
+    ruby_block "service #{node['rabbitmq']['service_name']} restart if necessary" do
+      block do
+        Chef::Log.info("service rabbitmq restart")
+      end
+      not_if "status #{node['rabbitmq']['service_name']} | grep -q '^$1 start' > /dev/null"
+      notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :immediately
+    end
+
   end
 
   ## You'll see setsid used in all the init statements in this cookbook. This
@@ -99,6 +142,14 @@ when 'debian'
       status_command 'setsid /etc/init.d/rabbitmq-server status'
       supports :status => true, :restart => true
       action [:enable, :start]
+    end
+
+    ruby_block "service #{node['rabbitmq']['service_name']} restart if necessary" do
+      block do
+        Chef::Log.info("service rabbitmq restart")
+      end
+      not_if "setsid /etc/init.d/rabbitmq-server status"
+      notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :immediately
     end
   end
 
@@ -134,65 +185,214 @@ when 'rhel', 'fedora'
     rpm_package "#{Chef::Config[:file_cache_path]}/rabbitmq-server-#{node['rabbitmq']['version']}-1.noarch.rpm"
   end
 
+  if node['rabbitmq']['logdir']
+    directory node['rabbitmq']['logdir'] do
+      owner 'rabbitmq'
+      group 'rabbitmq'
+      mode '775'
+      recursive true
+    end
+  end
+
+  directory node['rabbitmq']['mnesiadir'] do
+    owner 'rabbitmq'
+    group 'rabbitmq'
+    mode '775'
+    recursive true
+  end
+
+  template "#{node['rabbitmq']['config_root']}/rabbitmq-env.conf" do
+    source 'rabbitmq-env.conf.erb'
+    owner 'root'
+    group 'root'
+    mode 00644
+    notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :delayed
+  end
+
+  template "#{node['rabbitmq']['config_root']}/rabbitmq.config" do
+    source 'rabbitmq.config.erb'
+    owner 'root'
+    group 'root'
+    mode 00644
+    variables(
+      :kernel => format_kernel_parameters
+    )
+    notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :delayed
+  end
+
   service node['rabbitmq']['service_name'] do
+    supports :status => true, :restart => true
     action [:enable, :start]
+  end
+
+  ruby_block "service #{node['rabbitmq']['service_name']} restart if necessary" do
+    block do
+      Chef::Log.info("service rabbitmq restart")
+    end
+    not_if "service #{node['rabbitmq']['service_name']} status"
+    notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :immediately
   end
 
 when 'suse'
   # rabbitmq-server-plugins needs to be first so they both get installed
   # from the right repository. Otherwise, zypper will stop and ask for a
   # vendor change.
-  package 'rabbitmq-server-plugins'
-  package 'rabbitmq-server'
+  if node['lsb']['codename'] == 'UVP'
+    package 'rabbitmq'
 
-  service node['rabbitmq']['service_name'] do
-    action [:enable, :start]
+    template "/etc/sysconfig/#{node['rabbitmq']['service_name']}"  do
+      source "#{node['rabbitmq']['service_name']}.sysconfig.erb"
+      owner 'root'
+      group 'root'
+      mode 0644
+    end
+
+    template "/etc/init.d/#{node['rabbitmq']['service_name']}" do
+      source "#{node['rabbitmq']['service_name']}.uvp.erb"
+      owner 'root'
+      group 'root'
+      mode 0755
+    end
+  else
+    package 'rabbitmq-server-plugins'
+    package 'rabbitmq-server'
   end
-when 'smartos'
-  package 'rabbitmq'
 
-  service 'epmd' do
-    action :start
+  if node['rabbitmq']['logdir']
+    directory node['rabbitmq']['logdir'] do
+      owner 'rabbitmq'
+      group 'rabbitmq'
+      mode '775'
+      recursive true
+    end
   end
 
-  service node['rabbitmq']['service_name'] do
-    action [:enable, :start]
-  end
-end
-
-if node['rabbitmq']['logdir']
-  directory node['rabbitmq']['logdir'] do
+  directory node['rabbitmq']['mnesiadir'] do
     owner 'rabbitmq'
     group 'rabbitmq'
     mode '775'
     recursive true
   end
-end
 
-directory node['rabbitmq']['mnesiadir'] do
-  owner 'rabbitmq'
-  group 'rabbitmq'
-  mode '775'
-  recursive true
-end
+  if node['rabbitmq']['cluster']
+    node['rabbitmq']['cluster_disk_nodes'].each do | cluster_disk_node |
+      node_dir =  "#{node['rabbitmq']['mnesiadir']}/#{cluster_disk_node}"
+      directory node_dir do
+        owner 'rabbitmq'
+        group 'rabbitmq'
+        mode '775'
+        recursive true
+      end
+    end
+  end
 
-template "#{node['rabbitmq']['config_root']}/rabbitmq-env.conf" do
-  source 'rabbitmq-env.conf.erb'
-  owner 'root'
-  group 'root'
-  mode 00644
-  notifies :restart, "service[#{node['rabbitmq']['service_name']}]"
-end
+  template "#{node['rabbitmq']['config_root']}/rabbitmq-env.conf" do
+    source 'rabbitmq-env.conf.erb'
+    owner 'root'
+    group 'root'
+    mode 00644
+    notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :delayed
+  end
 
-template "#{node['rabbitmq']['config_root']}/rabbitmq.config" do
-  source 'rabbitmq.config.erb'
-  owner 'root'
-  group 'root'
-  mode 00644
-  variables(
-    :kernel => format_kernel_parameters
+  template "#{node['rabbitmq']['config_root']}/rabbitmq.config" do
+    source 'rabbitmq.config.erb'
+    owner 'root'
+    group 'root'
+    mode 00644
+    variables(
+      :kernel => format_kernel_parameters
     )
-  notifies :restart, "service[#{node['rabbitmq']['service_name']}]"
+    notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :delayed
+  end
+
+  template "/etc/sysconfig/erlang" do
+    source 'sysconfig.erlang.erb'
+    owner 'root'
+    group 'root'
+    mode 00644
+    notifies :restart, "service[epmd]", :delayed
+  end
+
+  service 'epmd' do
+    supports :status => true, :restart => true
+    action [:enable, :start]
+  end
+
+  ruby_block "service epmd restart if necessary" do
+    block do
+      Chef::Log.info("service epmd restart")
+    end
+    not_if "service epmd status"
+    notifies :restart, "service[epmd]", :immediately
+  end
+
+  service node['rabbitmq']['service_name'] do
+    supports :status => true, :restart => true
+    action [:enable, :start]
+  end
+
+  ruby_block "service #{node['rabbitmq']['service_name']} restart if necessary" do
+    block do
+      Chef::Log.info("service #{node['rabbitmq']['service_name']} restart")
+    end
+    not_if "service #{node['rabbitmq']['service_name']} status"
+    notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :immediately
+  end
+when 'smartos'
+  package 'rabbitmq'
+
+  service 'epmd' do
+    supports :status => true, :restart => true
+    action [:enable, :start]
+  end
+
+  if node['rabbitmq']['logdir']
+    directory node['rabbitmq']['logdir'] do
+      owner 'rabbitmq'
+      group 'rabbitmq'
+      mode '775'
+      recursive true
+    end
+  end
+
+  directory node['rabbitmq']['mnesiadir'] do
+    owner 'rabbitmq'
+    group 'rabbitmq'
+    mode '775'
+    recursive true
+  end
+
+  template "#{node['rabbitmq']['config_root']}/rabbitmq-env.conf" do
+    source 'rabbitmq-env.conf.erb'
+    owner 'root'
+    group 'root'
+    mode 00644
+    notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :delayed
+  end
+
+  template "#{node['rabbitmq']['config_root']}/rabbitmq.config" do
+    source 'rabbitmq.config.erb'
+    owner 'root'
+    group 'root'
+    mode 00644
+    variables(
+      :kernel => format_kernel_parameters
+    )
+    notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :delayed
+  end
+
+  service node['rabbitmq']['service_name'] do
+    supports :status => true, :restart => true
+    action [:enable, :start]
+  end
+
+  ruby_block "service #{node['rabbitmq']['service_name']} restart if necessary" do
+    block do
+      Chef::Log.info("service rabbitmq restart")
+    end
+    not_if "service #{node['rabbitmq']['service_name']} status"
+    notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :immediately
+  end
 end
 
 if File.exists?(node['rabbitmq']['erlang_cookie_path'])
@@ -207,14 +407,13 @@ if node['rabbitmq']['cluster'] && (node['rabbitmq']['erlang_cookie'] != existing
     owner 'rabbitmq'
     group 'rabbitmq'
     mode 00400
-    notifies :stop, "service[#{node['rabbitmq']['service_name']}]", :immediately
-    notifies :start, "service[#{node['rabbitmq']['service_name']}]", :immediately
+    notifies :restart, "service[#{node['rabbitmq']['service_name']}]", :immediately
     notifies :run, 'execute[reset-node]', :immediately
   end
 
   # Need to reset for clustering #
   execute 'reset-node' do
-    command 'rabbitmqctl stop_app && rabbitmqctl reset && rabbitmqctl start_app'
+    command "#{node['rabbitmq']['binary_dir']}/rabbitmqctl stop_app && #{node['rabbitmq']['binary_dir']}/rabbitmqctl reset && #{node['rabbitmq']['binary_dir']}/rabbitmqctl start_app"
     action :nothing
   end
 end

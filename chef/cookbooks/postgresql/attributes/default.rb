@@ -19,6 +19,9 @@
 
 default['postgresql']['enable_pgdg_apt'] = false
 default['postgresql']['server']['config_change_notify'] = :restart
+default['postgresql']['user'] = 'postgres'
+default['postgresql']['group'] = 'postgres'
+default['postgresql']['dbname'] = 'postgres'
 
 case node['platform']
 when "debian"
@@ -76,7 +79,7 @@ when "fedora"
   end
 
   default['postgresql']['dir'] = "/var/lib/pgsql/data"
-  default['postgresql']['client']['packages'] = %w{postgresql-devel}
+  default['postgresql']['client']['packages'] = ["postgresql-devel", "libpq-dev"]
   default['postgresql']['server']['packages'] = %w{postgresql-server}
   default['postgresql']['contrib']['packages'] = %w{postgresql-contrib}
   default['postgresql']['server']['service_name'] = "postgresql"
@@ -91,7 +94,7 @@ when "amazon"
     default['postgresql']['dir'] = "/var/lib/pgsql/data"
   end
 
-  default['postgresql']['client']['packages'] = %w{postgresql-devel}
+  default['postgresql']['client']['packages'] = ["postgresql-devel", "libpq-dev"]
   default['postgresql']['server']['packages'] = %w{postgresql-server}
   default['postgresql']['contrib']['packages'] = %w{postgresql-contrib}
   default['postgresql']['server']['service_name'] = "postgresql"
@@ -102,11 +105,11 @@ when "redhat", "centos", "scientific", "oracle"
   default['postgresql']['dir'] = "/var/lib/pgsql/data"
 
   if node['platform_version'].to_f >= 6.0 && node['postgresql']['version'] == '8.4'
-    default['postgresql']['client']['packages'] = %w{postgresql-devel}
+    default['postgresql']['client']['packages'] = ["postgresql-devel", "libpq-dev"]
     default['postgresql']['server']['packages'] = %w{postgresql-server}
     default['postgresql']['contrib']['packages'] = %w{postgresql-contrib}
   else
-    default['postgresql']['client']['packages'] = ["postgresql#{node['postgresql']['version'].split('.').join}-devel"]
+    default['postgresql']['client']['packages'] = ["postgresql#{node['postgresql']['version'].split('.').join}-devel","libpq-dev"]
     default['postgresql']['server']['packages'] = ["postgresql#{node['postgresql']['version'].split('.').join}-server"]
     default['postgresql']['contrib']['packages'] = ["postgresql#{node['postgresql']['version'].split('.').join}-contrib"]
   end
@@ -121,22 +124,28 @@ when "redhat", "centos", "scientific", "oracle"
 
 when "suse"
 
-  if node['platform_version'].to_f <= 11.1
-    default['postgresql']['version'] = "8.3"
+  if node['lsb']['codename'] == 'UVP'
+    default['postgresql']['user'] = 'gaussdba'
+    default['postgresql']['group'] = 'dbgrp'
+    default['postgresql']['dir'] = "/var/lib/gaussdb/data"
+    default['postgresql']['version'] = "9.2"
+    default['postgresql']['client']['packages'] = ["postgresql92", "postgresql92-devel"]
+    default['postgresql']['server']['packages'] = %w{gaussdb}
+    default['postgresql']['server']['service_name'] = "gaussdb"
+    default['postgresql']['contrib']['packages'] = ""
+    default['postgresql']['dbname'] = 'POSTGRES'
   else
-    default['postgresql']['version'] = "9.0"
+    default['postgresql']['dir'] = "/var/lib/pgsql/data"
+    default['postgresql']['version'] = "9.4"
+    default['postgresql']['server']['packages'] = %w{postgresql-server}
+    default['postgresql']['server']['service_name'] = "postgresql"
+    default['postgresql']['client']['packages'] = ["postgresql", "postgresql-devel"]
+    default['postgresql']['contrib']['packages'] = %w{postgresql-contrib}
   end
-
-  default['postgresql']['dir'] = "/var/lib/pgsql/data"
-  default['postgresql']['client']['packages'] = %w{postgresql}
-  default['postgresql']['server']['packages'] = %w{postgresql-server}
-  default['postgresql']['contrib']['packages'] = %w{postgresql-contrib}
-  default['postgresql']['server']['service_name'] = "postgresql"
-
 else
   default['postgresql']['version'] = "8.4"
   default['postgresql']['dir']         = "/etc/postgresql/#{node['postgresql']['version']}/main"
-  default['postgresql']['client']['packages'] = ["postgresql"]
+  default['postgresql']['client']['packages'] = ["postgresql", "libpq-dev"]
   default['postgresql']['server']['packages'] = ["postgresql"]
   default['postgresql']['contrib']['packages'] = ["postgresql"]
   default['postgresql']['server']['service_name'] = "postgresql"
@@ -171,7 +180,7 @@ when 'debian'
   default['postgresql']['config']['datestyle'] = 'iso, mdy'
   default['postgresql']['config']['default_text_search_config'] = 'pg_catalog.english'
   default['postgresql']['config']['ssl'] = true
-when 'rhel', 'fedora', 'suse'
+when 'rhel', 'fedora'
   default['postgresql']['config']['listen_addresses'] = 'localhost'
   default['postgresql']['config']['max_connections'] = 100
   default['postgresql']['config']['shared_buffers'] = '32MB'
@@ -187,14 +196,72 @@ when 'rhel', 'fedora', 'suse'
   default['postgresql']['config']['lc_numeric'] = 'en_US.UTF-8'
   default['postgresql']['config']['lc_time'] = 'en_US.UTF-8'
   default['postgresql']['config']['default_text_search_config'] = 'pg_catalog.english'
+when 'suse'
+  default['postgresql']['config']['unix_socket_directory'] = '/var/run/postgresql' if node['postgresql']['version'].to_f < 9.3
+  default['postgresql']['config']['unix_socket_directories'] = '/var/run/postgresql' if node['postgresql']['version'].to_f >= 9.3
+  if node['lsb']['codename'] == 'UVP'
+    default['postgresql']['config']['listen_addresses'] = 'localhost'
+    default['postgresql']['config']['max_connections'] = 100
+    default['postgresql']['config']['shared_buffers'] = '32MB'
+    default['postgresql']['config']['logging_collector'] = true
+    default['postgresql']['config']['log_directory'] = 'pg_log'
+    default['postgresql']['config']['log_filename'] = 'postgresql-%a.log'
+    default['postgresql']['config']['log_truncate_on_rotation'] = true
+    default['postgresql']['config']['log_rotation_age'] = '1d'
+    default['postgresql']['config']['log_rotation_size'] = 0
+    default['postgresql']['config']['datestyle'] = 'iso, mdy'
+    default['postgresql']['config']['lc_messages'] = 'en_US.UTF-8'
+    default['postgresql']['config']['lc_monetary'] = 'en_US.UTF-8'
+    default['postgresql']['config']['lc_numeric'] = 'en_US.UTF-8'
+    default['postgresql']['config']['lc_time'] = 'en_US.UTF-8'
+    default['postgresql']['config']['default_text_search_config'] = 'pg_catalog.english'
+  else
+    default['postgresql']['config']['listen_addresses'] = 'localhost'
+    default['postgresql']['config']['max_connections'] = 100
+    default['postgresql']['config']['shared_buffers'] = '32MB'
+    default['postgresql']['config']['logging_collector'] = true
+    default['postgresql']['config']['log_directory'] = 'pg_log'
+    default['postgresql']['config']['log_filename'] = 'postgresql-%a.log'
+    default['postgresql']['config']['log_truncate_on_rotation'] = true
+    default['postgresql']['config']['log_rotation_age'] = '1d'
+    default['postgresql']['config']['log_rotation_size'] = 0
+    default['postgresql']['config']['datestyle'] = 'iso, mdy'
+    default['postgresql']['config']['lc_messages'] = 'en_US.UTF-8'
+    default['postgresql']['config']['lc_monetary'] = 'en_US.UTF-8'
+    default['postgresql']['config']['lc_numeric'] = 'en_US.UTF-8'
+    default['postgresql']['config']['lc_time'] = 'en_US.UTF-8'
+    default['postgresql']['config']['default_text_search_config'] = 'pg_catalog.english'
+  end
 end
 
-default['postgresql']['pg_hba'] = [
-  {:type => 'local', :db => 'all', :user => 'postgres', :addr => nil, :method => 'ident'},
-  {:type => 'local', :db => 'all', :user => 'all', :addr => nil, :method => 'ident'},
-  {:type => 'host', :db => 'all', :user => 'all', :addr => '127.0.0.1/32', :method => 'md5'},
-  {:type => 'host', :db => 'all', :user => 'all', :addr => '::1/128', :method => 'md5'}
-]
+if node['postgresql']['version'].to_f < 9.1
+  default['postgresql']['pg_hba'] = [
+    {:type => 'local', :db => 'all', :user => node['postgresql']['user'], :addr => nil, :method => 'ident'},
+    {:type => 'local', :db => 'all', :user => 'all', :addr => nil, :method => 'ident'},
+    {:type => 'host', :db => 'all', :user => 'all', :addr => '127.0.0.1/32', :method => 'ident'},
+    {:type => 'host', :db => 'all', :user => 'all', :addr => '::1/128', :method => 'ident'},
+    {:type => 'host', :db => 'all', :user => 'all', :addr => '0.0.0.0/0', :method => 'md5'},
+    {:type => 'host', :db => 'all', :user => 'all', :addr => '::/0', :method => 'md5'}
+  ]
+else
+  if node['lsb']['codename'] == 'UVP'
+    default['postgresql']['pg_hba'] = [
+      {:type => 'local', :db => 'all', :user => node['postgresql']['user'], :addr => nil, :method => 'trust'},
+      {:type => 'local', :db => 'all', :user => 'all', :addr => nil, :method => 'trust'},
+      {:type => 'host', :db => 'all', :user => 'all', :addr => '127.0.0.1/32', :method => 'sha256'},
+      {:type => 'host', :db => 'all', :user => 'all', :addr => '::1/128', :method => 'sha256'},
+      {:type => 'host', :db => 'all', :user => 'all', :addr => 'all', :method => 'sha256'}
+    ]
+  else
+    default['postgresql']['pg_hba'] = [
+      {:type => 'local', :db => 'all', :user => node['postgresql']['user'], :addr => nil, :method => 'trust'},
+      {:type => 'local', :db => 'all', :user => 'all', :addr => nil, :method => 'trust'},
+      {:type => 'host', :db => 'all', :user => 'all', :addr => '127.0.0.1/32', :method => 'md5'},
+      {:type => 'host', :db => 'all', :user => 'all', :addr => '::1/128', :method => 'md5'},
+      {:type => 'host', :db => 'all', :user => 'all', :addr => 'all', :method => 'md5'}
+    ]
+  end
+end
 
 default['postgresql']['password'] = Hash.new
 

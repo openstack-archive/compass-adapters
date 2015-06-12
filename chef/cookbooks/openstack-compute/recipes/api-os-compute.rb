@@ -51,17 +51,9 @@ platform_options['api_os_compute_packages'].each do |pkg|
   end
 end
 
-service 'nova-api-os-compute' do
-  service_name platform_options['api_os_compute_service']
-  supports status: true, restart: true
-  subscribes :restart, resources('template[/etc/nova/nova.conf]')
-
-  action [:enable, :start]
-end
-
 identity_endpoint = endpoint 'identity-api'
 identity_admin_endpoint = endpoint 'identity-admin'
-service_pass = get_password 'service', 'openstack-compute'
+service_pass = get_password 'service', node["openstack"]["compute"]["service_user"]
 
 auth_uri = auth_uri_transform identity_endpoint.to_s, node['openstack']['compute']['api']['auth']['version']
 
@@ -75,5 +67,32 @@ template '/etc/nova/api-paste.ini' do
     identity_admin_endpoint: identity_admin_endpoint,
     service_pass: service_pass
   )
-  notifies :restart, 'service[nova-api-os-compute]'
+  notifies :restart, 'service[nova-api-os-compute]', :delayed
+end
+
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    template '/etc/init.d/openstack-nova-api-os-compute' do
+      source 'openstack-nova-api-os-compute.service.erb'
+      owner "root"
+      group "root"
+      mode 00755
+    end
+  end 
+end
+
+service 'nova-api-os-compute' do
+  service_name platform_options['api_os_compute_service']
+  supports status: true, restart: true
+  subscribes :restart, resources('template[/etc/nova/nova.conf]')
+
+  action [:enable, :start]
+end
+
+ruby_block "service nova-api-os-compute restart if necessary" do
+  block do
+    Chef::Log.info("service nova-api-os-compute restart")
+  end
+  not_if "service #{platform_options['api_os_compute_service']} status"
+  notifies :restart, 'service[nova-api-os-compute]', :immediately
 end

@@ -20,6 +20,11 @@
 
 require 'shellwords'
 
+def plugins_bin_path(return_array = false)
+  path = ENV.fetch('PATH') + ":#{node['rabbitmq']['binary_dir']}"
+  return_array ? path.split(':') : path
+end
+
 def policy_exists?(vhost, name)
   cmd = 'rabbitmqctl list_policies'
   cmd << " -p #{Shellwords.escape vhost}" unless vhost.nil?
@@ -27,6 +32,7 @@ def policy_exists?(vhost, name)
 
   cmd = Mixlib::ShellOut.new(cmd)
   cmd.environment['HOME'] = ENV.fetch('HOME', '/root')
+  cmd.environment['PATH'] = plugins_bin_path
   cmd.run_command
   begin
     cmd.error!
@@ -65,6 +71,8 @@ action :set do
 
     execute "set_policy #{new_resource.policy}" do
       command cmd
+      path plugins_bin_path(true)
+      environment "PATH" => plugins_bin_path
     end
 
     new_resource.updated_by_last_action(true)
@@ -76,6 +84,8 @@ action :clear do
   if policy_exists?(new_resource.vhost, new_resource.policy)
     execute "clear_policy #{new_resource.policy}" do
       command "rabbitmqctl clear_policy #{new_resource.policy}"
+      path plugins_bin_path(true)
+      environment "PATH" => plugins_bin_path
     end
 
     new_resource.updated_by_last_action(true)
@@ -86,6 +96,8 @@ end
 action :list do
   execute 'list_policies' do
     command 'rabbitmqctl list_policies'
+    path plugins_bin_path(true)
+    environment "PATH" => plugins_bin_path
   end
 
   new_resource.updated_by_last_action(true)

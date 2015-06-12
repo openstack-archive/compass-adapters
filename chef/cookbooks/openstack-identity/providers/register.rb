@@ -27,22 +27,21 @@ include ::Openstack
 
 private
 
-def generate_creds(resource)
-  {
-    'OS_SERVICE_ENDPOINT' => resource.auth_uri,
-    'OS_SERVICE_TOKEN' => resource.bootstrap_token
-  }
-end
-
-private
-
-def generate_ec2_creds(resource)
-  {
+def generate_creds(resource, cmd)
+  if cmd.include? 'ec2'
+    envs = {
       'OS_USERNAME' => resource.admin_user,
       'OS_PASSWORD' => resource.admin_pass,
       'OS_TENANT_NAME' => resource.admin_tenant_name,
       'OS_AUTH_URL' => resource.identity_endpoint
-  }
+    }
+  else
+    envs = {
+      'OS_SERVICE_ENDPOINT' => resource.auth_uri,
+      'OS_SERVICE_TOKEN' => resource.bootstrap_token
+    }
+  end
+  envs
 end
 
 private
@@ -52,8 +51,7 @@ def identity_command(resource, cmd, args = {})
   args.each do |key, val|
     keystonecmd << "--#{key}" << val.to_s
   end
-  Chef::Log.debug("Running identity command: #{keystonecmd}")
-  rc = shell_out(keystonecmd, env: (cmd.include? 'ec2') ? generate_ec2_creds(resource) : generate_creds(resource))
+  rc = shell_out(keystonecmd, env: generate_creds(resource, cmd))
   fail "#{rc.stderr} (#{rc.exitstatus})" if rc.exitstatus != 0
   rc.stdout
 end
@@ -91,8 +89,7 @@ action :create_service do
       service_uuid = identity_uuid new_resource, 'service', 'type', new_resource.service_type
 
       if service_uuid
-        Chef::Log.info("Service Type '#{new_resource.service_type}' already exists.. Not creating.")
-        Chef::Log.info("Service UUID: #{service_uuid}")
+        Chef::Log.info("service already exists for Service Type '#{new_resource.service_type}'")
         new_resource.updated_by_last_action(false)
       else
         identity_command(new_resource, 'service-create',
@@ -105,7 +102,8 @@ action :create_service do
     rescue StandardError => e
       Chef::Log.error("Unable to create service '#{new_resource.service_name}'")
       Chef::Log.error("Error was: #{e.message}")
-      new_resource.updated_by_last_action(false)
+      raise
+      # new_resource.updated_by_last_action(false)
     end
   end
 end
@@ -125,7 +123,7 @@ action :create_endpoint do
 
       endpoint_uuid = identity_uuid new_resource, 'endpoint', 'service_id', service_uuid
       if endpoint_uuid
-        Chef::Log.info("Endpoint already exists for Service Type '#{new_resource.service_type}' already exists.. Not creating.")
+        Chef::Log.info("Endpoint already exists for Service Type '#{new_resource.service_type}'.")
         new_resource.updated_by_last_action(false)
       else
         identity_command(new_resource, 'endpoint-create',
@@ -140,7 +138,8 @@ action :create_endpoint do
     rescue StandardError => e
       Chef::Log.error("Unable to create endpoint for service type '#{new_resource.service_type}'")
       Chef::Log.error("Error was: #{e.message}")
-      new_resource.updated_by_last_action(false)
+      raise
+      # new_resource.updated_by_last_action(false)
     end
   end
 end
@@ -164,7 +163,8 @@ action :create_tenant do
   rescue StandardError => e
     Chef::Log.error("Unable to create tenant '#{new_resource.tenant_name}'")
     Chef::Log.error("Error was: #{e.message}")
-    new_resource.updated_by_last_action(false)
+    raise
+    # new_resource.updated_by_last_action(false)
   end
 end
 
@@ -185,7 +185,8 @@ action :create_role do
   rescue StandardError => e
     Chef::Log.error("Unable to create role '#{new_resource.role_name}'")
     Chef::Log.error("Error was: #{e.message}")
-    new_resource.updated_by_last_action(false)
+    raise
+    # new_resource.updated_by_last_action(false)
   end
 end
 
@@ -222,6 +223,7 @@ action :create_user do
   rescue StandardError => e
     Chef::Log.error("Unable to create user '#{new_resource.user_name}' for tenant '#{new_resource.tenant_name}'")
     Chef::Log.error("Error was: #{e.message}")
+    raise
     new_resource.updated_by_last_action(false)
   end
 end
@@ -267,7 +269,8 @@ action :grant_role do
   rescue StandardError => e
     Chef::Log.error("Unable to grant role '#{new_resource.role_name}' to user '#{new_resource.user_name}'")
     Chef::Log.error("Error was: #{e.message}")
-    new_resource.updated_by_last_action(false)
+    raise
+    # new_resource.updated_by_last_action(false)
   end
 end
 
@@ -315,6 +318,7 @@ action :create_ec2_credentials do
   rescue StandardError => e
     Chef::Log.error("Unable to create EC2 Credentials for User '#{new_resource.user_name}' in Tenant '#{new_resource.tenant_name}'")
     Chef::Log.error("Error was: #{e.message}")
-    new_resource.updated_by_last_action(false)
+    raise
+    # new_resource.updated_by_last_action(false)
   end
 end

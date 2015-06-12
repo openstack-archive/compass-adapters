@@ -15,7 +15,7 @@ default['rabbitmq']['config'] = nil
 default['rabbitmq']['logdir'] = nil
 default['rabbitmq']['mnesiadir'] = '/var/lib/rabbitmq/mnesia'
 default['rabbitmq']['service_name'] = 'rabbitmq-server'
-
+default['rabbitmq']['binary_dir'] = '/usr/lib/rabbitmq/bin'
 # config file location
 # http://www.rabbitmq.com/configure.html#define-environment-variables
 # "The .config extension is automatically appended by the Erlang runtime."
@@ -90,6 +90,17 @@ when 'smartos'
   default['rabbitmq']['config_root'] = '/opt/local/etc/rabbitmq'
   default['rabbitmq']['config'] = '/opt/local/etc/rabbitmq/rabbitmq'
   default['rabbitmq']['erlang_cookie_path'] = '/var/db/rabbitmq/.erlang.cookie'
+when 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    default['rabbitmq']['logdir'] = '/var/log/rabbitmq'
+    default['rabbitmq']['mnesiadir'] = '/usr/local/lib/rabbitmq/var/lib/rabbitmq/mnesia'
+    default['rabbitmq']['config_root'] = '/usr/local/lib/rabbitmq/etc/rabbitmq'
+    default['rabbitmq']['config'] = '/usr/local/lib/rabbitmq/etc/rabbitmq/rabbitmq'
+    default['rabbitmq']['erlang_cookie_path'] = '/usr/local/lib/rabbitmq/.erlang.cookie'
+    default['rabbitmq']['cluster'] = true
+    default['rabbitmq']['cluster_disk_nodes'] = ["rabbit@#{node['hostname']}"]
+    default['rabbitmq']['binary_dir'] = '/usr/local/lib/rabbitmq/sbin'
+  end
 end
 
 # Example HA policies

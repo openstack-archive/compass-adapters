@@ -36,7 +36,7 @@ when 'smartos'
     package_name 'libmemcached'
   end
 when 'suse'
-  unless node['lsb']['description'][/^SUSE Linux Enterprise Server/]
+  unless node['lsb']['description'][/^SUSE Linux Enterprise Server/] or node['lsb']['codename'] == 'UVP'
     package 'libmemcache-dev' do
       if node['platform_version'].to_f < 12
         package_name 'libmemcache-devel'

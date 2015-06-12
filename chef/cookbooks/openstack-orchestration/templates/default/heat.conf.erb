@@ -431,7 +431,11 @@ rabbit_port=<%= node["openstack"]["mq"]["orchestration"]["rabbit"]["port"] %>
 
 
 # connect over SSL for RabbitMQ (boolean value)
-rabbit_use_ssl=<%= node["openstack"]["mq"]["orchestration"]["rabbit"]["use_ssl"] %>
+<% if node["openstack"]["mq"]["orchestration"]["rabbit"]["use_ssl"] %>
+rabbit_use_ssl=True
+<% else %>
+rabbit_use_ssl=False
+<% end %>
 
 # the RabbitMQ userid (string value)
 rabbit_userid=<%= node["openstack"]["mq"]["orchestration"]["rabbit"]["userid"] %>

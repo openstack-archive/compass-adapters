@@ -17,7 +17,7 @@ pipeline = faultwrap metaapp
 [app:metaapp]
 paste.app_factory = nova.api.metadata.handler:MetadataRequestHandler.factory
 
-<% if node["openstack"]["compute"]["enabled_apis"].include?("ec2") %>
+<% if node["openstack"]["compute"]["enabled_apis"].include?("ec2") -%>
 #######
 # EC2 #
 #######
@@ -69,6 +69,9 @@ use = call:nova.api.openstack.urlmap:urlmap_factory
 /: oscomputeversions
 /v1.1: openstack_compute_api_v2
 /v2: openstack_compute_api_v2
+<% if node['openstack']['compute']['composite']['osapi_compute']['v3'] -%>
+/v3: <%= node['openstack']['compute']['composite']['osapi_compute']['v3'] %>
+<% end -%>
 
 [composite:openstack_compute_api_v2]
 use = call:nova.api.auth:pipeline_factory
@@ -99,6 +102,26 @@ pipeline = faultwrap oscomputeversionapp
 [app:oscomputeversionapp]
 paste.app_factory = nova.api.openstack.compute.versions:Versions.factory
 
+<% if node['openstack']['compute']['composite']['osapi_compute']['v3'] -%>
+<% if node['openstack']['compute']['composite']["#{node['openstack']['compute']['composite']['osapi_compute']['v3']}"] -%>
+[composite:<%= node['openstack']['compute']['composite']['osapi_compute']['v3'] %>]
+use = <%= node['openstack']['compute']['composite']["#{node['openstack']['compute']['composite']['osapi_compute']['v3']}"]['use'] %>
+keystone = <%= node['openstack']['compute']['composite']["#{node['openstack']['compute']['composite']['osapi_compute']['v3']}"]['keystone'].join(' ') %>
+noauth = <%= node['openstack']['compute']['composite']["#{node['openstack']['compute']['composite']['osapi_compute']['v3']}"]['noauth'].join(' ') %>
+keystone_nolimit = <%= node['openstack']['compute']['composite']["#{node['openstack']['compute']['composite']['osapi_compute']['v3']}"]['keystone_nolimit'].join(' ') %>
+<% end -%>
+<% end -%>
+
+<% node["openstack"]["compute"]["filter"].each do |key, value| -%>
+[filter:<%= key %>]
+paste.filter_factory = <%= value %>
+<% end -%>
+
+<% node["openstack"]["compute"]["app"].each do |key, value| -%>
+[app:<%= key %>]
+paste.app_factory = <%= value %>
+<% end -%>
+
 ##########
 # Shared #
 ##########
@@ -118,12 +141,12 @@ admin_user = <%= node["openstack"]["compute"]["service_user"] %>
 admin_password = <%= @service_pass %>
 signing_dir = <%= node["openstack"]["compute"]["api"]["auth"]["cache_dir"] %>
 
-<% if node["openstack"]["compute"]["misc_paste"] %>
+<% if node["openstack"]["compute"]["misc_paste"] -%>
 ########
 # Misc #
 ########
 
-<% node["openstack"]["compute"]["misc_paste"].each do |m| %>
+<% node["openstack"]["compute"]["misc_paste"].each do |m| -%>
 <%= m %>
-<% end %>
-<% end %>
+<% end -%>
+<% end -%>

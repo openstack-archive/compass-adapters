@@ -30,3 +30,12 @@ platform_options['keystone_client_packages'].each do |pkg|
     action :upgrade
   end
 end
+
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    template '/usr/lib64/python2.6/site-packages/keystoneclient/middleware/auth_token.py' do
+      source 'keystoneclient_auth_token.py.erb'
+      mode 0644
+    end
+  end
+end

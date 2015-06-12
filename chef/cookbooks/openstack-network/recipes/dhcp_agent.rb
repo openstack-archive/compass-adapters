@@ -33,14 +33,6 @@ platform_options['neutron_dhcp_packages'].each do |pkg|
   end
 end
 
-service 'neutron-dhcp-agent' do
-  service_name platform_options['neutron_dhcp_agent_service']
-  supports status: true, restart: true
-
-  action :enable
-  subscribes :restart, 'template[/etc/neutron/neutron.conf]'
-end
-
 # Some plugins have DHCP functionality, so we install the plugin
 # Python package and include the plugin-specific recipe here...
 package platform_options['neutron_plugin_package'].gsub('%plugin%', main_plugin) do
@@ -63,7 +55,18 @@ template '/etc/neutron/dhcp_agent.ini' do
   owner node['openstack']['network']['platform']['user']
   group node['openstack']['network']['platform']['group']
   mode   00644
-  notifies :restart, 'service[neutron-dhcp-agent]', :immediately
+  notifies :restart, 'service[neutron-dhcp-agent]', :delayed
+end
+
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    template '/etc/init.d/openstack-neutron-dhcp-agent' do
+      source 'openstack-neutron-dhcp-agent.service.erb'
+      owner "root"
+      group "root"
+      mode 00755
+    end
+  end
 end
 
 # Deal with ubuntu precise dnsmasq 2.59 version by custom
@@ -105,4 +108,34 @@ if node['lsb'] && node['lsb']['codename'] == 'precise' && node['openstack']['net
     end
     action :nothing
   end
+end
+
+service 'dnsmasq' do
+  supports status: true, restart: true
+  action [:enable, :start]
+  subscribes :restart, 'template[/etc/neutron/dnsmasq.conf]', :delayed
+end
+
+ruby_block "service dnsmasq restart if necessary" do
+  block do
+    Chef::Log.info("service dnsmasq restart")
+  end
+  not_if "service dnsmasq status"
+  notifies :restart, 'service[dnsmasq]', :immediately
+end
+
+service 'neutron-dhcp-agent' do
+  service_name platform_options['neutron_dhcp_agent_service']
+  supports status: true, restart: true
+
+  action [:enable, :start]
+  subscribes :restart, 'template[/etc/neutron/neutron.conf]', :delayed
+end
+
+ruby_block "service neutron-dhcp-agent restart if necessary" do
+  block do
+    Chef::Log.info("service neutron-dhcp-agent restart")
+  end
+  not_if "service #{platform_options['neutron_dhcp_agent_service']} status"
+  notifies :restart, 'service[neutron-dhcp-agent]', :immediately
 end

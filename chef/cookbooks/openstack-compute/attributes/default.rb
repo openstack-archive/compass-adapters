@@ -61,14 +61,20 @@ when 'fedora', 'rhel', 'debian'
   default['openstack']['compute']['user'] = 'nova'
   default['openstack']['compute']['group'] = 'nova'
 when 'suse'
-  default['openstack']['compute']['user'] = 'nova'
-  default['openstack']['compute']['group'] = 'nova'
+  if node['lsb']['codename'] == 'UVP'
+    default['openstack']['compute']['user'] = 'openstack'
+    default['openstack']['compute']['group'] = 'openstack'
+  else
+    default['openstack']['compute']['user'] = 'nova'
+    default['openstack']['compute']['group'] = 'nova'
+  end
 end
 
 # Options defined in nova.image.glance
 # Number of retries when downloading an image from glance
 # the actually retries num  = glance_num_retries + 1
 default['openstack']['compute']['glance_num_retries'] = 2
+default['openstack']['compute']['glance_api_insecure'] = nil
 
 # Logging stuff
 default['openstack']['compute']['log_dir'] = '/var/log/nova'
@@ -83,7 +89,7 @@ default['openstack']['compute']['floating_cmd'] = '/usr/local/bin/add_floaters.p
 
 # Support multiple network types.  Default network type is 'nova'
 # with the other option supported being 'neutron'
-default['openstack']['compute']['network']['service_type'] = 'nova'
+default['openstack']['compute']['network']['service_type'] = 'neutron'
 
 # if the network type is not nova, we will load the following
 # plugins from openstack-network
@@ -98,7 +104,7 @@ default['openstack']['compute']['network']['neutron']['admin_username'] = 'neutr
 default['openstack']['compute']['network']['neutron']['libvirt_vif_driver'] = 'nova.virt.libvirt.vif.LibvirtGenericVIFDriver'
 default['openstack']['compute']['network']['neutron']['linuxnet_interface_driver'] = 'nova.network.linux_net.LinuxOVSInterfaceDriver'
 default['openstack']['compute']['network']['neutron']['security_group_api'] = 'neutron'
-default['openstack']['compute']['network']['neutron']['service_neutron_metadata_proxy'] = true
+default['openstack']['compute']['network']['neutron']['service_neutron_metadata_proxy'] = 'True'
 default['openstack']['compute']['network']['neutron']['metadata_secret_name'] = 'neutron_metadata_shared_secret'
 default['openstack']['compute']['network']['neutron']['public_network_name'] = 'public'
 default['openstack']['compute']['network']['neutron']['dns_server'] = '8.8.8.8'
@@ -198,7 +204,7 @@ end
 default['openstack']['compute']['libvirt']['virt_type'] = 'kvm'
 default['openstack']['compute']['libvirt']['virt_auto'] = false
 default['openstack']['compute']['libvirt']['auth_tcp'] = 'none'
-default['openstack']['compute']['libvirt']['remove_unused_base_images'] = true
+default['openstack']['compute']['libvirt']['remove_unused_base_images'] = 'True'
 default['openstack']['compute']['libvirt']['remove_unused_resized_minimum_age_seconds'] = 3600
 default['openstack']['compute']['libvirt']['remove_unused_original_minimum_age_seconds'] = 3600
 default['openstack']['compute']['libvirt']['checksum_base_images'] = false
@@ -247,9 +253,9 @@ default['openstack']['compute']['config']['snapshot_image_format'] = 'qcow2'
 default['openstack']['compute']['config']['allow_resize_to_same_host'] = false
 # `start` will cause nova-compute to error out if a VM is already running, where
 # `resume` checks to see if it is running first.
-default['openstack']['compute']['config']['start_guests_on_host_boot'] = false
+default['openstack']['compute']['config']['start_guests_on_host_boot'] = 'False'
 # requires https://review.openstack.org/#/c/8423/
-default['openstack']['compute']['config']['resume_guests_state_on_host_boot'] = true
+default['openstack']['compute']['config']['resume_guests_state_on_host_boot'] = 'True'
 
 # force_config_drive can be nil or 'always',
 # if it's 'always', nova will create a config drive regardless of if the user specified --config-drive true in their nova boot call
@@ -337,8 +343,36 @@ default['openstack']['compute']['conductor']['workers'] = [6, node['cpu']['total
 
 default['openstack']['compute']['network']['force_dhcp_release'] = true
 
+default['openstack']['compute']['instance_memory_qos'] = nil
+default['openstack']['compute']['instance_console_log']  = nil
+default['openstack']['compute']['compute_api_class'] = nil
+default['openstack']['compute']['libvirt_iscsi_use_ultrapath'] = nil
+default['openstack']['compute']['instances_ha_info_record_path'] =  nil
+default['openstack']['compute']['config']['config_drive_format'] = nil
+default['openstack']['compute']['running_deleted_instance_poll_interval'] = nil
+default['openstack']['compute']['volume_clear']  = nil
+default['openstack']['compute']['instance_panic_reboot'] = nil
+default['openstack']['compute']['running_deleted_instance_action'] =  nil
+default['openstack']['compute']['nic_suspension'] = nil
+default['openstack']['compute']['libvirt_ovs_bridge'] = nil
+default['openstack']['compute']['close_instance_memballoon'] = nil
+default['openstack']['compute']['reschedule_delay_rebuild_time'] = nil
+default['openstack']['compute']['block_migration_flag'] = nil
+default['openstack']['compute']['local_resume_instance'] = nil
+default['openstack']['compute']['rebuild_extdata_keep'] = nil
+default['openstack']['compute']['running_deleted_instance_notify_interval'] = nil
+default['openstack']['compute']['download_instance_disk'] = nil
+default['openstack']['compute']['vnc_enabled'] = nil
+default['openstack']['compute']['compute_manager'] = 'nova.compute.manager.ComputeManager'
+default['openstack']['compute']['api_paste_config'] = nil
+
+default['openstack']['compute']['composite'] = {}
+default['openstack']['compute']['composite']['osapi_compute']['v3'] = nil
+default['openstack']['compute']['filter'] = {}
+default['openstack']['compute']['app'] = {}
+ 
 case platform_family
-when 'fedora', 'rhel', 'suse' # :pragma-foodcritic: ~FC024 - won't fix this
+when 'fedora', 'rhel' # :pragma-foodcritic: ~FC024 - won't fix this
   default['openstack']['compute']['platform'] = {
     'mysql_python_packages' => ['MySQL-python'],
     'db2_python_packages' => ['python-ibm-db', 'python-ibm-db-sa'],
@@ -354,7 +388,7 @@ when 'fedora', 'rhel', 'suse' # :pragma-foodcritic: ~FC024 - won't fix this
     'compute_client_packages' => ['python-novaclient'],
     'compute_compute_packages' => ['openstack-nova-compute'],
     'qemu_compute_packages' => [],
-    'kvm_compute_packages' => [],
+    'kvm_packages' => [],
     'compute_compute_service' => 'openstack-nova-compute',
     'compute_network_packages' => ['iptables', 'openstack-nova-network'],
     'compute_network_service' => 'openstack-nova-network',
@@ -378,26 +412,154 @@ when 'fedora', 'rhel', 'suse' # :pragma-foodcritic: ~FC024 - won't fix this
     'nfs_packages' => ['nfs-utils', 'nfs-utils-lib'],
     'package_overrides' => ''
   }
-  if platform_family == 'suse'
-    default['openstack']['compute']['platform']['mysql_python_packages'] = ['python-mysql']
-    default['openstack']['compute']['platform']['libvirt_packages'] = ['libvirt', 'xrdp']
-    default['openstack']['compute']['platform']['dbus_service'] = 'dbus'
-    default['openstack']['compute']['platform']['compute_vncproxy_consoleauth_packages'] = ['openstack-nova-console', 'openstack-nova-consoleauth']
-    default['openstack']['compute']['platform']['memcache_python_packages'] = ['python-python-memcached']
-    default['openstack']['compute']['platform']['neutron_python_packages'] = ['python-neutronclient', 'python-pyparsing']
-    default['openstack']['compute']['platform']['common_packages'] = ['openstack-nova']
-    default['openstack']['compute']['platform']['kvm_packages'] = ['kvm']
-    default['openstack']['compute']['platform']['xen_packages'] = ['kernel-xen', 'xen', 'xen-tools']
-    default['openstack']['compute']['platform']['lxc_packages'] = ['lxc']
-    default['openstack']['compute']['platform']['mysql_service'] = 'mysql'
-    default['openstack']['compute']['platform']['nfs_packages'] = ['nfs-utils']
-    default['openstack']['compute']['platform']['api_ec2_service'] = 'openstack-nova-api-ec2'
-    default['openstack']['compute']['platform']['api_os_compute_service'] = 'openstack-nova-api-os-compute'
-    default['openstack']['compute']['platform']['compute_api_metadata_service'] = 'openstack-nova-api-metadata'
+  # Since the bug (https://bugzilla.redhat.com/show_bug.cgi?id=788485) not released in epel yet
+  # For 'fedora', 'redhat', 'centos', we need set the default value of force_dhcp_release is 'false'
+  default['openstack']['compute']['network']['force_dhcp_release'] = false
+when 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    default['openstack']['compute']['platform'] = {
+      'mysql_python_packages' => ['python-mysql'],
+      'db2_python_packages' => ['python-ibm-db', 'python-ibm-db-sa'],
+      'postgresql_python_packages' => ['python-psycopg2'],
+      'api_ec2_packages' => [],
+      'api_ec2_service' => nil,
+      'api_os_compute_packages' => ['nova-api'],
+      'api_os_compute_service' => 'openstack-nova-api-os-compute',
+      'compute_api_metadata_packages' => ['nova-api'],
+      'compute_api_metadata_service' => 'openstack-nova-api-metadata',
+      'neutron_python_packages' => ['python-neutronclient', 'python-pyparsing'],
+      'memcache_python_packages' => ['python-python-memcached'],
+      'compute_client_packages' => ['python-novaclient'],
+      'compute_compute_packages' => ['nova-compute'],
+      'qemu_compute_packages' => [],
+      'kvm_compute_packages' => [],
+      'compute_compute_service' => 'openstack-nova-compute',
+      'compute_network_packages' => ['iptables', 'nova-network'],
+      'compute_network_service' => 'openstack-nova-network',
+      'compute_scheduler_packages' => ['nova-scheduler'],
+      'compute_scheduler_service' => 'openstack-nova-scheduler',
+      'compute_conductor_packages' => ['nova-conductor'],
+      'compute_conductor_service' => 'openstack-nova-conductor',
+      'compute_vncproxy_packages' => ['nova-novncproxy'],
+      'compute_vncproxy_service' => 'openstack-nova-novncproxy',
+      'compute_vncproxy_consoleauth_packages' => ['nova-console'],
+      'compute_vncproxy_consoleauth_service' => 'openstack-nova-consoleauth',
+      'libvirt_packages' => ['libvirt', 'xrdp'],
+      'libvirt_service' => 'libvirtd',
+      'libvirt_ceph_packages' => [],
+      'dbus_service' => 'dbus',
+      'compute_cert_packages' => [],
+      'compute_cert_service' => 'openstack-nova-cert',
+      'mysql_service' => 'mysql',
+      'common_packages' => ['nova-util'],
+      'iscsi_helper' => 'ietadm',
+      'nfs_packages' => ['nfs-utils'],
+      'kvm_packages' => ['kvm'],
+      'xen_packages' => ['kernel-xen', 'xen', 'xen-tools'],
+      'lxc_packages' => ['lxc'],
+      'package_overrides' => ''
+    }
+    default['openstack']['compute']['network']['plugins'] = ['openvswitch', 'eswitch']
+    default['openstack']['compute']['instance_memory_qos'] = 'True'
+    default['openstack']['compute']['config']['quota_ram'] = 25165824
+    default['openstack']['compute']['instance_console_log'] = 'True'
+    default['openstack']['compute']['compute_api_class'] = 'nova.compute.extended_api.ExtendedAPI'
+    default['openstack']['compute']['libvirt_iscsi_use_ultrapath'] = 'False'
+    default['openstack']['compute']['instances_ha_info_record_path']  = '/var/lib/nova/haInfo'
+    default['openstack']['compute']['config']['quota_cores'] = 2048
+    default['openstack']['compute']['config']['config_drive_format'] = 'iso9660'
+    default['openstack']['compute']['scheduler']['default_filters'] = %W(
+      NetworkFilter
+      RetryFilter
+      AvailabilityZoneFilter
+      hw_AggregateAffinityFilter
+      RamFilter
+      DiskFilter
+      ComputeFilter
+      ImagePropertiesFilter
+      SameHostFilter
+      DifferentHostFilter
+      CoreFilter
+      CpuBindFilter
+      HW_location_filter
+      AggregateInstanceExtraSpecsFilter
+      IoOpsFilter)
+    default['openstack']['compute']['running_deleted_instance_poll_interval'] = 600
+    default['openstack']['compute']['volume_clear']  = 'zero'
+    default['openstack']['compute']['instance_panic_reboot'] = 'False'
+    default['openstack']['compute']['running_deleted_instance_action'] =  'log'
+    default['openstack']['compute']['nic_suspension'] = 'True'
+    default['openstack']['compute']['libvirt_ovs_bridge'] = 'br-int'
+    default['openstack']['compute']['scheduler']['scheduler_driver'] = 'nova.scheduler.hw_filter_scheduler.HwFilterScheduler'
+    default['openstack']['compute']['block_migration_flag'] = ['VIR_MIGRATE_UNDEFINE_SOURCE', 'VIR_MIGRATE_LIVE', 'VIR_MIGRATE_PERSIST_DEST', 'VIR_MIGRATE_NON_SHARED_DISK', 'VIR_MIGRATE_PEER2PEER']
+    default['openstack']['compute']['driver'] = 'nova.virt.libvirt.LibvirtDriver'
+    default['openstack']['compute']['glance_api_insecure'] = 'True'
+    default['openstack']['compute']['close_instance_memballoon'] = 'True'
+    default['openstack']['compute']['reschedule_delay_rebuild_time'] = 60
+    default['openstack']['compute']['local_resume_instance'] = 'True'
+    default['openstack']['compute']['rebuild_extdata_keep'] = 'False'
+    default['openstack']['compute']['running_deleted_instance_notify_interval'] = 60
+    default['openstack']['compute']['download_instance_disk'] = 'True'
+    default['openstack']['compute']['vnc_enabled'] = 'True'
+    default['openstack']['compute']['compute_manager'] = 'nova.compute.manager.ComputeManager'
+    default['openstack']['compute']['api_paste_config'] = '/etc/nova/api-paste.ini'
+    default['openstack']['compute']['enabled_apis'] = 'ec2,osapi_compute'
+    default['openstack']['compute']['composite']['osapi_compute']['v3'] = 'openstack_compute_api_v3'
+    default['openstack']['compute']['composite']['openstack_compute_api_v3']['use'] = 'call:nova.api.auth:pipeline_factory'
+    default['openstack']['compute']['composite']['openstack_compute_api_v3']['keystone'] = ['faultwrap', 'sizelimit', 'authtoken', 'keystonecontext', 'ratelimit_v3', 'osapi_compute_app_v3']
+    default['openstack']['compute']['composite']['openstack_compute_api_v3']['noauth'] = ['faultwrap', 'sizelimit', 'noauth_v3', 'ratelimit_v3', 'osapi_compute_app_v3']
+    default['openstack']['compute']['composite']['openstack_compute_api_v3']['keystone_nolimit'] = ['faultwrap', 'sizelimit', 'authtoken', 'keystonecontext', 'osapi_compute_app_v3']
+    default['openstack']['compute']['filter']['ratelimit_v3'] = 'nova.api.openstack.compute.plugins.v3.limits:RateLimitingMiddleware.factory'
+    default['openstack']['compute']['app']['osapi_compute_app_v3'] = 'nova.api.openstack.compute:APIRouterV3.factory'
+    default['openstack']['compute']['filter']['noauth_v3'] = 'nova.api.openstack.auth:NoAuthMiddlewareV3.factory'
+  else
+    default['openstack']['compute']['platform'] = {
+      'mysql_python_packages' => ['python-mysql'],
+      'db2_python_packages' => ['python-ibm-db', 'python-ibm-db-sa'],
+      'postgresql_python_packages' => ['python-psycopg2'],
+      'api_ec2_packages' => ['openstack-nova-api'],
+      'api_ec2_service' => 'openstack-nova-api-ec2',
+      'api_os_compute_packages' => ['openstack-nova-api'],
+      'api_os_compute_service' => 'openstack-nova-api-os-compute',
+      'neutron_python_packages' => ['python-neutronclient', 'python-pyparsing'],
+      'memcache_python_packages' => ['python-python-memcached'],
+      'compute_api_metadata_packages' => ['openstack-nova-api'],
+      'compute_api_metadata_service' => 'openstack-nova-api-metadata',
+      'compute_client_packages' => ['python-novaclient'],
+      'compute_compute_packages' => ['openstack-nova-compute'],
+      'qemu_compute_packages' => [],
+      'kvm_compute_packages' => [],
+      'compute_compute_service' => 'openstack-nova-compute',
+      'compute_network_packages' => ['iptables', 'openstack-nova-network'],
+      'compute_network_service' => 'openstack-nova-network',
+      'compute_scheduler_packages' => ['openstack-nova-scheduler'],
+      'compute_scheduler_service' => 'openstack-nova-scheduler',
+      'compute_conductor_packages' => ['openstack-nova-conductor'],
+      'compute_conductor_service' => 'openstack-nova-conductor',
+      'compute_vncproxy_packages' => ['openstack-nova-novncproxy'],
+      'compute_vncproxy_service' => 'openstack-nova-novncproxy',
+      'compute_vncproxy_consoleauth_packages' => ['openstack-nova-console', 'openstack-nova-consoleauth'],
+      'compute_vncproxy_consoleauth_service' => 'openstack-nova-consoleauth',
+      'libvirt_packages' => ['libvirt', 'xrdp'],
+      'libvirt_service' => 'libvirtd',
+      'libvirt_ceph_packages' => [],
+      'dbus_service' => 'dbus',
+      'compute_cert_packages' => ['openstack-nova-cert'],
+      'compute_cert_service' => 'openstack-nova-cert',
+      'mysql_service' => 'mysql',
+      'common_packages' => ['openstack-nova'],
+      'iscsi_helper' => 'ietadm',
+      'nfs_packages' => ['nfs-utils'],
+      'kvm_packages' => ['kvm'],
+      'xen_packages' => ['kernel-xen', 'xen', 'xen-tools'],
+      'lxc_packages' => ['lxc'],
+      'package_overrides' => ''
+    }
   end
   # Since the bug (https://bugzilla.redhat.com/show_bug.cgi?id=788485) not released in epel yet
   # For 'fedora', 'redhat', 'centos', we need set the default value of force_dhcp_release is 'false'
   default['openstack']['compute']['network']['force_dhcp_release'] = false
+
 when 'debian'
   default['openstack']['compute']['platform'] = {
     'mysql_python_packages' => ['python-mysqldb'],
@@ -442,6 +604,10 @@ end
 
 # plugins
 default['openstack']['compute']['plugins'] = nil
+
+#
+
+#
 
 # Array of options for `nova.conf` (e.g. ['option1=value1', 'option2=value2'])
 default['openstack']['compute']['misc_nova'] = nil

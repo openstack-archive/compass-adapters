@@ -85,7 +85,8 @@ skip_if_unavailable=1
 EOF
 
     #if $getVar("local_repo_only","1") != "0"
-yum -y update
 rm -rf /etc/yum.repos.d/CentOS-*.repo
     #end if
 #end if
+
+yum -y update

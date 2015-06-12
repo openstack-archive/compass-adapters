@@ -21,7 +21,11 @@ rabbit_password = <%= @mq_password %>
 rabbit_port = <%= node["openstack"]["mq"]["telemetry"]["rabbit"]["port"] %>
 rabbit_host = <%= node["openstack"]["mq"]["telemetry"]["rabbit"]["host"] %>
 rabbit_virtual_host = <%= node["openstack"]["mq"]["telemetry"]["rabbit"]["vhost"] %>
-rabbit_use_ssl = <%= node["openstack"]["mq"]["telemetry"]["rabbit"]["use_ssl"] %>
+<% if node["openstack"]["mq"]["telemetry"]["rabbit"]["use_ssl"] %>
+rabbit_use_ssl = True
+<% else %>
+rabbit_use_ssl = False
+<% end %>
 rpc_backend = ceilometer.openstack.common.rpc.impl_kombu
 <% end %>
 
