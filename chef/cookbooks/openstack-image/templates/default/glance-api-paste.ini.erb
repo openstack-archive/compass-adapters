@@ -24,11 +24,42 @@ pipeline = versionnegotiation authtoken context cache rootapp
 [pipeline:glance-api-keystone+cachemanagement]
 pipeline = versionnegotiation authtoken context cache cachemanage rootapp
 
+<% if node['openstack']['image']['api']['pipeline']['glance-api-trusted-auth'] %>
+# Use this pipeline for authZ only. This means that the registry will treat a
+# user as authenticated without making requests to keystone to reauthenticate
+# the user.
+[pipeline:glance-api-trusted-auth]
+pipeline = <%= node['openstack']['image']['api']['pipeline']['glance-api-trusted-auth'].join(' ') %>
+<% end %>
+
+<% if node['openstack']['image']['api']['pipeline']['glance-api-trusted-auth+cachemanagement'] %>
+# Use this pipeline for authZ only. This means that the registry will treat a
+# user as authenticated without making requests to keystone to reauthenticate
+# the user and uses cache management
+[pipeline:glance-api-trusted-auth+cachemanagement]
+pipeline = <%= node['openstack']['image']['api']['pipeline']['glance-api-trusted-auth+cachemanagement'].join(' ') %>
+<% end %>
+
 [composite:rootapp]
 paste.composite_factory = glance.api:root_app_factory
 /: apiversions
 /v1: apiv1app
 /v2: apiv2app
+
+<% if node['openstack']['image']['api']['pipeline']['pipeapiversion'] %>
+[pipeline:pipeapiversion]
+pipeline = <%= node['openstack']['image']['api']['pipeline']['pipeapiversion'].join(' ') %>
+<% end %>
+
+<% if node['openstack']['image']['api']['pipeline']['apiv1pipe'] %>
+[pipeline:apiv1pipe]
+pipeline = <%= node['openstack']['image']['api']['pipeline']['apiv1pipe'].join(' ') %>
+<% end %>
+
+<% if node['openstack']['image']['api']['pipeline']['apiv2pipe'] %>
+[pipeline:apiv2pipe]
+pipeline = <%= node['openstack']['image']['api']['pipeline']['apiv2pipe'].join(' ') %>
+<% end %>
 
 [app:apiversions]
 paste.app_factory = glance.api.versions:create_resource
@@ -38,6 +69,11 @@ paste.app_factory = glance.api.v1.router:API.factory
 
 [app:apiv2app]
 paste.app_factory = glance.api.v2.router:API.factory
+
+<% if node['openstack']['image']['api']['filter']['access_log'] %>
+[filter:access_log]
+paste.filter_factory = <%= node['openstack']['image']['api']['filter']['access_log'] %>
+<% end %>
 
 [filter:versionnegotiation]
 paste.filter_factory = glance.api.middleware.version_negotiation:VersionNegotiationFilter.factory
@@ -57,3 +93,8 @@ paste.filter_factory = glance.api.middleware.context:UnauthenticatedContextMiddl
 [filter:authtoken]
 paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
 delay_auth_decision = true
+
+<% if node['openstack']['image']['api']['filter']['gzip'] %>
+[filter:gzip]
+paste.filter_factory = <%= node['openstack']['image']['api']['filter']['gzip'] %>
+<% end %>

@@ -1,0 +1,20 @@
+#if $getVar("image_url", "") != ""
+pushd `pwd`
+mkdir -p /mnt/backup
+cd /mnt/backup
+wget $image_url
+image_name=\$(basename $image_url)
+tar zxf \${image_name}
+rm \${image_name}
+mv initrd initrd.gz
+gunzip initrd.gz
+cpio -i < initrd
+rm linux
+rm vmlinux*default.gz
+rm initrd
+rm -rf sys
+rm -rf dev
+rm -rf proc
+cp -rn * ../
+popd
+#end if

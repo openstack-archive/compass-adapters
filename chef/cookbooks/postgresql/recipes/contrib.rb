@@ -30,7 +30,7 @@ end
 if (node['postgresql']['contrib'].attribute?('extensions'))
   node['postgresql']['contrib']['extensions'].each do |pg_ext|
     bash "install-#{pg_ext}-extension" do
-      user 'postgres'
+      user node['postgresql']['user']
       code <<-EOH
         echo 'CREATE EXTENSION IF NOT EXISTS "#{pg_ext}";' | psql -d template1
       EOH

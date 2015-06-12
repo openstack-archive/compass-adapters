@@ -1,0 +1,14 @@
+## Type:        string
+## Default:     ""
+#
+# Defines the suffix for logrotate
+#
+ROTATE_SUFFIX=""
+
+## Type:        string
+## Default:     "/var/log/rabbitmq"
+#
+# Defines the location of the log files
+#
+
+<% if node['rabbitmq']['logdir'] -%>INIT_LOG_DIR="<%= node['rabbitmq']['logdir'] %>"<% end %>

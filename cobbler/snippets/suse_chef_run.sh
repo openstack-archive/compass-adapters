@@ -19,12 +19,6 @@
     #set $proxy_url = $proxy
 #end if
 
-#if $getVar('compass_server', '') != ""
-    #set srv = $getVar('compass_server','')
-#else
-    #set srv = $getVar('server','')
-#end if
-
 cat << EOF > /etc/chef/chef_client_run.sh
 #!/bin/bash
 touch /var/log/chef.log
@@ -44,9 +38,9 @@ while true; do
         echo "there are chef-clients '\\$clients' running" >> /var/log/chef.log 2>&1
         break
     else
-        echo "knife search nodes" >> /var/log/chef.log 2>&1
-        USER=root HOME=/root knife node list |grep \\$HOSTNAME. >> /var/log/chef.log 2>&1
-        nodes=\\$(USER=root HOME=/root knife node list |grep \\$HOSTNAME.)
+        echo "knife search nodes for \\$HOSTNAME" >> /var/log/chef.log 2>&1
+        USER=root HOME=/root HOSTNAME=$hostname knife node list |grep \\$HOSTNAME. >> /var/log/chef.log 2>&1
+        nodes=\\$(USER=root HOME=/root HOSTNAME=$hostname knife node list |grep \\$HOSTNAME.)
         echo "found nodes \\$nodes" >> /var/log/chef.log 2>&1
         all_nodes_success=1
         for node in \\$nodes; do
@@ -77,13 +71,15 @@ local3.info @$compass_server:514
 local3.info @@$server:514
 #end if
 EOL
-                rm -rf /var/lib/rsyslog/chef_\\$node_log
-                service rsyslog restart
+                if [ -f "/var/spool/rsyslog/chef_\\${node}_log" ]; then
+                    rm -rf /var/spool/rsyslog/chef_\\${node}_log
+                fi
+                service syslog restart
             fi
-            if [ -f "/etc/chef/\\$node.done" ]; then
-                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\$node.json --client_key /etc/chef/\\$node.pem >> /var/log/chef.log 2>&1
+            if [ -f "/etc/chef/\\${node}.done" ]; then
+                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\${node}.json --client_key /etc/chef/\\${node}.pem >> /var/log/chef.log 2>&1
             else
-                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\$node.json --client_key /etc/chef/\\$node.pem -L /var/log/chef/\\$node/chef-client.log >> /var/log/chef.log 2>&1
+                USER=root HOME=/root chef-client --node-name \\$node -j /etc/chef/\\${node}.json --client_key /etc/chef/\\${node}.pem -L /var/log/chef/\\$node/chef-client.log >> /var/log/chef.log 2>&1
             fi
             if [ "\\$?" != "0" ]; then
                 echo "chef-client --node-name \\$node run failed"  >> /var/log/chef.log 2>&1
@@ -91,7 +87,6 @@ EOL
             else
                 echo "chef-client --node-name \\$node run success" >> /var/log/chef.log 2>&1
                 touch /etc/chef/\\$node.done
-                wget -O /tmp/package_state.\\$node --post-data='{"ready": true}' --header=Content-Type:application/json "http://$srv/api/clusterhosts/\\${node}/state_internal"
             fi
         done
         if [ \\$all_nodes_success -eq 0 ]; then

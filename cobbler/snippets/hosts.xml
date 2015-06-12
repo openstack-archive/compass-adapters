@@ -4,18 +4,50 @@
         <host_address>127.0.0.1</host_address>
         <names config:type="list">
           <name>localhost</name>
+          <name>hostloca.localdomain</name>
+          <name>localhost4</name>
+          <name>localhost4.localdomain4</name>
         </names>
       </hosts_entry>
+      <host_entry>
+        <host_address>::1</host_address>
+        <names config:type="list">
+          <name>localhost</name>
+          <name>localhost.localdomain</name>
+          <name>localhost6</name>
+          <name>localhost6.localdomain6</name>
+        </names>
+      </host_entry>
+      #set $server_name = $os.uname[1]
+      <host_entry>
+          #if $getVar("compass_server", "") != ""
+          <host_address>$compass_server</host_address>
+          #else
+          <host_address>$server</host_address>
+          #end if
+          <names config:type="list">
+            <name>$server_name</name>
+          </names>
+      </host_entry>
+      #if $getVar("chef_server_ip", "") != "" and $getVar("chef_server_dns", "") != ""
+      <host_entry>
+        <host_address>$chef_server_ip</host_address>
+        <names config:type="list">
+          <name>$chef_server_dns</name>
+        </names>
+      </host_entry>
+      #end if
       #if $getVar("system_name","") != ""
       #set $ikeys = $interfaces.keys()
       #for $iface in $ikeys
       #set $idata = $interfaces[$iface]
-      #if $idata["interface_type"].lower() in ["","na","bridge","bond"]
+      #if $idata["static"] and $idata.get("ip_address", "") != ""
       <hosts_entry>
         <host_address>$idata["ip_address"]</host_address>
         <names config:type="list">
           #set $my_interface_hostname_short = $idata["dns_name"].split('.',1)[:1][0]
-          <name>$idata["dns_name"].lower() $my_interface_hostname_short.lower()</name>
+          <name>$idata["dns_name"].lower()</name>
+          <name>$my_interface_hostname_short.lower()</name>
         </names>
       </hosts_entry>
       #end if

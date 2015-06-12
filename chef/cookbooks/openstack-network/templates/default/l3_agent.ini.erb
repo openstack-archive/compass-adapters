@@ -17,6 +17,10 @@ interface_driver = <%= node["openstack"]["network"]["interface_driver"] %>
 # iproute2 package that supports namespaces).
 use_namespaces = <%= node["openstack"]["network"]["use_namespaces"] %>
 
+<% if node['openstack']['network']['dhcp']['dhcp_delete_namespaces'] -%>
+dhcp_delete_namespaces = <%= node['openstack']['network']['dhcp']['dhcp_delete_namespaces']  %>
+<% end -%>
+
 # If use_namespaces is set as False then the agent can only configure one router.
 # This is done by setting the specific router_id.
 # Default: router_id =

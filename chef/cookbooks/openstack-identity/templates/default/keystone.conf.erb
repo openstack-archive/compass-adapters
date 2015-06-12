@@ -199,16 +199,34 @@ driver = keystone.assignment.backends.<%= node["openstack"]["identity"]["assignm
 <% if node["openstack"]["identity"]["catalog"]["backend"] == "templated" -%>
 # templated driver uses different class name :(
 driver = keystone.catalog.backends.templated.TemplatedCatalog
-<% else -%>
-driver = keystone.catalog.backends.<%= node["openstack"]["identity"]["catalog"]["backend"] %>.Catalog
-<% end -%>
 template_file = /etc/keystone/default_catalog.templates
+<% else -%>
+<% if  node["openstack"]["identity"]["catalog"]["backend_fullname"] %>
+driver = <%= node["openstack"]["identity"]["catalog"]["backend_fullname"] %>
+<% else %>
+driver = keystone.catalog.backends.<%= node["openstack"]["identity"]["catalog"]["backend"] %>.Catalog
+<% end %>
+<% end -%>
+
+<% if node['openstack']['identity']['endpoint_filter'] %>
+[endpoint_filter]
+# extension for creating associations between project and endpoints in order to
+# provide a tailored catalog for project-scoped token requests.
+# driver = keystone.contrib.endpoint_filter.backends.sql.EndpointFilter
+<% node['openstack']['identity']['endpoint_filter'].sort.each do |key, value| %>
+<% next if value.nil? -%>
+<%= key %> = <%= value %>
+<% end %>
+<% end %>
 
 [token]
 driver = keystone.token.backends.<%= node["openstack"]["identity"]["token"]["backend"] %>.Token
 provider = keystone.token.providers.<%= node["openstack"]["auth"]["strategy"] %>.Provider
 # Amount of time a token should remain valid (in seconds)
 expiration = <%= node["openstack"]["identity"]["token"]["expiration"] %>
+<% if node["openstack"]["identity"]["token"]["id_no_catalog"] %>
+id_no_catalog = <%= node["openstack"]["identity"]["token"]["id_no_catalog"] %>
+<% end %>
 
 [policy]
 driver = keystone.policy.backends.<%= node["openstack"]["identity"]["policy"]["backend"] %>.Policy
@@ -233,11 +251,34 @@ valid_days = <%= node["openstack"]["identity"]["signing"]["valid_days"] %>
 ca_password = <%= node["openstack"]["identity"]["signing"]["ca_password"] %>
 <% end -%>
 
+<% if node['openstack']['identity']['auth']['use_oauth1'] -%>
+[oauth1]
+# driver = keystone.contrib.oauth1.backends.sql.OAuth1
+
+# The Identity service may include expire attributes.
+# If no such attribute is included, then the token lasts indefinitely.
+# Specify how quickly the request token will expire (in seconds)
+# request_token_duration = 28800
+# Specify how quickly the access token will expire (in seconds)
+# access_token_duration = 86400
+
+[auth]
+methods = external,password,token,oauth1
+#external = keystone.auth.plugins.external.ExternalDefault
+password = keystone.auth.plugins.password.Password
+token = keystone.auth.plugins.token.Token
+oauth1 = keystone.auth.plugins.oauth1.OAuth
+<% else -%>
 [auth]
 methods = password,token
 password = keystone.auth.plugins.password.Password
 token = keystone.auth.plugins.token.Token
+<% end -%>
 
 [paste_deploy]
 # Name of the paste configuration file that defines the available pipelines
+<% if node['openstack']['identity']['auth']['use_paste_deploy'] -%>
+config_file = keystone-paste.ini
+<% else -%>
 #config_file = keystone-paste.ini
+<% end -%>

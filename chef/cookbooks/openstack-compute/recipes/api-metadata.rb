@@ -50,17 +50,9 @@ platform_options['compute_api_metadata_packages'].each do |pkg|
   end
 end
 
-service 'nova-api-metadata' do
-  service_name platform_options['compute_api_metadata_service']
-  supports status: true, restart: true
-  subscribes :restart, resources('template[/etc/nova/nova.conf]')
-
-  action [:enable, :start]
-end
-
 identity_endpoint = endpoint 'identity-api'
 identity_admin_endpoint = endpoint 'identity-admin'
-service_pass = get_password 'service', 'openstack-compute'
+service_pass = get_password 'service', node["openstack"]["compute"]["service_user"]
 
 auth_uri = auth_uri_transform identity_endpoint.to_s, node['openstack']['compute']['api']['auth']['version']
 
@@ -74,5 +66,33 @@ template '/etc/nova/api-paste.ini' do
     identity_admin_endpoint: identity_admin_endpoint,
     service_pass: service_pass
   )
-  notifies :restart, 'service[nova-api-metadata]'
+  notifies :restart, 'service[nova-api-metadata]', :delayed
 end
+
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    template '/etc/init.d/openstack-nova-api-metadata' do
+      source 'openstack-nova-api-metadata.service.erb'
+      owner "root"
+      group "root"
+      mode 00755
+    end
+  end 
+end
+
+service 'nova-api-metadata' do
+  service_name platform_options['compute_api_metadata_service']
+  supports status: true, restart: true
+  subscribes :restart, resources('template[/etc/nova/nova.conf]')
+
+  action [:enable, :start]
+end
+
+ruby_block "service nova-api-metadata restart if necessary" do
+  block do
+    Chef::Log.info("service nova-api-metadata restart")
+  end
+  not_if "service #{platform_options['compute_api_metadata_service']} status"
+  notifies :restart, 'service[nova-api-metadata]', :immediately
+end
+

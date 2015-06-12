@@ -41,7 +41,7 @@ module ::Openstack # rubocop:disable Documentation
         include_recipe 'database::postgresql'
         db_prov = ::Chef::Provider::Database::Postgresql
         user_prov = ::Chef::Provider::Database::PostgresqlUser
-        super_user = 'postgres'
+        super_user = node['postgresql']['user']
         if root_user_use_databag
           user_key = node['openstack']['db']['root_user_key']
           super_password = get_password 'user', user_key

@@ -57,7 +57,7 @@ end
 
 identity_endpoint = endpoint 'identity-api'
 identity_admin_endpoint = endpoint 'identity-admin'
-service_pass = get_password 'service', 'openstack-compute'
+service_pass = get_password 'service', node["openstack"]["compute"]["service_user"]
 
 auth_uri = auth_uri_transform identity_endpoint.to_s, node['openstack']['compute']['api']['auth']['version']
 

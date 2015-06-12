@@ -17,10 +17,16 @@
 # limitations under the License.
 #
 
+def plugins_bin_path(return_array = false)
+  path = ENV.fetch('PATH') + ":#{node['rabbitmq']['binary_dir']}"
+  return_array ? path.split(':') : path
+end
+
 def vhost_exists?(name)
   cmd = "rabbitmqctl -q list_vhosts | grep ^#{name}$"
   cmd = Mixlib::ShellOut.new(cmd)
   cmd.environment['HOME'] = ENV.fetch('HOME', '/root')
+  cmd.environment['PATH'] = plugins_bin_path
   cmd.run_command
   Chef::Log.debug "rabbitmq_vhost_exists?: #{cmd}"
   Chef::Log.debug "rabbitmq_vhost_exists?: #{cmd.stdout}"
@@ -38,6 +44,8 @@ action :add do
     execute cmd do
       Chef::Log.debug "rabbitmq_vhost_add: #{cmd}"
       Chef::Log.info "Adding RabbitMQ vhost '#{new_resource.vhost}'."
+      path plugins_bin_path(true)
+      environment "PATH" => plugins_bin_path
       new_resource.updated_by_last_action(true)
     end
   end
@@ -49,6 +57,8 @@ action :delete do
     execute cmd do
       Chef::Log.debug "rabbitmq_vhost_delete: #{cmd}"
       Chef::Log.info "Deleting RabbitMQ vhost '#{new_resource.vhost}'."
+      path plugins_bin_path(true)
+      environment "PATH" => plugins_bin_path
       new_resource.updated_by_last_action(true)
     end
   end

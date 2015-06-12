@@ -63,7 +63,7 @@ cron.*                                                  /var/log/cron
 uucp,news.crit                                          /var/log/spooler
 
 \# Save boot messages also to boot.log
-local7.*                                                /var/log/boot.log
+\# local7.*                                                /var/log/boot.log
 ]]>
   </file_contents>
   <file_owner>root.root</file_owner>

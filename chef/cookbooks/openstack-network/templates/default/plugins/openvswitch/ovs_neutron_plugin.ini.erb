@@ -99,9 +99,28 @@ local_ip = <%= @local_ip %>
 bridge_mappings = <%= node["openstack"]["network"]["openvswitch"]["bridge_mappings"] %>
 <% end -%>
 
+[qos]
+<% if node['openstack']['network']['openvswitch']['qos_driver']  %>
+qos_driver =  <%=  node['openstack']['network']['openvswitch']['qos_driver'] %>
+<% end %>
+
 [AGENT]
 # Agent's polling interval in seconds
 polling_interval = <%= node['openstack']['network']['openvswitch']['polling_interval'] %>
+<% if node['openstack']['network']['openvswitch']['tunnel_types'] %>
+tunnel_types = <%= node['openstack']['network']['openvswitch']['tunnel_types'].join(',') %>
+<% end %>
+<% if node['openstack']['network']['openvswitch']['vxlan_udp_port'] %>
+vxlan_udp_port = <%= node['openstack']['network']['openvswitch']['vxlan_udp_port']%>
+<% end %>
+
+<% if node['openstack']['network']['openvswitch']['l2_population'] %>
+l2_population = <%= node['openstack']['network']['openvswitch']['l2_population']  %>
+<% end %>
+
+<% if node['openstack']['network']['openvswitch']['veth_mtu']  %>
+veth_mtu = <%= node['openstack']['network']['openvswitch']['veth_mtu'] %>
+<% end %>
 
 [SECURITYGROUP]
 # Firewall driver for realizing neutron security group function
