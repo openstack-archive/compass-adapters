@@ -19,10 +19,16 @@
 
 use_inline_resources
 
+def plugins_bin_path(return_array = false)
+  path = ENV.fetch('PATH') + ":#{node['rabbitmq']['binary_dir']}"
+  return_array ? path.split(':') : path
+end
+
 def user_exists?(name)
   cmd = "rabbitmqctl -q list_users |grep '^#{name}\\b'"
   cmd = Mixlib::ShellOut.new(cmd)
   cmd.environment['HOME'] = ENV.fetch('HOME', '/root')
+  cmd.environment['PATH'] = plugins_bin_path
   cmd.run_command
   Chef::Log.debug "rabbitmq_user_exists?: #{cmd}"
   Chef::Log.debug "rabbitmq_user_exists?: #{cmd.stdout}"
@@ -39,6 +45,7 @@ def user_has_tag?(name, tag)
   cmd = "rabbitmqctl -q list_users | grep \"^#{name}\\b\" | grep #{tag}"
   cmd = Mixlib::ShellOut.new(cmd)
   cmd.environment['HOME'] = ENV.fetch('HOME', '/root')
+  cmd.environment['PATH'] = plugins_bin_path
   cmd.run_command
   Chef::Log.debug "rabbitmq_user_has_tag?: #{cmd}"
   Chef::Log.debug "rabbitmq_user_has_tag?: #{cmd.stdout}"
@@ -57,6 +64,7 @@ def user_has_permissions?(name, vhost, perm_list = nil)
   cmd = "rabbitmqctl -q list_user_permissions #{name} | grep \"^#{vhost}\\b\""
   cmd = Mixlib::ShellOut.new(cmd)
   cmd.environment['HOME'] = ENV.fetch('HOME', '/root')
+  cmd.environment['PATH'] = plugins_bin_path
   cmd.run_command
   Chef::Log.debug "rabbitmq_user_has_permissions?: #{cmd}"
   Chef::Log.debug "rabbitmq_user_has_permissions?: #{cmd.stdout}"
@@ -87,6 +95,9 @@ action :add do
     execute "rabbitmqctl add_user #{new_resource.user}" do
       command cmd
       Chef::Log.info "Adding RabbitMQ user '#{new_resource.user}'."
+      path plugins_bin_path(true)
+      environment "PATH" => plugins_bin_path
+      new_resource.updated_by_last_action(true)
     end
   end
 end
@@ -97,6 +108,9 @@ action :delete do
     execute cmd do
       Chef::Log.debug "rabbitmq_user_delete: #{cmd}"
       Chef::Log.info "Deleting RabbitMQ user '#{new_resource.user}'."
+      path plugins_bin_path(true)
+      environment "PATH" => plugins_bin_path
+      new_resource.updated_by_last_action(true)
     end
   end
 end
@@ -111,6 +125,8 @@ action :set_permissions do
     execute cmd do
       Chef::Log.debug "rabbitmq_user_set_permissions: #{cmd}"
       Chef::Log.info "Setting RabbitMQ user permissions for '#{new_resource.user}' on vhost #{new_resource.vhost}."
+      environment "PATH" => plugins_bin_path
+      new_resource.updated_by_last_action(true)
     end
   end
 end
@@ -124,6 +140,9 @@ action :clear_permissions do
     execute cmd do
       Chef::Log.debug "rabbitmq_user_clear_permissions: #{cmd}"
       Chef::Log.info "Clearing RabbitMQ user permissions for '#{new_resource.user}' from vhost #{new_resource.vhost}."
+      path plugins_bin_path(true)
+      environment "PATH" => plugins_bin_path
+      new_resource.updated_by_last_action(true)
     end
   end
 end
@@ -136,6 +155,9 @@ action :set_tags do
     execute cmd do
       Chef::Log.debug "rabbitmq_user_set_tags: #{cmd}"
       Chef::Log.info "Setting RabbitMQ user '#{new_resource.user}' tags '#{new_resource.tag}'"
+      path plugins_bin_path(true)
+      environment "PATH" => plugins_bin_path
+      new_resource.updated_by_last_action(true)
     end
   end
 end
@@ -148,6 +170,9 @@ action :clear_tags do
     execute cmd do
       Chef::Log.debug "rabbitmq_user_clear_tags: #{cmd}"
       Chef::Log.info "Clearing RabbitMQ user '#{new_resource.user}' tags."
+      path plugins_bin_path(true)
+      environment "PATH" => plugins_bin_path
+      new_resource.updated_by_last_action(true)
     end
   end
 end
@@ -158,6 +183,9 @@ action :change_password do
     execute cmd do
       Chef::Log.debug "rabbitmq_user_change_password: #{cmd}"
       Chef::Log.info "Editing RabbitMQ user '#{new_resource.user}'."
+      path plugins_bin_path(true)
+      environment "PATH" => plugins_bin_path
+      new_resource.updated_by_last_action(true)
     end
   end
 end

@@ -30,7 +30,7 @@ nova_group = node['openstack']['compute']['group']
 execute 'nova-manage db sync' do
   user nova_user
   group nova_group
-  command 'nova-manage db sync'
+  command 'nova-manage db sync &> /dev/null'
   action :run
 end
 

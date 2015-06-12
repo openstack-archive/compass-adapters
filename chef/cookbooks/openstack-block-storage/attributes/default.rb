@@ -215,6 +215,31 @@ default['openstack']['block-storage']['volume']['iscsi_helper'] = 'tgtadm'
 default['openstack']['block-storage']['volume']['iscsi_ip_address'] = node['ipaddress']
 default['openstack']['block-storage']['volume']['iscsi_port'] = '3260'
 
+default['openstack']['block-storage']['scheduler']['scheduler_default_filters'] = []
+default['openstack']['block-storage']['scheduler']['scheduler_host_manager'] = nil
+default['openstack']['block-storage']['scheduler']['scheduler_default_weighers'] = nil
+default['openstack']['block-storage']['scheduler']['scheduler_max_attempts'] = 0
+default['openstack']['block-storage']['scheduler']['scheduler_manager'] = nil
+default['openstack']['block-storage']['scheduler']['scheduler_driver'] = nil
+
+default['openstack']['block-storage']['max_overflow'] = 0
+default['openstack']['block-storage']['max_io_ops_per_host'] = 0
+default['openstack']['block-storage']['max_pool_size'] = 0
+default['openstack']['block-storage']['quota_snapshots'] = 0
+default['openstack']['block-storage']['allowed_direct_url_schemes'] = nil
+default['openstack']['block-storage']['io_control'] = nil
+default['openstack']['block-storage']['use_ultrapath_for_image_xfer'] = nil
+default['openstack']['block-storage']['volume']['driver_ratio'] = 0
+default['openstack']['block-storage']['volume']['dd_blocksize'] = nil
+default['openstack']['block-storage']['volume']['api_class'] = nil
+default['openstack']['block-storage']['backup']['manager'] = nil
+default['openstack']['block-storage']['backup']['api_class'] = nil
+default['openstack']['block-storage']['volume']['manager'] = nil
+default['openstack']['block-storage']['backup']['driver'] = nil
+default['openstack']['block-storage']['use_ssl'] = nil
+default['openstack']['block-storage']['ssl_key_file'] = nil
+default['openstack']['block-storage']['ssl_cert_file'] = nil
+ 
 # Ceph/RADOS options
 default['openstack']['block-storage']['rbd_pool'] = 'rbd'
 default['openstack']['block-storage']['rbd_user'] = 'cinder'
@@ -246,6 +271,8 @@ when 'fedora', 'rhel' # :pragma-foodcritic: ~FC024 - won't fix this
     'cinder_volume_service' => 'openstack-cinder-volume',
     'cinder_scheduler_packages' => [],
     'cinder_scheduler_service' => 'openstack-cinder-scheduler',
+    'cinder_backup_packages' => [],
+    'cinder_backup_service' => 'openstack-cinder-backup',
     'cinder_iscsitarget_packages' => ['scsi-target-utils'],
     'cinder_iscsitarget_service' => 'tgtd',
     'cinder_ceph_packages' => ['python-ceph', 'ceph-common'],
@@ -254,26 +281,76 @@ when 'fedora', 'rhel' # :pragma-foodcritic: ~FC024 - won't fix this
     'package_overrides' => ''
   }
 when 'suse'
-  # operating system user and group names
-  default['openstack']['block-storage']['user'] = 'cinder'
-  default['openstack']['block-storage']['group'] = 'cinder'
-  default['openstack']['block-storage']['platform'] = {
-    'mysql_python_packages' => ['python-mysql'],
-    'postgresql_python_packages' => ['python-psycopg2'],
-    'cinder_common_packages' => ['openstack-cinder'],
-    'cinder_api_packages' => ['openstack-cinder-api'],
-    'cinder_api_service' => 'openstack-cinder-api',
-    'cinder_client_packages' => ['python-cinderclient'],
-    'cinder_scheduler_packages' => ['openstack-cinder-scheduler'],
-    'cinder_scheduler_service' => 'openstack-cinder-scheduler',
-    'cinder_volume_packages' => ['openstack-cinder-volume'],
-    'cinder_volume_service' => 'openstack-cinder-volume',
-    'cinder_ceph_packages' => ['python-ceph', 'ceph-common'],
-    'cinder_iscsitarget_packages' => ['tgt'],
-    'cinder_iscsitarget_service' => 'tgtd',
-    'cinder_nfs_packages' => ['nfs-utils'],
-    'cinder_emc_packages' => ['python-pywbem']
-  }
+  if node['lsb']['codename'] == 'UVP'
+    # operating system user and group names
+    default['openstack']['block-storage']['user'] = 'openstack'
+    default['openstack']['block-storage']['group'] = 'openstack'
+    default['openstack']['block-storage']['platform'] = {
+      'mysql_python_packages' => ['python-mysql'],
+      'postgresql_python_packages' => ['python-psycopg2'],
+      'cinder_common_packages' => [],
+      'cinder_api_packages' => ['cinder-api'],
+      'cinder_api_service' => 'openstack-cinder-api',
+      'cinder_client_packages' => ['python-cinderclient'],
+      'cinder_scheduler_packages' => ['cinder-scheduler'],
+      'cinder_scheduler_service' => 'openstack-cinder-scheduler',
+      'cinder_volume_packages' => ['cinder-volume'],
+      'cinder_volume_service' => 'openstack-cinder-volume',
+      'cinder_backup_packages' => ['cinder-backup'],
+      'cinder_backup_service' => 'openstack-cinder-backup',
+      'cinder_ceph_packages' => ['python-ceph', 'ceph-common'],
+      'cinder_iscsitarget_packages' => ['tgt', 'iscsitarget'],
+      'cinder_iscsitarget_service' => 'tgtd',
+      'cinder_nfs_packages' => ['nfs-utils'],
+      'cinder_emc_packages' => ['python-pywbem']
+    }
+    default['openstack']['block-storage']['scheduler']['scheduler_default_filters'] = ['IoOpsFilter', 'AvailabilityZoneFilter' ,'CapacityFilter', 'CapabilitiesFilter']
+    default['openstack']['block-storage']['scheduler']['scheduler_host_manager'] = 'cinder.scheduler.hw_host_manager.Hw_HostManager'
+    default['openstack']['block-storage']['scheduler']['scheduler_default_weighers'] = 'CapacityWeigher'
+    default['openstack']['block-storage']['scheduler']['scheduler_max_attempts'] = 6
+    default['openstack']['block-storage']['scheduler']['scheduler_manager'] = 'cinder.scheduler.manager.SchedulerManager'
+    default['openstack']['block-storage']['scheduler']['scheduler_driver'] = 'cinder.scheduler.filter_scheduler.FilterScheduler'
+    default['openstack']['block-storage']['max_overflow'] = 40
+    default['openstack']['block-storage']['max_io_ops_per_host'] = 8
+    default['openstack']['block-storage']['max_pool_size'] = 20
+    default['openstack']['block-storage']['quota_snapshots'] = 10
+    default['openstack']['block-storage']['allowed_direct_url_schemes'] = 'uds, uds+https'
+    default['openstack']['block-storage']['io_control'] = 'False'
+    default['openstack']['block-storage']['use_ultrapath_for_image_xfer'] = 'False'
+    default['openstack']['block-storage']['volume']['driver_ratio'] = 3
+    default['openstack']['block-storage']['volume']['dd_blocksize'] = '1M'
+    default['openstack']['block-storage']['volume']['api_class'] = 'cinder.volume.api.API'
+    default['openstack']['block-storage']['backup']['manager'] = 'cinder.backup.manager.BackupManager'
+    default['openstack']['block-storage']['backup']['api_class'] = 'cinder.backup.api.API'
+    default['openstack']['block-storage']['volume']['manager'] = 'cinder.volume.hw_manager.Hw_VolumeManager'
+    default['openstack']['block-storage']['backup']['driver'] = 'cinder.backup.drivers.swift'
+    default['openstack']['block-storage']['use_ssl'] = false
+    default['openstack']['block-storage']['ssl_key_file'] = '/etc/FSSecurity/server-cert/cinder_server.key'
+    default['openstack']['block-storage']['ssl_cert_file'] = '/etc/FSSecurity/server-cert/cinder_server.crt'
+  else
+    # operating system user and group names
+    default['openstack']['block-storage']['user'] = 'cinder'
+    default['openstack']['block-storage']['group'] = 'cinder'
+    default['openstack']['block-storage']['platform'] = {
+      'mysql_python_packages' => ['python-mysql'],
+      'postgresql_python_packages' => ['python-psycopg2'],
+      'cinder_common_packages' => ['openstack-cinder'],
+      'cinder_api_packages' => ['openstack-cinder-api'],
+      'cinder_api_service' => 'openstack-cinder-api',
+      'cinder_client_packages' => ['python-cinderclient'],
+      'cinder_scheduler_packages' => ['openstack-cinder-scheduler'],
+      'cinder_scheduler_service' => 'openstack-cinder-scheduler',
+      'cinder_volume_packages' => ['openstack-cinder-volume'],
+      'cinder_volume_service' => 'openstack-cinder-volume',
+      'cinder_backup_packages' => [],
+      'cinder_backup_service' => 'openstack-cinder-backup',
+      'cinder_ceph_packages' => ['python-ceph', 'ceph-common'],
+      'cinder_iscsitarget_packages' => ['tgt', 'iscsitarget'],
+      'cinder_iscsitarget_service' => 'tgtd',
+      'cinder_nfs_packages' => ['nfs-utils'],
+      'cinder_emc_packages' => ['python-pywbem']
+    }
+  end
 when 'debian'
   # operating system user and group names
   default['openstack']['block-storage']['user'] = 'cinder'
@@ -289,6 +366,8 @@ when 'debian'
     'cinder_volume_service' => 'cinder-volume',
     'cinder_scheduler_packages' => ['cinder-scheduler'],
     'cinder_scheduler_service' => 'cinder-scheduler',
+    'cinder_backup_packages' => [],
+    'cinder_backup_service' => 'cinder-backup',
     'cinder_ceph_packages' => ['python-ceph', 'ceph-common'],
     'cinder_iscsitarget_packages' => ['tgt'],
     'cinder_iscsitarget_service' => 'tgt',

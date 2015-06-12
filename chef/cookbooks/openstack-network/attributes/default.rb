@@ -39,6 +39,16 @@ default['openstack']['network']['policyfile_url'] = nil
 # DB Stamp comes late in dev cycle, allow override for development and test
 default['openstack']['network']['db_stamp'] = node['openstack']['release']
 
+default['openstack']['network']['allow_pagination'] = nil
+default['openstack']['network']['use_ssl'] = nil
+
+default['openstack']['network']['ssl_cert_file'] = nil
+default['openstack']['network']['ssl_key_file'] =nil
+
+default['openstack']['network']['loadbalancer_pool_scheduler_driver'] = nil
+
+default['openstack']['network']['delay_auth_decision'] = 'True'
+
 # Gets set in the Network Endpoint when registering with Keystone
 default['openstack']['network']['region'] = node['openstack']['region']
 default['openstack']['network']['service_user'] = 'neutron'
@@ -145,7 +155,7 @@ default['openstack']['network']['core_plugin'] = 'neutron.plugins.ml2.plugin.Ml2
 # additional service plugins to use for neutron
 # e.g. neutron.plugins.services.agent_loadbalancer.plugin.LoadBalancerPlugin
 # for the loadbalancer reference implementation
-default['openstack']['network']['service_plugins'] = []
+default['openstack']['network']['service_plugins'] = ['neutron.services.l3_router.l3_router_plugin.L3RouterPlugin']
 
 # The bridging interface driver.
 # This is used by the L3, DHCP and LBaaS agents.
@@ -223,6 +233,13 @@ default['openstack']['network']['nova']['admin_tenant_id'] = nil
 # Number of seconds between sending events to nova if there are any events to send
 default['openstack']['network']['nova']['send_events_interval'] = 2
 
+# api-paste.ini Configuration
+default['openstack']['network']['neutron-server']['compoiste']['neutronapi_v2_0']['noauth'] = ['request_id', 'catch_errors', 'extensions', 'neutronapiapp_v2_0']
+default['openstack']['network']['neutron-server']['compoiste']['neutronapi_v2_0']['keystone'] = ['request_id', 'catch_errors', 'authtoken', 'keystonecontext', 'extensions', 'neutronapiapp_v2_0']
+default['openstack']['network']['neutron-server']['filter']['request_id'] = 'neutron.openstack.common.middleware.request_id:RequestIdMiddleware.factory'
+default['openstack']['network']['neutron-server']['filter']['catch_errors'] = 'neutron.openstack.common.middleware.catch_errors:CatchErrorsMiddleware.factory'
+default['openstack']['network']['neutron-server']['filter']['access_log'] = nil
+
 # ============================= DHCP Agent Configuration ===================
 
 # The scheduler class to use for scheduling to DHCP agents
@@ -247,6 +264,7 @@ default['openstack']['network']['dhcp']['ovs_use_veth'] = 'False'
 # be activated when the subnet gateway_ip is None.  The guest instance must
 # be configured to request host routes via DHCP (Option 121).
 default['openstack']['network']['dhcp']['enable_isolated_metadata'] = 'False'
+default['openstack']['network']['dhcp']['dhcp_delete_namespaces'] = nil
 
 # Allows for serving metadata requests coming from a dedicated metadata
 # access network whose cidr is 169.254.169.254/16 (or larger prefix), and
@@ -375,7 +393,7 @@ default['openstack']['network']['lbaas_plugin'] = 'ovs'
 # or change this to 'gre' and configure tunnel_id_ranges below in order for tenant
 # networks to provide connectivity between hosts. Set to 'none' to disable creation
 # of tenant networks.
-default['openstack']['network']['openvswitch']['tenant_network_type'] = 'local'
+default['openstack']['network']['openvswitch']['tenant_network_type'] = 'gre'
 
 # Comma-separated list of <physical_network>[:<vlan_min>:<vlan_max>] tuples enumerating
 # ranges of VLAN IDs on named physical networks that are available for allocation.
@@ -448,12 +466,19 @@ default['openstack']['network']['openvswitch']['bridge_mapping_interface'] = nil
 # Agent's polling interval in seconds
 default['openstack']['network']['openvswitch']['polling_interval'] = 2
 
+default['openstack']['network']['openvswitch']['tunnel_types'] = []
+default['openstack']['network']['openvswitch']['vxlan_udp_port']  = nil
+default['openstack']['network']['openvswitch']['l2_population'] = nil
+default['openstack']['network']['openvswitch']['veth_mtu'] =  nil
+
 # Firewall driver for realizing neutron security group function
 default['openstack']['network']['openvswitch']['fw_driver'] = 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver'
 
 # Controls if neutron security group is enabled or not.
 # It should be false when you use nova security group.
 default['openstack']['network']['openvswitch']['enable_security_group'] = 'True'
+
+default['openstack']['network']['openvswitch']['qos_driver'] = nil
 
 # OVS host for GRE tunnel. If bind_interface is set, it will set the host IP of
 # this interface, otherwise use default host.
@@ -494,7 +519,7 @@ default['openstack']['network']['openvswitch']['openvswitch_architecture'] = 'am
 # 'vlan' and configure network_vlan_ranges below in order for tenant
 # networks to provide connectivity between hosts. Set to 'none' to
 # disable creation of tenant networks.
-default['openstack']['network']['linuxbridge']['tenant_network_type'] = 'local'
+default['openstack']['network']['linuxbridge']['tenant_network_type'] = 'gre'
 
 # Comma-separated list of <physical_network>[:<vlan_min>:<vlan_max>] tuples enumerating
 # ranges of VLAN IDs on named physical networks that are available for allocation.
@@ -908,7 +933,7 @@ default['openstack']['network']['ml2']['type_drivers'] = 'local,flat,vlan,gre,vx
 #
 # tenant_network_types = local
 # Example: tenant_network_types = vlan,gre,vxlan
-default['openstack']['network']['ml2']['tenant_network_types'] = 'local'
+default['openstack']['network']['ml2']['tenant_network_types'] = 'gre'
 
 # (ListOpt) Ordered list of networking mechanism driver entrypoints
 # to be loaded from the neutron.ml2.mechanism_drivers namespace.
@@ -954,6 +979,7 @@ default['openstack']['network']['ml2']['vxlan_group'] = ''
 # Controls if neutron security group is enabled or not.
 # It should be false when you use nova security group.
 default['openstack']['network']['ml2']['enable_security_group'] = 'True'
+default['openstack']['network']['ml2']['firewall_driver'] = nil
 
 # Misc option support
 # Allow additional strings to be added to neutron.conf
@@ -993,35 +1019,113 @@ when 'fedora', 'rhel' # :pragma-foodcritic: ~FC024 - won't fix this
     'package_overrides' => ''
   }
 when 'suse'
-  default['openstack']['network']['platform'] = {
-    'user' => 'neutron',
-    'group' => 'neutron',
-    'mysql_python_packages' => ['python-mysql'],
-    'postgresql_python_packages' => ['python-psycopg2'],
-    'nova_network_packages' => ['openstack-nova-network'],
-    'neutron_packages' => ['openstack-neutron'],
-    'neutron_client_packages' => ['python-neutronclient'],
-    'neutron_dhcp_packages' => ['openstack-neutron-dhcp-agent'],
-    'neutron_dhcp_build_packages' => [],
-    'neutron_l3_packages' => ['openstack-neutron-l3-agent'],
-    'neutron_lb_packages' => ['openstack-neutron-lbaas-agent'],
-    # plugins are installed by the main openstack-neutron package on SUSE
-    'neutron_plugin_package' => '',
-    'neutron_metadata_agent_packages' => ['openstack-neutron-metadata-agent'],
-    'neutron_openvswitch_packages' => ['openvswitch-switch'],
-    'neutron_openvswitch_agent_packages' => ['openstack-neutron-openvswitch-agent'],
-    'neutron_linuxbridge_agent_packages' => ['openstack-neutron-linuxbridge-agent'],
-    'neutron_server_packages' => ['openstack-neutron-server'],
-    'neutron_dhcp_agent_service' => 'openstack-neutron-dhcp-agent',
-    'neutron_l3_agent_service' => 'openstack-neutron-l3-agent',
-    'neutron_lb_agent_service' => 'openstack-neutron-lbaas-agent',
-    'neutron_metadata_agent_service' => 'openstack-neutron-metadata-agent',
-    'neutron_openvswitch_service' => 'openvswitch-switch',
-    'neutron_openvswitch_agent_service' => 'openstack-neutron-openvswitch-agent',
-    'neutron_linuxbridge_agent_service' => 'openstack-neutron-linuxbridge-agent',
-    'neutron_server_service' => 'openstack-neutron',
-    'package_overrides' => ''
-  }
+  if node['lsb']['codename'] == 'UVP'
+    default['openstack']['network']['platform'] = {
+      'user' => 'openstack',
+      'group' => 'openstack',
+      'mysql_python_packages' => ['python-mysql'],
+      'postgresql_python_packages' => ['python-psycopg2'],
+      'nova_network_packages' => ['nova-network'],
+      'neutron_packages' => ['neutron-util'],
+      'neutron_client_packages' => ['python-neutronclient'],
+      'neutron_dhcp_packages' => ['neutron-dhcp-agent'],
+      'neutron_dhcp_build_packages' => [],
+      'neutron_l3_packages' => ['neutron-l3-agent'],
+      'neutron_lb_packages' => ['neutron-lbaas-agent'],
+      # plugins are installed by the main openstack-neutron package on SUSE
+      'neutron_plugin_package' => '',
+      'neutron_metadata_agent_packages' => ['neutron-metadata-agent'],
+      'neutron_openvswitch_packages' => ['openvswitch-switch'],
+      'neutron_openvswitch_agent_packages' => ['neutron-openvswitch-agent'],
+      'neutron_linuxbridge_agent_packages' => [],
+      'neutron_evs_agent_packages' => ['neutron-evs-agent'],
+      'neutron_metering_agent_packages' => ['neutron-metering-agent'],
+      'neutron_servicechain_agent_packages' => ['neutron-servicechain-agent'],
+      'neutron_sriov_agent_packages' => ['neutron-sriov-agent'],
+      'neutron_server_packages' => ['neutron-server'],
+      'neutron_dhcp_agent_service' => 'openstack-neutron-dhcp-agent',
+      'neutron_l3_agent_service' => 'openstack-neutron-l3-agent',
+      'neutron_lb_agent_service' => 'openstack-neutron-lbaas-agent',
+      'neutron_metadata_agent_service' => 'openstack-neutron-metadata-agent',
+      'neutron_openvswitch_service' => 'openvswitch-switch',
+      'neutron_openvswitch_agent_service' => 'openstack-neutron-openvswitch-agent',
+      'neutron_linuxbridge_agent_service' => nil,
+      'neutron_evs_agent_service' => 'openstack-neutron-evs-agent',
+      'neutron_servicechain_agent_service' => 'openstack-neutron-servicechain-agent',
+      'neutron_metering_agent_service' => 'openstack-neutron-metering-agent',
+      'neutron_sriov_agent_service' => 'openstack-neutron-sriov-agent',
+      'neutron_server_service' => 'openstack-neutron',
+      'package_overrides' => ''
+    }
+    default['openstack']['network']['service_plugins'] = [
+      'neutron.services.l3_router.l3_router_plugin.L3RouterPlugin',
+      'neutron.services.servicechain.plugin.ServiceChainPlugin',
+      'neutron.services.loadbalancer.plugin.LoadBalancerPlugin',
+      'neutron.services.metering.metering_plugin.MeteringPlugin'
+    ]
+    default['openstack']['network']['allow_pagination'] = 'True'
+    default['openstack']['network']['use_ssl'] = false
+    default['openstack']['network']['ssl_cert_file'] = '/etc/FSSecurity/server-cert/neutron_server.crt'
+    default['openstack']['network']['ssl_key_file'] = '/etc/FSSecurity/server-cert/neutron_server.key'
+    default['openstack']['network']['loadbalancer_pool_scheduler_driver'] = 'neutron.services.loadbalancer.agent_scheduler.LeastLoaderBalancesScheduler'
+    default['openstack']['network']['l3']['scheduler'] = 'neutron.scheduler.l3_agent_scheduler.LeastRoutersScheduler'
+    default['openstack']['network']['service_provider'] = ['LOADBALANCER:Haproxy:neutron.services.loadbalancer.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver:default']
+    default['openstack']['network']['delay_auth_decision'] = nil
+    default['openstack']['network']['dhcp']['enable_isolated_metadata'] =  'True'
+    default['openstack']['network']['dhcp']['dhcp_delete_namespaces'] = 'True'
+    default['openstack']['network']['openvswitch']['tunnel_type'] = 'vxlan'
+    default['openstack']['network']['openvswitch']['enable_tunneling'] = 'True'
+    default['openstack']['network']['linuxbridge']['tenant_network_type'] = 'vxlan'
+    default['openstack']['network']['ml2']['tenant_network_types'] = 'vxlan, flat, vlan'
+    default['openstack']['network']['ml2']['mechanism_drivers'] = 'openvswitch, l2population, sriov, evs'
+    default['openstack']['network']['ml2']['flat_networks'] = 'physnet1'
+    default['openstack']['network']['openvswitch']['tenant_network_type'] = 'vxlan'
+    default['openstack']['network']['openvswitch']['tunnel_types'] = ['vxlan']
+    default['openstack']['network']['openvswitch']['vxlan_udp_port']  = '4789'
+    default['openstack']['network']['openvswitch']['l2_population'] = 'True'
+    default['openstack']['network']['openvswitch']['veth_mtu'] =  '1600'
+    default['openstack']['network']['openvswitch']['qos_driver'] = 'neutron.services.qos.drivers.openflow.MixingQoSVlanDriver'
+    default['openstack']['network']['neutron-server']['compoiste']['neutronapi_v2_0']['noauth'] = ['access_log', 'extensions', 'neutronapiapp_v2_0']
+    default['openstack']['network']['neutron-server']['compoiste']['neutronapi_v2_0']['keystone'] = ['access_log', 'authtoken', 'keystonecontext', 'extensions', 'neutronapiapp_v2_0']
+    default['openstack']['network']['neutron-server']['filter']['request_id'] = nil
+    default['openstack']['network']['neutron-server']['filter']['catch_errors'] = nil
+    default['openstack']['network']['neutron-server']['filter']['access_log'] = 'neutron.accesslog:AccessLogMiddleware.factory'
+    default['openstack']['network']['openvswitch']['bridge_mappings'] = "physnet1:#{node['openstack']['network']['l3']['external_network_bridge']}"
+    default['openstack']['network']['linuxbridge']['network_vlan_ranges'] = 'physnet1:1:4000'
+    default['openstack']['network']['ml2']['network_vlan_ranges'] = 'physnet1:1:4000'
+    default['openstack']['network']['openvswitch']['network_vlan_ranges'] = 'physnet1:1:4000'
+    default['openstack']['network']['ml2']['firewall_driver'] = 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver'
+  else
+    default['openstack']['network']['platform'] = {
+      'user' => 'neutron',
+      'group' => 'neutron',
+      'mysql_python_packages' => ['python-mysql'],
+      'postgresql_python_packages' => ['python-psycopg2'],
+      'nova_network_packages' => ['openstack-nova-network'],
+      'neutron_packages' => ['openstack-neutron'],
+      'neutron_client_packages' => ['python-neutronclient'],
+      'neutron_dhcp_packages' => ['openstack-neutron-dhcp-agent'],
+      'neutron_dhcp_build_packages' => [],
+      'neutron_l3_packages' => ['openstack-neutron-l3-agent'],
+      'neutron_lb_packages' => ['openstack-neutron-lbaas-agent'],
+      # plugins are installed by the main openstack-neutron package on SUSE
+      'neutron_plugin_package' => '',
+      'neutron_metadata_agent_packages' => ['openstack-neutron-metadata-agent'],
+      'neutron_openvswitch_packages' => ['openvswitch-switch'],
+      'neutron_openvswitch_agent_packages' => ['openstack-neutron-openvswitch-agent'],
+      'neutron_linuxbridge_agent_packages' => ['openstack-neutron-linuxbridge-agent'],
+      'neutron_server_packages' => ['openstack-neutron-server'],
+      'neutron_dhcp_agent_service' => 'openstack-neutron-dhcp-agent',
+      'neutron_l3_agent_service' => 'openstack-neutron-l3-agent',
+      'neutron_lb_agent_service' => 'openstack-neutron-lbaas-agent',
+      'neutron_metadata_agent_service' => 'openstack-neutron-metadata-agent',
+      'neutron_openvswitch_service' => 'openvswitch-switch',
+      'neutron_openvswitch_agent_service' => 'openstack-neutron-openvswitch-agent',
+      'neutron_linuxbridge_agent_service' => 'openstack-neutron-linuxbridge-agent',
+      'neutron_server_service' => 'openstack-neutron',
+      'package_overrides' => ''
+    }
+  end
 when 'debian'
   default['openstack']['network']['platform'] = {
     'user' => 'neutron',

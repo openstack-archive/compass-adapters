@@ -30,6 +30,10 @@ dhcp_driver = <%= node["openstack"]["network"]["dhcp_driver"] %>
 # iproute2 package that supports namespaces).
 use_namespaces = <%= node["openstack"]["network"]["use_namespaces"] %>
 
+<% if node['openstack']['network']['dhcp']['dhcp_delete_namespaces'] -%>
+dhcp_delete_namespaces = <%= node['openstack']['network']['dhcp']['dhcp_delete_namespaces']  %>
+<% end -%>
+
 # The DHCP server can assist with providing metadata support on isolated
 # networks. Setting this value to True will cause the DHCP server to append
 # specific host routes to the DHCP request.  The metadata service will only

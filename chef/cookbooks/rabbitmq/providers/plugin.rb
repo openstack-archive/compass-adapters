@@ -18,7 +18,7 @@
 #
 
 def plugins_bin_path(return_array = false)
-  path = ENV.fetch('PATH') + ':/usr/lib/rabbitmq/bin'
+  path = ENV.fetch('PATH') + ":#{node['rabbitmq']['binary_dir']}"
   return_array ? path.split(':') : path
 end
 

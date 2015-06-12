@@ -100,8 +100,11 @@ APACHE_CONF_INCLUDE_DIRS=""
 # apache's default installation
 # APACHE_MODULES="authz_host actions alias asis auth autoindex cgi dir imap include log_config mime negotiation setenvif status userdir"
 # your settings
+<% if node['apache']['version'].to_f <= 2.2 %>
 APACHE_MODULES="actions alias auth_basic authn_file authz_host authz_groupfile authz_default authz_user authn_dbm autoindex cgi dir env expires include log_config mime negotiation setenvif status ssl suexec userdir php5 reqtimeout"
-
+<% else %>
+APACHE_MODULES="actions alias auth_basic authn_core authz_core authn_file authz_host authz_groupfile authz_user authn_dbm autoindex cgi dir env expires include log_config mime negotiation setenvif status ssl suexec userdir php5 reqtimeout"
+<% end %>
 
 ## Type:	string
 ## Default:	""

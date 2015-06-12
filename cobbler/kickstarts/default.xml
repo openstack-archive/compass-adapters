@@ -96,8 +96,6 @@ $SNIPPET($suse_software)
   $SNIPPET('rsyslog.xml')
   </files>
   <login_settings/>
-  <sysconfig config:type="list" >
-  </sysconfig>
   <networking>
   &amp;amp;network;
   </networking>
@@ -141,6 +139,11 @@ $SNIPPET($suse_software)
        <sysconfig_value>4</sysconfig_value>
      </sysconfig_entry>
   </sysconfig>
+  <kdump>
+    <!-- memory reservation -->
+    <add_crash_kernel config:type="boolean">true</add_crash_kernel>
+    <crash_kernel>256M-:64M</crash_kernel>
+  </kdump>
   <user_defaults>
     <expire></expire>
     <home>/home</home>
@@ -231,6 +234,16 @@ $SNIPPET($suse_software)
 #set global $wrappedscript = 'save_boot_device'
 $SNIPPET('suse_scriptwrapper.xml')
     </pre-scripts>
+    <postpartitioning-scripts config:type="list">
+      <script>
+        <interpreter>shell</interpreter>
+        <chrooted config:type="boolean">false</chrooted>
+        <filename>post_partitioning_install_script.sh</filename>
+        <source><![CDATA[
+          wget -O- http://$http_server/cblr/svc/op/script/$what/$name/?script=suse_late_partitioning_default | /bin/bash
+        ]]></source>
+      </script>
+    </postpartitioning-scripts>
     <post-scripts config:type="list">
        <script>
         <interpreter>shell</interpreter>

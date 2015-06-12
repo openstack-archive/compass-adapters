@@ -13,6 +13,10 @@ debug = <%= node["openstack"]["image"]["debug"] %>
 # 'http', 'sheepdog' and 'vsphere'
 default_store = <%= node["openstack"]["image"]["api"]["default_store"] %>
 
+<% if node['openstack']['image']['api']['known_stores'] %>
+known_stores = <%=node['openstack']['image']['api']['known_stores'].join(',') %>
+<% end %>
+
 # Address to bind the API server
 bind_host = <%= @api_bind_address %>
 
@@ -34,9 +38,37 @@ workers = <%= node["openstack"]["image"]["api"]["workers"] %>
 # See: http://www.sqlalchemy.org/docs/05/reference/sqlalchemy/connections.html#sqlalchemy.create_engine
 sql_connection = <%= @sql_connection %>
 
+# Period in seconds after which SQLAlchemy should reestablish its connection
+# to the database.
+#
+# MySQL uses a default `wait_timeout` of 8 hours, after which it will drop
+# idle connections. This can result in 'MySQL Gone Away' exceptions. If you
+# notice this, you can lower this value to ensure that SQLAlchemy reconnects
+# before MySQL can drop the connection.
+<% if node["openstack"]["image"]["api"]["sql_idle_timeout"] %>
+sql_idle_timeout = <%= node["openstack"]["image"]["api"]["sql_idle_timeout"] %>
+<% end %>
+
+<% if node['openstack']['image']['api']['property_protection_file'] %>
+# Property Protections config file
+# This file contains the rules for property protections and the roles
+# associated with it.
+# If this config value is not specified, by default, property protections
+# won't be enforced.
+# If a value is specified and the file is not found, then an
+# HTTPInternalServerError will be thrown.
+property_protection_file = <%= node['openstack']['image']['api']['property_protection_file'] %>
+<% end %>
+
 # Role used to identify an authenticated user as administrator
 #admin_role = admin
-#
+
+# Allow access to version 1 of glance api
+enable_v1_api = <%= node["openstack"]["image"]["api"]["enable_v1_api"] %>
+
+# Allow access to version 2 of glance api
+enable_v2_api = <%= node["openstack"]["image"]["api"]["enable_v2_api"] %>
+
 # Return the URL that references where the data is stored on
 # the backend storage system.  For example, if using the
 # file system store a URL of 'file:///path/to/image' will
@@ -58,10 +90,26 @@ log_file = /var/log/glance/api.log
 # ================= SSL Options ===============================
 
 # Certificate file to use when starting API server securely
+<% if node['openstack']['image']['api']['certfile'] %>
+<% if node['openstack']['image']['api']['api_client_protocol'] == 'https' %>
+cert_file = <%= node['openstack']['image']['api']['certfile'] %>
+<% else %>
+# cert_file = <%= node['openstack']['image']['api']['certfile'] %>
+<% end %>
+<% else %>
 # cert_file = /path/to/certfile
+<% end %>
 
 # Private key file to use when starting API server securely
+<% if node['openstack']['image']['api']['keyfile'] %>
+<% if node['openstack']['image']['api']['api_client_protocol'] == 'https' %>
+key_file = <%= node['openstack']['image']['api']['keyfile'] %>
+<% else %>
+# key_file = <%= node['openstack']['image']['api']['keyfile'] %>
+<% end %>
+<% else %>
 # key_file = /path/to/keyfile
+<% end %>
 
 # ================= Security Options ==========================
 
@@ -80,7 +128,7 @@ registry_port = <%= @registry_port %>
 
 # What protocol to use when connecting to the registry server?
 # Set to https for secure HTTP communication
-registry_client_protocol = http
+registry_client_protocol = <%= node['openstack']['image']['api']['registry_client_protocol'] %>
 
 # The path to the key file to use in SSL connections to the
 # registry server, if any. Alternately, you may set the

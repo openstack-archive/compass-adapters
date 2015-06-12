@@ -128,8 +128,20 @@ when 'suse'
     end
 
     execute "add nbd module into load on boot" do
-      command "/usr/bin/sysconf_addword /etc/sysconfig/kernel MODULES_LOADED_ON_BOOT nbd"
+      command "/usr/sbin/sysconf_addword /etc/sysconfig/kernel MODULES_LOADED_ON_BOOT nbd"
       not_if "/usr/bin/grep MODULES_LOADED_ON_BOOT /etc/sysconfig/kernel | /usr/bin/grep nbd"
+    end
+
+    if node['platform_family'] == 'suse'
+      if node['lsb']['codename'] == 'UVP'
+        template '/etc/libvirt/qemu.conf' do
+          source 'qemu.conf.erb'
+          owner  'root'
+          group  'root'
+          mode   00644
+          notifies :restart, 'service[libvirt-bin]', :delayed
+        end
+      end
     end
 
   when 'lxc'

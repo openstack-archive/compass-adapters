@@ -52,7 +52,15 @@ end
 service 'neutron-plugin-linuxbridge-agent' do
   service_name platform_options['neutron_linuxbridge_agent_service']
   supports status: true, restart: true
-  action :enable
+  action [:enable, :start]
   subscribes :restart, 'template[/etc/neutron/neutron.conf]'
   subscribes :restart, 'template[/etc/neutron/plugins/linuxbridge/linuxbridge_conf.ini]'
+end
+
+ruby_block "service neutron-plugin-linuxbridge-agent restart if necessary" do
+  block do
+    Chef::Log.info("service neutron-plugin-linuxbridge-agent restart")
+  end
+  not_if "service #{platform_options['neutron_linuxbridge_agent_service']} status"
+  notifies :restart, 'service[neutron-plugin-linuxbridge-agent]', :immediately
 end

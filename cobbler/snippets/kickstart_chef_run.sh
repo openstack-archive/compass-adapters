@@ -19,11 +19,11 @@
     #set $proxy_url = $proxy
 #end if
 
-#if $getVar('compass_server', '') != ""
-    #set srv = $getVar('compass_server','')
-#else
-    #set srv = $getVar('server','')
-#end if
+#if $getVar('compass_server', '') != "" 		
+    #set srv = $getVar('compass_server','') 		
+#else 		
+    #set srv = $getVar('server','') 		
+#end if 
 
 cat << EOF > /etc/chef/chef_client_run.sh
 #!/bin/bash
@@ -44,11 +44,9 @@ while true; do
         echo "there are chef-clients '\\$clients' running" >> /var/log/chef.log 2>&1
         break
     else
-        echo "knife search nodes" >> /var/log/chef.log 2>&1
-# use knife node list here to check if node has been registered because knife search node
-# doesn't work as expected.
-        USER=root HOME=/root knife node list |grep \\$HOSTNAME. >> /var/log/chef.log 2>&1
-        nodes=\\$(USER=root HOME=/root knife node list |grep \\$HOSTNAME.)
+        echo "knife search nodes for \\$HOSTNAME" >> /var/log/chef.log 2>&1
+        USER=root HOME=/root HOSTNAME=$hostname knife node list |grep \\$HOSTNAME. >> /var/log/chef.log 2>&1
+        nodes=\\$(USER=root HOME=/root HOSTNAME=$hostname knife node list |grep \\$HOSTNAME.)
         echo "found nodes \\$nodes" >> /var/log/chef.log 2>&1
         let all_nodes_success=1
         for node in \\$nodes; do
@@ -79,7 +77,9 @@ local3.info @$compass_server:514
 local3.info @@$server:514
 #end if
 EOL
-                rm -rf /var/lib/rsyslog/chef_\\$node_log
+                if [ -f "/var/lib/rsyslog/chef_\\${node}_log" ]; then 
+                    rm -rf /var/lib/rsyslog/chef_\\$node_log
+                fi
                 service rsyslog restart
             fi
             if [ -f "/etc/chef/\\$node.done" ]; then
@@ -93,7 +93,7 @@ EOL
             else
                 echo "chef-client --node-name \\$node run success" >> /var/log/chef.log 2>&1
                 touch /etc/chef/\\$node.done
-                wget -O /tmp/package_state.\\$node --post-data='{"ready": true}' --header=Content-Type:application/json "http://$srv/api/clusterhosts/\\${node}/state_internal"
+	        wget -O /tmp/package_state.\\$node --post-data='{"ready": true}' --header=Content-Type:application/json "http://$srv/api/clusterhosts/\\${node}/state_internal"
             fi
         done
         if [ \\$all_nodes_success -eq 0 ]; then

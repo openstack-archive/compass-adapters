@@ -25,6 +25,12 @@ if node['platform_family'] == 'rhel' && node['platform_version'].to_i > 6
   default['apache']['version'] = '2.4'
 end
 
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    default['apache']['version'] = '2.4'
+  end
+end
+
 if node['platform_family'] == 'debian' && node['platform_version'].to_i > 12
   # apache version is 2.4 on ubuntu14.04
   default['apache']['version'] = '2.4'
@@ -205,10 +211,18 @@ default['apache']['proxy']['allow_from'] = 'none'
 
 # Default modules to enable via include_recipe
 
-default['apache']['default_modules'] = %w[
-  status alias auth_basic authn_file authz_default authz_groupfile authz_host authz_user autoindex
-  dir env mime negotiation setenvif
-]
+
+if node['apache']['version'].to_f <=2.2
+  default['apache']['default_modules'] = %w[
+    status alias auth_basic authn_file authz_default authz_groupfile authz_host authz_user autoindex
+    dir env mime negotiation setenvif
+  ]
+else
+  default['apache']['default_modules'] = %w[
+    status alias auth_basic authn_file authz_core authn_core authz_groupfile authz_host authz_user autoindex
+    dir env mime negotiation setenvif
+  ]
+end
 
 
 

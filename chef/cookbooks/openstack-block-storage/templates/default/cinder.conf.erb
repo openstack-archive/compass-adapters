@@ -45,6 +45,74 @@ log_config = /etc/openstack/logging.conf
 log_file = /var/log/cinder/cinder.log
 <% end %>
 
+<% if node['openstack']['block-storage']['max_overflow'] %>
+max_overflow = <%= node['openstack']['block-storage']['max_overflow'] %>
+<% end %>
+
+<% if node['openstack']['block-storage']['max_io_ops_per_host'] %>
+max_io_ops_per_host = <%= node['openstack']['block-storage']['max_io_ops_per_host'] %>
+<% end %>
+
+<% if node['openstack']['block-storage']['max_pool_size'] %>
+max_pool_size = <%= node['openstack']['block-storage']['max_pool_size'] %>
+<% end %>
+
+<% if node['openstack']['block-storage']['quota_snapshots'] %>
+quota_snapshots = <%= node['openstack']['block-storage']['quota_snapshots'] %>
+<% end %>
+
+<% if node['openstack']['block-storage']['allowed_direct_url_schemes'] %>
+allowed_direct_url_schemes = <%= node['openstack']['block-storage']['allowed_direct_url_schemes'] %>
+<% end %>
+
+<% if node['openstack']['block-storage']['io_control'] %>
+io_control = <%= node['openstack']['block-storage']['io_control'] %>
+<% end %>
+
+<% if node['openstack']['block-storage']['use_ultrapath_for_image_xfer'] %>
+use_ultrapath_for_image_xfer = <%= node['openstack']['block-storage']['use_ultrapath_for_image_xfer'] %>
+<% end %>
+
+<% if node['openstack']['block-storage']['volume']['driver_ratio'] %>
+volume_driver_ratio = <%= node['openstack']['block-storage']['volume']['driver_ratio']  %>
+<% end %>
+
+<% if node['openstack']['block-storage']['volume']['dd_blocksize'] %>
+volume_dd_blocksize = <%= node['openstack']['block-storage']['volume']['dd_blocksize'] %>
+<% end %>
+
+<% if node['openstack']['block-storage']['backup']['manager'] %>
+backup_manager = <%= node['openstack']['block-storage']['backup']['manager'] %>
+<% end %>
+
+<% if node['openstack']['block-storage']['backup']['api_class'] %>
+backup_api_class  =  <%= node['openstack']['block-storage']['backup']['api_class'] %>
+<% end %>
+
+<% if node['openstack']['block-storage']['backup']['driver'] %>
+backup_driver = <%= node['openstack']['block-storage']['backup']['driver'] %>
+<% end %>
+
+<% if node['openstack']['block-storage']['ssl_key_file'] %>
+<% if node['openstack']['block-storage']['use_ssl'] %>
+ssl_key_file = <%= node['openstack']['block-storage']['ssl_key_file'] %>
+<% else %>
+# ssl_key_file = <%= node['openstack']['block-storage']['ssl_key_file'] %>
+<% end %>
+<% end %>
+
+<% if node['openstack']['block-storage']['ssl_cert_file'] %>
+<% if node['openstack']['block-storage']['use_ssl'] %>
+ssl_cert_file = <%= node['openstack']['block-storage']['ssl_cert_file'] %>
+<% else %>
+# ssl_cert_file = <%= node['openstack']['block-storage']['ssl_cert_file'] %>
+<% end %>
+<% end %>
+
+# backup_swift_user = swift
+# backup_swift_key =
+# backup_swift_url =
+
 ######## defined in cinder.flags ########
 
 # connection_type=<None>
@@ -129,11 +197,19 @@ api_rate_limit=<%= node["openstack"]["block-storage"]["api"]["ratelimit"] %>
 # sql_retry_interval=10
 #### (IntOpt) interval between retries of opening a sql connection
 
+<% if node['openstack']['block-storage']['volume']['manager'] %>
+volume_manager = <%= node['openstack']['block-storage']['volume']['manager'] %>
+<% else %>
 # volume_manager=cinder.volume.manager.VolumeManager
 #### (StrOpt) full class name for the Manager for volume
+<% end %>
 
+<% if node['openstack']['block-storage']['scheduler']['scheduler_manager'] %>
+scheduler_manager = <%= node['openstack']['block-storage']['scheduler']['scheduler_manager'] %>
+<% else %>
 # scheduler_manager=cinder.scheduler.manager.SchedulerManager
 #### (StrOpt) full class name for the Manager for scheduler
+<% end %>
 
 # host=cinder
 #### (StrOpt) Name of this node.  This can be an opaque identifier.  It is
@@ -165,8 +241,12 @@ rootwrap_config=/etc/cinder/rootwrap.conf
 # service_down_time=60
 #### (IntOpt) maximum time since last check-in for up service
 
+<% if node['openstack']['block-storage']['volume']['api_class'] %>
+volume_api_class = <%= node['openstack']['block-storage']['volume']['api_class'] %>
+<% else %>
 # volume_api_class=cinder.volume.api.API
 #### (StrOpt) The full class name of the volume API class to use
+<% end %>
 
 auth_strategy=keystone
 #### (StrOpt) The strategy to use for auth. Supports noauth, keystone, and
@@ -387,7 +467,11 @@ rabbit_port=<%= node["openstack"]["mq"]["block-storage"]["rabbit"]["port"] %>
 #### (IntOpt) The RabbitMQ broker port where a single node is used
 <% end -%>
 
-rabbit_use_ssl=<%= node["openstack"]["mq"]["block-storage"]["rabbit"]["use_ssl"] %>
+<% if node["openstack"]["mq"]["block-storage"]["rabbit"]["use_ssl"] %>
+rabbit_use_ssl = True
+<% else %>
+rabbit_use_ssl = False
+<% end %>
 #### (BoolOpt) connect over SSL for RabbitMQ
 
 rabbit_userid=<%= node["openstack"]["mq"]["block-storage"]["rabbit"]["userid"] %>
@@ -502,15 +586,33 @@ notification_topics=<%= node["openstack"]["mq"]["block-storage"]["qpid"]["notifi
 
 ######## defined in cinder.scheduler.driver ########
 
+<% if node['openstack']['block-storage']['scheduler']['scheduler_default_filters'] %>
+scheduler_default_filters = <%= node['openstack']['block-storage']['scheduler']['scheduler_default_filters'].join(',') %>
+<% end %>
+
+<% if node['openstack']['block-storage']['scheduler']['scheduler_host_manager'] %>
+scheduler_host_manager = <%= node['openstack']['block-storage']['scheduler']['scheduler_host_manager'] %>
+<% else %>
 # scheduler_host_manager=cinder.scheduler.host_manager.HostManager
 #### (StrOpt) The scheduler host manager class to use
+<% end %>
 
+<% if node['openstack']['block-storage']['scheduler']['scheduler_default_weighers'] %>
+scheduler_default_weighers = <%= node['openstack']['block-storage']['scheduler']['scheduler_default_weighers'] %>
+<% end %>
+
+<% if node['openstack']['block-storage']['scheduler']['scheduler_max_attempts'] %>
+scheduler_max_attempts = <%=  node['openstack']['block-storage']['scheduler']['scheduler_max_attempts']  %>
+<% end %>
 
 ######## defined in cinder.scheduler.manager ########
 
+<% if node['openstack']['block-storage']['scheduler']['scheduler_driver'] %>
+scheduler_driver  = <%= node['openstack']['block-storage']['scheduler']['scheduler_driver'] %>
+<% else %>
 # scheduler_driver=cinder.scheduler.simple.SimpleScheduler
 #### (StrOpt) Default driver to use for the scheduler
-
+<% end %>
 
 ######## defined in cinder.scheduler.simple ########
 
