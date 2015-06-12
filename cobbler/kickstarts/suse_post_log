@@ -1,0 +1,2 @@
+set -x -v
+exec 1>/root/yast-post.log 2>&1

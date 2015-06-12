@@ -35,12 +35,15 @@ platform_options['neutron_l3_packages'].each do |pkg|
   end
 end
 
-service 'neutron-l3-agent' do
-  service_name platform_options['neutron_l3_agent_service']
-  supports status: true, restart: true
-
-  action :enable
-  subscribes :restart, 'template[/etc/neutron/neutron.conf]'
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    template '/etc/init.d/openstack-neutron-l3-agent' do
+      source 'openstack-neutron-l3-agent.service.erb'
+      owner "root"
+      group "root"
+      mode 00755
+    end
+  end
 end
 
 template '/etc/neutron/l3_agent.ini' do
@@ -48,6 +51,22 @@ template '/etc/neutron/l3_agent.ini' do
   owner node['openstack']['network']['platform']['user']
   group node['openstack']['network']['platform']['group']
   mode   00644
+  notifies :restart, 'service[neutron-l3-agent]', :delayed
+end
+
+service 'neutron-l3-agent' do
+  service_name platform_options['neutron_l3_agent_service']
+  supports status: true, restart: true
+
+  action [:enable, :start]
+  subscribes :restart, 'template[/etc/neutron/neutron.conf]', :delayed
+end
+
+ruby_block "service neutron-l3-agent restart if necessary" do
+  block do
+    Chef::Log.info("service neutron-l3-agent restart")
+  end
+  not_if "service #{platform_options['neutron_l3_agent_service']} status"
   notifies :restart, 'service[neutron-l3-agent]', :immediately
 end
 
@@ -55,6 +74,7 @@ driver_name = node['openstack']['network']['interface_driver'].split('.').last
 # See http://docs.openstack.org/admin-guide-cloud/content/section_adv_cfg_l3_agent.html
 case driver_name
 when 'OVSInterfaceDriver'
+  include_recipe 'openstack-network::openvswitch'
   ext_bridge = node['openstack']['network']['l3']['external_network_bridge']
   ext_bridge_iface = node['openstack']['network']['l3']['external_network_bridge_interface']
   execute 'create external network bridge' do

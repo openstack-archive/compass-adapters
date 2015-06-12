@@ -18,9 +18,9 @@ lock_path = <%= node["openstack"]["network"]["lock_path"] %>
 
 # use_syslog                           -> syslog
 # log_file and log_dir                 -> log_dir/log_file
-<% if node["openstack"]["network"]["syslog"]["use"] %>
+<% if node["openstack"]["network"]["syslog"]["use"] -%>
 log_config = /etc/openstack/logging.conf
-<% end %>
+<% end -%>
 # (not log_file) and log_dir           -> log_dir/{binary_name}.log
 # use_stderr                           -> stderr
 # (not user_stderr) and (not log_file) -> stdout
@@ -54,9 +54,13 @@ core_plugin = <%= @core_plugin %>
 
 # Advanced service modules
 # service_plugins =
-<% if node['openstack']['network']['service_plugins'].any? %>
+<% if node['openstack']['network']['service_plugins'].any? -%>
 service_plugins = <%= node['openstack']['network']['service_plugins'].join(',') %>
-<% end %>
+<% end -%>
+
+<% if node['openstack']['network']['loadbalancer_pool_scheduler_driver'] -%>
+loadbalancer_pool_scheduler_driver = <%= node['openstack']['network']['loadbalancer_pool_scheduler_driver'] %>
+<% end -%>
 
 # Paste configuration file
 api_paste_config = api-paste.ini
@@ -85,14 +89,23 @@ dhcp_lease_duration = <%= node["openstack"]["network"]["dhcp_lease_duration"] %>
 
 # Enable or disable bulk create/update/delete operations
 # allow_bulk = True
+
+<% if node['openstack']['network']['allow_pagination'] -%>
+# Enable or disable pagination
+allow_pagination = <%= node['openstack']['network']['allow_pagination'] %>
+<% else -%>
 # Enable or disable pagination
 # allow_pagination = False
+<% end -%>
+
 # Enable or disable sorting
 # allow_sorting = False
+
 # Enable or disable overlapping IPs for subnets
 # Attention: the following parameter MUST be set to False if Neutron is
 # being used in conjunction with nova security groups and/or metadata service.
 # allow_overlapping_ips = False
+
 # Ensure that configured gateway is on subnet
 # force_gateway_on_subnet = False
 
@@ -132,29 +145,29 @@ amqp_auto_delete=<%= node['openstack']['mq']['network']['auto_delete'] %>
 # allow_overlapping_ips = False
 allow_overlapping_ips = <%= node["openstack"]["network"]["allow_overlapping_ips"] %>
 
-<% if @mq_service_type == "rabbitmq"  %>
+<% if @mq_service_type == "rabbitmq"  -%>
 ##### RABBITMQ #####
 rpc_backend=neutron.openstack.common.rpc.impl_kombu
 rabbit_userid=<%= node["openstack"]["mq"]["network"]["rabbit"]["userid"] %>
 rabbit_password=<%= @mq_password %>
 rabbit_virtual_host=<%= node["openstack"]["mq"]["network"]["rabbit"]["vhost"] %>
-<% if node["openstack"]["mq"]["network"]["rabbit"]["ha"] %>
+<% if node["openstack"]["mq"]["network"]["rabbit"]["ha"] -%>
 # Use HA queues in RabbitMQ (x-ha-policy: all).You need to
 # wipe RabbitMQ database when changing this option. (boolean value)
 rabbit_hosts=<%= @rabbit_hosts %>
 rabbit_ha_queues=True
-<% else %>
+<% else -%>
 rabbit_host=<%= node["openstack"]["mq"]["network"]["rabbit"]["host"] %>
 rabbit_port=<%= node["openstack"]["mq"]["network"]["rabbit"]["port"] %>
-<% end %>
+<% end -%>
 # Maximum retries with trying to connect to RabbitMQ
 # (the default of 0 implies an infinite retry count)
 # rabbit_max_retries = 0
 # RabbitMQ connection retry interval
 # rabbit_retry_interval = 1
-<% end %>
+<% end -%>
 
-<% if @mq_service_type == "qpid"  %>
+<% if @mq_service_type == "qpid"  -%>
 ##### QPID #####
 rpc_backend=neutron.openstack.common.rpc.impl_qpid
 qpid_hostname=<%= node["openstack"]["mq"]["network"]["qpid"]["host"] %>
@@ -173,7 +186,7 @@ qpid_heartbeat=<%= node["openstack"]["mq"]["network"]["qpid"]["heartbeat"] %>
 qpid_protocol=<%= node["openstack"]["mq"]["network"]["qpid"]["protocol"] %>
 qpid_tcp_nodelay=<%= node["openstack"]["mq"]["network"]["qpid"]["tcp_nodelay"] %>
 qpid_topology_version=<%= node['openstack']['mq']['network']['qpid']['topology_version'] %>
-<% end %>
+<% end -%>
 
 # ZMQ
 # rpc_backend=neutron.openstack.common.rpc.impl_zmq
@@ -269,14 +282,39 @@ rpc_workers = <%= node['openstack']['network']['rpc_workers'] %>
 # Number of backlog requests to configure the socket with.
 #backlog = 4096
 
+<% if not node['openstack']['network']['use_ssl'].nil? -%>
+<% if node['openstack']['network']['use_ssl'] -%>
 # Enable SSL on the API server
-#use_ssl = False
+use_ssl = True
+<% else -%>
+# Enable SSL on the API server
+use_ssl = False
+<% end -%>
+<% end -%>
 
+<% if node['openstack']['network']['ssl_cert_file'] -%>
+# Certificate file to use when starting API server securely
+<% if node['openstack']['network']['use_ssl'] -%>
+ssl_cert_file = <%= node['openstack']['network']['ssl_cert_file'] %>
+<% else -%>
+# ssl_cert_file = <%= node['openstack']['network']['ssl_cert_file'] %>
+<% end -%>
+<% else -%>
 # Certificate file to use when starting API server securely
 #ssl_cert_file = /path/to/certfile
+<% end -%>
 
+<% if node['openstack']['network']['ssl_key_file']  -%>
+# Private key file to use when starting API server securely
+<% if node['openstack']['network']['use_ssl'] -%>
+ssl_key_file = <%= node['openstack']['network']['ssl_key_file'] %>
+<% else -%>
+# ssl_key_file = <%= node['openstack']['network']['ssl_key_file'] %>
+<% end -%>
+<% else -%>
 # Private key file to use when starting API server securely
 #ssl_key_file = /path/to/keyfile
+<% end -%>
 
 # CA certificate file to use when starting API server securely to
 # verify connecting clients. This is an optional parameter only required if
@@ -317,11 +355,11 @@ send_events_interval = <%= node["openstack"]["network"]["nova"]["send_events_int
 # ======== end of neutron nova interactions ==========
 
 # Misc options
-<% if node["openstack"]["network"]["misc_neutron"] %>
-<% node["openstack"]["network"]["misc_neutron"].each do |m| %>
+<% if node["openstack"]["network"]["misc_neutron"] -%>
+<% node["openstack"]["network"]["misc_neutron"].each do |m| -%>
 <%= m %>
-<% end %>
-<% end %>
+<% end -%>
+<% end -%>
 
 [QUOTAS]
 # resource name(s) that are supported in quota features
@@ -361,9 +399,9 @@ quota_driver = <%= node["openstack"]["network"]["quota"]["driver"] %>
 # root filter facility.
 # Change to "sudo" to skip the filtering and just run the comand directly
 # root_helper = sudo
-<% if node["openstack"]["network"]["use_rootwrap"] %>
+<% if node["openstack"]["network"]["use_rootwrap"] -%>
 root_helper = "sudo neutron-rootwrap /etc/neutron/rootwrap.conf"
-<% end %>
+<% end -%>
 
 # =========== items for agent management extension =============
 # seconds between nodes reporting state to server, should be less than
@@ -434,10 +472,10 @@ pool_timeout = <%= node['openstack']['db']['network']['pool_timeout'] %>
 # example of non-default provider:
 # service_provider=FIREWALL:name2:firewall_driver_path
 # --- Reference implementations ---
-<% if node['openstack']['network']['service_provider'].any? %>
-  <% node['openstack']['network']['service_provider'].each do |provider| %>
+<% if node['openstack']['network']['service_provider'].any? -%>
+  <% node['openstack']['network']['service_provider'].each do |provider| -%>
 service_provider = <%= provider %>
-  <% end %>
-<% end %>
+  <% end -%>
+<% end -%>
 
 # ===========  end of items for agent management extension =====

@@ -7,14 +7,23 @@ use = egg:Paste#urlmap
 
 [composite:neutronapi_v2_0]
 use = call:neutron.auth:pipeline_factory
-noauth = request_id catch_errors extensions neutronapiapp_v2_0
-keystone = request_id catch_errors authtoken keystonecontext extensions neutronapiapp_v2_0
+noauth = <%= node['openstack']['network']['neutron-server']['compoiste']['neutronapi_v2_0']['noauth'].join(' ') %>
+keystone = <%= node['openstack']['network']['neutron-server']['compoiste']['neutronapi_v2_0']['keystone'].join(' ') %>
 
+<% if node['openstack']['network']['neutron-server']['filter']['request_id'] -%>
 [filter:request_id]
-paste.filter_factory = neutron.openstack.common.middleware.request_id:RequestIdMiddleware.factory
+paste.filter_factory = <%= node['openstack']['network']['neutron-server']['filter']['request_id'] %>
+<% end -%>
 
+<% if node['openstack']['network']['neutron-server']['filter']['catch_errors'] -%>
 [filter:catch_errors]
-paste.filter_factory = neutron.openstack.common.middleware.catch_errors:CatchErrorsMiddleware.factory
+paste.filter_factory = <%= node['openstack']['network']['neutron-server']['filter']['catch_errors'] %>
+<% end -%>
+
+<% if node['openstack']['network']['neutron-server']['filter']['access_log'] -%>
+[filter:access_log]
+paste.filter_factory = <%= node['openstack']['network']['neutron-server']['filter']['access_log'] %>
+<% end -%>
 
 [filter:keystonecontext]
 paste.filter_factory = neutron.auth:NeutronKeystoneContext.factory
@@ -30,4 +39,6 @@ paste.app_factory = neutron.api.v2.router:APIRouter.factory
 
 [filter:authtoken]
 paste.filter_factory = keystoneclient.middleware.auth_token:filter_factory
-delay_auth_decision = true
+<% if node['openstack']['network']['delay_auth_decision'] -%>
+delay_auth_decision = <%= node['openstack']['network']['delay_auth_decision'] %>
+<% end -%>

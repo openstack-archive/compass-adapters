@@ -34,20 +34,72 @@ end
 
 platform_options = node['openstack']['image']['platform']
 
-package 'python-keystoneclient' do
-  options platform_options['package_overrides']
-  action :upgrade
-end
+include_recipe "openstack-identity::client"
 
 package 'curl' do
   options platform_options['package_overrides']
   action :upgrade
 end
 
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    group node['openstack']['image']['group']
+    user node['openstack']['image']['user'] do
+      shell "/bin/bash"
+      comment "Openstack Image Server"
+      gid node['openstack']['image']['group']
+      system true
+      supports :manage_home => false
+    end
+    directory '/var/log/glance' do
+      owner node['openstack']['image']['user']
+      group node['openstack']['image']['group']
+      mode  00750
+    end
+    directory '/var/run/glance' do
+      owner node['openstack']['image']['user']
+      group node['openstack']['image']['group']
+      mode  0755
+    end
+  end
+end
+
 platform_options['image_packages'].each do |pkg|
   package pkg do
     action :upgrade
     options platform_options['package_overrides']
+  end
+end
+
+if node['openstack']['image']['api']['certdir']
+  directory "#{node['openstack']['image']['api']['certdir']}" do
+    owner node['openstack']['image']['user']
+    group node['openstack']['image']['group']
+    mode  00755
+  end
+end
+
+if node['openstack']['image']['api']['keydir']
+  directory "#{node['openstack']['image']['api']['keydir']}" do
+    owner node['openstack']['image']['user']
+    group node['openstack']['image']['group']
+    mode  00755
+  end
+end
+
+if node['openstack']['image']['api']['certfile']
+  file "#{node['openstack']['image']['api']['certfile']}" do
+    owner node['openstack']['image']['user']
+    group node['openstack']['image']['group']
+    mode 00644
+  end
+end
+
+if node['openstack']['image']['api']['keyfile']
+  file "#{node['openstack']['image']['api']['keyfile']}" do
+    owner node['openstack']['image']['user']
+    group node['openstack']['image']['group']
+    mode 00640
   end
 end
 
@@ -85,11 +137,15 @@ elsif node['openstack']['image']['api']['default_store'] == 'rbd'
   # end
 end
 
-service 'glance-api' do
-  service_name platform_options['image_api_service']
-  supports status: true, restart: true
-
-  action :enable
+if node['platform_family'] == 'suse'
+  if node['lsb']['codename'] == 'UVP'
+    template '/etc/init.d/openstack-glance-api' do
+      source 'openstack-glance-api.service.erb'
+      owner "root"
+      group "root"
+      mode 00755
+    end
+  end
 end
 
 directory '/etc/glance' do
@@ -108,7 +164,8 @@ glance = node['openstack']['image']
 
 identity_endpoint = endpoint 'identity-api'
 identity_admin_endpoint = endpoint 'identity-admin'
-service_pass = get_password 'service', 'openstack-image'
+# service_pass = get_password 'service', 'openstack-image'
+service_pass = get_password 'service', node["openstack"]["image"]["service_user"]
 
 auth_uri = auth_uri_transform identity_endpoint.to_s, node['openstack']['image']['api']['auth']['version']
 
@@ -191,7 +248,7 @@ template '/etc/glance/glance-api.conf' do
     vmware_server_password: vmware_server_password
   )
 
-  notifies :restart, 'service[glance-api]', :immediately
+  notifies :restart, 'service[glance-api]', :delayed
 end
 
 template '/etc/glance/glance-api-paste.ini' do
@@ -200,7 +257,7 @@ template '/etc/glance/glance-api-paste.ini' do
   group node['openstack']['image']['group']
   mode   00644
 
-  notifies :restart, 'service[glance-api]', :immediately
+  notifies :restart, 'service[glance-api]', :delayed
 end
 
 template '/etc/glance/glance-cache.conf' do
@@ -211,10 +268,15 @@ template '/etc/glance/glance-cache.conf' do
   variables(
     registry_ip_address: registry_endpoint.host,
     registry_port: registry_endpoint.port,
+    swift_store_key: swift_store_key,
+    swift_user_tenant: swift_user_tenant,
+    swift_store_user: swift_store_user,
+    swift_store_auth_address: swift_store_auth_address,
+    swift_store_auth_version: swift_store_auth_version,
     vmware_server_password: vmware_server_password
   )
 
-  notifies :restart, 'service[glance-api]', :immediately
+  notifies :restart, 'service[glance-api]', :delayed
 end
 
 # TODO(jaypipes) I don't think this even exists or at least isn't
@@ -225,7 +287,7 @@ template '/etc/glance/glance-cache-paste.ini' do
   group node['openstack']['image']['group']
   mode   00644
 
-  notifies :restart, 'service[glance-api]', :immediately
+  notifies :restart, 'service[glance-api]', :delayed
 end
 
 template '/etc/glance/glance-scrubber.conf' do
@@ -266,4 +328,36 @@ if node['openstack']['image']['api']['default_store'] == 'file'
     mode 00750
     recursive true
   end
+end
+
+unless node['openstack']['image']['api']['property_protection_file'].nil? or node['openstack']['image']['api']['property_protection_file'].empty?
+  template "#{node['openstack']['image']['api']['property_protection_file']}" do
+    source 'property-protections.conf.erb'
+    owner node['openstack']['image']['user']
+    group node['openstack']['image']['group']
+    mode   00644
+  end
+end
+
+execute 'glance-manage db_sync' do
+  user node['openstack']['image']['user']
+  group node['openstack']['image']['group']
+  command 'glance-manage db_sync &> /dev/null'
+  only_if { node['openstack']['db']['identity']['migrate'] }
+end
+
+service 'glance-api' do
+  service_name platform_options['image_api_service']
+  supports :status => true, :restart => true
+
+  action [:enable, :start]
+  subscribes :restart, "template[/usr/lib64/python2.6/site-packages/keystoneclient/middleware/auth_token.py]", :delayed
+end
+
+ruby_block "service glance-api restart if necessary" do
+  block do
+    Chef::Log.info("service glance-api restart")
+  end
+  not_if "service #{platform_options['image_api_service']} status"
+  notifies :restart, 'service[glance-api]', :immediately
 end

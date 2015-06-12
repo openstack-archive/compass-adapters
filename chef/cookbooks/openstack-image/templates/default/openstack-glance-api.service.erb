@@ -1,0 +1,77 @@
+#!/bin/sh
+#
+### BEGIN INIT INFO
+# Provides:          openstack-glance-api
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Should-Start:      mysql postgresql
+# Should-Stop:       mysql postgresql
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 6
+# Short-Description: OpenStack Image Service (Glance) - api
+# Description:       OpenStack Image Service (Glance) - api
+### END INIT INFO
+
+DAEMON="api"
+USER="<%= node['openstack']['image']['user'] %>"
+CONFFILE="/etc/glance/glance-$DAEMON.conf"
+RUNDIR="/var/run/glance"
+
+# $RUNDIR can be tmpfs, thus we have to create/own it here:
+mkdir -p $RUNDIR && chown $USER. $RUNDIR
+
+. /etc/rc.status
+
+case "$1" in
+    start)
+        echo -n "Starting glance-$DAEMON"
+        if [ "$DAEMON" = "api" ]; then
+            echo -n "Checking for DB Migrations"
+            su $USER -s /bin/sh -c "glance-manage db_sync" &> /dev/null
+            rc_status -v
+        fi
+        /sbin/startproc -q -s -u $USER /usr/bin/glance-$DAEMON --config-file=$CONFFILE
+        rc_status -v
+        ;;
+    stop)
+        echo -n "Shutting down glance-$DAEMON"
+        /sbin/killproc /usr/bin/glance-$DAEMON
+        rc_status -v
+        ;;
+    restart)
+        $0 stop
+        $0 start
+        rc_status
+        ;;
+    force-reload)
+        $0 try-restart
+        rc_status
+        ;;
+    reload)
+        echo -n "Reload service glance-$DAEMON"
+        rc_failed 3
+        rc_status -v
+        ;;
+    status)
+        echo -n "Checking for service glance-$DAEMON"
+        /sbin/checkproc /usr/bin/glance-$DAEMON
+        rc_status -v
+        ;;
+    try-restart|condrestart)
+        if test "$1" = "condrestart"; then
+            echo "${attn} Use try-restart ${done}(LSB)${attn} rather than condrestart ${warn}(RH)${norm}"
+        fi
+        $0 status
+        if test $? = 0; then
+            $0 restart
+        else
+            rc_reset # Not running is not a failure.
+        fi
+        rc_status # Remember status and be quiet
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|status|try-restart|restart|force-reload|reload}"
+        exit 1
+        ;;
+esac
+rc_exit

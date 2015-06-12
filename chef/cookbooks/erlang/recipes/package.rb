@@ -46,5 +46,5 @@ when 'rhel'
   package 'erlang'
 when 'suse'
   package 'erlang'
-  package 'erlang-debugger'
+  # package 'erlang-debugger'
 end

@@ -40,6 +40,7 @@ default['openstack']['identity']['pastefile_url'] = nil
 
 default['openstack']['identity']['region'] = node['openstack']['region']
 default['openstack']['identity']['token']['expiration'] = '86400'
+default['openstack']['identity']['token']['id_no_catalog'] = nil
 
 # Logging stuff
 default['openstack']['identity']['syslog']['use'] = false
@@ -75,9 +76,11 @@ default['openstack']['identity']['users'] = {
 # PKI signing. Corresponds to the [signing] section of keystone.conf
 # Note this section is only written if node['openstack']['auth']['strategy'] == 'pki'
 default['openstack']['identity']['signing']['basedir'] = '/etc/keystone/ssl'
-default['openstack']['identity']['signing']['certfile'] = "#{node['openstack']['identity']['signing']['basedir']}/certs/signing_cert.pem"
-default['openstack']['identity']['signing']['keyfile'] = "#{node['openstack']['identity']['signing']['basedir']}/private/signing_key.pem"
-default['openstack']['identity']['signing']['ca_certs'] = "#{node['openstack']['identity']['signing']['basedir']}/certs/ca.pem"
+default['openstack']['identity']['signing']['certdir'] = "#{node['openstack']['identity']['signing']['basedir']}/certs"
+default['openstack']['identity']['signing']['certfile'] = "#{node['openstack']['identity']['signing']['certdir']}/signing_cert.pem"
+default['openstack']['identity']['signing']['keydir'] = "#{node['openstack']['identity']['signing']['basedir']}/private"
+default['openstack']['identity']['signing']['keyfile'] = "#{node['openstack']['identity']['signing']['keydir']}/signing_key.pem"
+default['openstack']['identity']['signing']['ca_certs'] = "#{node['openstack']['identity']['signing']['certdir']}/ca.pem"
 default['openstack']['identity']['signing']['certfile_url'] = nil
 default['openstack']['identity']['signing']['keyfile_url'] = nil
 default['openstack']['identity']['signing']['ca_certs_url'] = nil
@@ -87,11 +90,20 @@ default['openstack']['identity']['signing']['ca_password'] = nil
 
 # These switches set the various drivers for the different Keystone components
 default['openstack']['identity']['identity']['backend'] = 'sql'
+default['openstack']['identity']['identity']['backend_fullname'] = nil
 default['openstack']['identity']['assignment']['backend'] = 'sql'
+default['openstack']['identity']['assignment']['backend_fullname'] = nil
 # default['openstack']['identity']['token']['backend'] = 'sql'
 default['openstack']['identity']['token']['backend'] = 'memcache'
+default['openstack']['identity']['token']['backend_fullname'] = nil
 default['openstack']['identity']['catalog']['backend'] = 'sql'
+default['openstack']['identity']['catalog']['backend_fullname'] = nil
 default['openstack']['identity']['policy']['backend'] = 'sql'
+default['openstack']['identity']['policy']['backend_fullname'] = nil
+default['openstack']['identity']['endpoint_filter'] = {}
+
+default['openstack']['identity']['auth']['use_oauth1'] = false
+default['openstack']['identity']['auth']['use_paste_deploy'] = false
 
 # LDAP backend general settings
 default['openstack']['identity']['ldap']['url'] = 'ldap://localhost'
@@ -201,18 +213,49 @@ when 'fedora', 'rhel' # :pragma-foodcritic: ~FC024 - won't fix this
     'package_options' => ''
   }
 when 'suse'
-  default['openstack']['identity']['user'] = 'keystone'
-  default['openstack']['identity']['group'] = 'keystone'
-  default['openstack']['identity']['platform'] = {
-    'mysql_python_packages' => ['python-mysql'],
-    'postgresql_python_packages' => ['python-psycopg2'],
-    'memcache_python_packages' => ['python-python-memcached'],
-    'keystone_packages' => ['openstack-keystone'],
-    'keystone_client_packages' => ['python-keystoneclient'],
-    'keystone_service' => 'openstack-keystone',
-    'keystone_process_name' => 'keystone-all',
-    'package_options' => ''
-  }
+  if node['lsb']['codename'] == 'UVP'
+    default['openstack']['identity']['user'] = 'openstack'
+    default['openstack']['identity']['group'] = 'openstack'
+    default['openstack']['identity']['platform'] = {
+      'mysql_python_packages' => ['python-mysql'],
+      'postgresql_python_packages' => ['python-psycopg2'],
+      'memcache_python_packages' => ['python-python-memcached'],
+      'keystone_packages' => ['keystone'],
+      'keystone_client_packages' => ['python-keystoneclient'],
+      'keystone_service' => 'openstack-keystone',
+      'keystone_process_name' => 'keystone-all',
+      'package_options' => ''
+    }
+    default['openstack']['identity']['signing']['basedir'] = '/etc/FSSecurity'
+    default['openstack']['identity']['signing']['certdir'] = '/etc/FSSecurity/server-cert'
+    default['openstack']['identity']['signing']['keydir'] = '/etc/FSSecurity/server-cert'
+    default['openstack']['identity']['signing']['certfile'] = "#{node['openstack']['identity']['signing']['certdir']}/keystone_server.crt"
+    default['openstack']['identity']['signing']['keyfile'] = "#{node['openstack']['identity']['signing']['keydir']}/keystone_server.key"
+    default['openstack']['identity']['signing']['ca_certs'] = "#{node['openstack']['identity']['signing']['certdir']}/keystone_ca.crt"
+    default['openstack']['identity']['identity']['backend'] = 'extend_sql'
+    default['openstack']['identity']['assignment']['backend'] = 'sql'
+    default['openstack']['identity']['token']['backend'] = 'extend_sql'
+    default['openstack']['identity']['catalog']['backend'] = 'catalog_sql'
+    default['openstack']['identity']['catalog']['backend_fullname'] = 'keystone.contrib.endpoint_filter.backends.catalog_sql.EndpointFilterCatalog'
+    default['openstack']['identity']['policy']['backend'] = 'sql'
+    default['openstack']['identity']['auth']['use_oauth1'] = true
+    default['openstack']['identity']['auth']['use_paste_deploy'] = true
+    default['openstack']['identity']['endpoint_filter']['return_all_endpoints_if_no_filter'] = 'True'
+    default['openstack']['identity']['token']['id_no_catalog'] = 'False'
+  else
+    default['openstack']['identity']['user'] = 'keystone'
+    default['openstack']['identity']['group'] = 'keystone'
+    default['openstack']['identity']['platform'] = {
+      'mysql_python_packages' => ['python-mysql'],
+      'postgresql_python_packages' => ['python-psycopg2'],
+      'memcache_python_packages' => ['python-python-memcached'],
+      'keystone_packages' => ['openstack-keystone'],
+      'keystone_client_packages' => ['python-keystoneclient'],
+      'keystone_service' => 'openstack-keystone',
+      'keystone_process_name' => 'keystone-all',
+      'package_options' => ''
+    }
+  end
 when 'debian'
   default['openstack']['identity']['user'] = 'keystone'
   default['openstack']['identity']['group'] = 'keystone'

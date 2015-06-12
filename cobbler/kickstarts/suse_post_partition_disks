@@ -1,0 +1,34 @@
+set \$(lsblk -n -r -o NAME,LABEL | grep 'reserved_.*' | cut -d' ' -f1)
+echo "list partitions: \$@" >> /tmp/post_partition.log
+declare -a remove_partitions
+for partition_name in \$@; do
+    partition=/dev/\${partition_name}
+    echo "add \${partition_name} => \$partition into remove list" >> /tmp/post_partition.log
+    remove_partitions[\${partition_name}]=\$partition
+done
+echo "remove partitions: \${remove_partitions[@]}" >> /tmp/post_partition.log
+
+for partition in \${remove_partitions[@]}; do
+    if [ -z "\$partition" ]; then
+        continue
+    fi
+    echo "umount \$partition" >> /tmp/post_partition.log
+    umount \$partition
+    set \$(echo \${partition}  | sed -e 's/^\(.*\)\([0-9]\+\)\$/\1 \2/g')
+    partition_disk=\$1
+    partition_number=\$2
+    echo "remove disk \${partition_disk} partition \${partition_number}" >> /tmp/post_partition.log
+    if [ ! -z "\${partition_disk}" ]; then
+        if [ ! -z "\${partition_number}" ]; then
+            echo "remove \$partition on \${partition_disk} number \${partition_number}" >> /tmp/post_partition.log
+            parted \${partition_disk} --script -- rm \${partition_number}
+        else
+            echo "partition number not found for partition \$partition" >> /tmp/post_partition.log
+        fi
+    else
+        echo "partition disk not found for partition \$partition" >> /tmp/post_partition.log
+    fi
+done
+
+grep -v "LABEL=reserved_.*" /etc/fstab > /tmp/fstab.new
+mv -f /tmp/fstab.new /etc/fstab

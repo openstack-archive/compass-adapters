@@ -1,0 +1,80 @@
+#set profile_name = $getVar('profile_name','')
+#set os_info = $profile_name.split('-')
+#set osname = $os_info[0].lower()
+#set osversion = $os_info[1]
+#set osversion_flat = $osversion.replace('.', '_') 
+
+mkdir -p /root/repo_backup
+mv -f /etc/zypp/repos.d/* /root/repo_backup/
+
+$SNIPPET("suse_zypp.conf")
+
+mkdir -p /etc/zypp/repos.d
+mkdir -p /etc/zypp/vendors.d
+
+cat << EOF > /etc/zypp/repos.d/${osname}_${osversion_flat}_os_repo.repo
+[${osname}_${osversion_flat}_os_repo]
+name=${osname}_${osversion_flat}_${osversion}
+baseurl=$install
+enabled=1
+keeppackages=1
+type=yast2
+path=/
+autorefresh=1
+EOF
+
+cat << EOF > /etc/zypp/vendors.d/${osname}_${osversion_flat}_os_repo.repo
+[${osname}_${osversion_flat}_os_repo]
+vendors = ${osname}_${osversion_flat}_os_repo
+EOF
+
+#set $repo_data = $getVar("repo_data",[])
+#for $repo in $repo_data
+cat << EOF > /etc/zypp/repos.d/${repo.name}.repo
+[$repo.name]
+name=$repo.name
+    #if $repo.mirror_locally
+baseurl=http://$http_server/cblr/repo_mirror/${repo.name}
+    #else
+baseurl=${repo.mirror}
+    #end if
+enabled=1
+path=/
+autorefresh=1
+type=rpm-md
+keeppackages=1
+EOF
+
+cat << EOF > /etc/zypp/vendors.d/${repo.name}.repo
+[$repo.name]
+vendors = $repo.name
+EOF
+#end for
+
+#if $getVar("local_repo", "") == "" or $getVar("local_repo_only","1") == "0"
+    #set repos_snippet = 'zypp.repos.d/%s/%s/autoyast_repos' % ($osname, $osversion)
+$SNIPPET($repos_snippet)
+#end if
+
+#if $getVar("local_repo","") != ""
+    #set repo = 'zypp.repos.d/%s/%s/sles_repo' % ($osname, $osversion)
+cat << EOF > /etc/zypp/repos.d/Compass.repo
+[compass_repo]
+name=Compass zypp repo
+baseurl=$local_repo/$repo
+enabled=1
+autorefresh=1
+path=/
+type=rpm-md
+keeppackages=1
+EOF
+
+cat << EOF > /etc/zypp/vendors.d/Compass.repo
+[compass_repo]
+vendors = compass_repo
+EOF
+#end if
+
+zypper -n refresh
+zypper -n update
+zypper -n dist-upgrade

@@ -1,0 +1,568 @@
+#set hostname=$getVar('hostname',None)
+#set partition = $getVar('partition', None)
+#set partition_size = $getVar('partition_size', None)
+#set partition_maxsize = $getVar('partition_maxsize', None)
+#set disk_reserve_size = $getVar('disk_reserve_size', None)
+#set disk_max_size = $getVar('disk_max_size', None)
+#set default_disk_reserve_size = $getVar('default_disk_reserve_size', '0')
+#set default_disk_max_size = $getVar('default_disk_max_size', '0')
+
+#if $hostname == None
+#set $vgname = "VolGroup00"
+#else
+#set $vgname = $hostname.split('.')[0]
+#end if
+
+declare -a disk_mapping
+disk_mapping=()
+declare -a disk_path_mapping
+disk_path_mapping=()
+
+if [ -e /dev/disk/by-path ]; then
+    set \$(ls -s -l /dev/disk/by-path | awk '{print \$10, \$12}')
+    let disk_mapping_nums=\$#/2
+    let disk_mapping_offset=0
+    echo "disk_mapping_nums: \$disk_mapping_nums" > /tmp/log
+    echo "disk_mapping: \$*" >> /tmp/log
+    while [ \$disk_mapping_offset -lt \$disk_mapping_nums ]; do
+        let found_disk_type=0
+#if $getVar('disk_type_only','') != ""
+        if expr match "\$1" ".*-${disk_type_only}-.*"; then
+            let found_disk_type=1
+        fi
+#else
+        let found_disk_type=1
+#end if
+        path_name=\$(basename \$1)
+        disk_path_name=\$(echo \${path_name} | tr '-' '_' | tr ':' '_' | tr '.' '_')
+        disk_name=\$(basename \$2)
+        let disk_mapping_offset=\$disk_mapping_offset+1 
+        shift 2
+
+        if [ \$found_disk_type -gt 0 ]; then
+            disk_mapping+=(\${disk_name})
+            disk_path_mapping+=(\${disk_path_name})
+            eval "disk_\${disk_name}=/dev/disk/by-path/\${path_name}"
+	    eval "disk_\${disk_path_name}=/dev/disk/by-path/\${path_name}"
+            eval "disk_path_\${disk_path_name}=/dev/\${disk_name}"
+            eval "disk_path_\${disk_name}=/dev/\${disk_name}"
+        else
+            eval "ignore_disk_\${disk_name}=/dev/disk/by-path/\${path_name}"
+            eval "ignore_disk_\${disk_path_name}=/dev/disk/by-path/\${path_name}"
+            eval "ignore_disk_path_\${disk_path_name}=/dev/\${disk_name}"
+            eval "ignore_disk_path_\${disk_name}=/dev/\${disk_name}"
+        fi
+    done
+
+    echo "finish disk mapping" >> /tmp/log
+    for key in \${disk_mapping[@]}; do
+        eval "disk_path=\\${disk_\$key}"
+        echo "disk_mapping \$key => \${disk_path}" >> /tmp/log
+    done
+
+    for key in \${disk_path_mapping[@]}; do
+        eval "disk=\\${disk_path_\$key}"
+        echo "disk path mapping \$key => \${disk}" >> /tmp/log
+    done
+else
+    echo "/dev/disk/by-path does not exist" >> /tmp/log
+fi
+
+declare -a partition_disks
+partition_disks=()
+declare -a disks
+disks=()
+set \$(lsblk -n -d -o NAME,RM,RO,SIZE | awk '\$2 == "0" && \$3 == "0" { print \$1, \$4 }')
+let disk_nums=\$#/2
+let disk_offset=0
+while [ \$disk_offset -lt \$disk_nums ]; do
+    disk_name=\$1
+    shift 2
+    let disk_offset=\$disk_offset+1
+    eval "disk_path=\\${disk_\${disk_name}}"
+    if [ -z "\${disk_path}" ]; then
+        eval "ignore_disk_path=\\${ignore_disk_\${disk_name}}"
+        if [ ! -z "\${ignore_disk_path}" ]; then
+            echo "ignore disk \${disk_name} since it is not in disk_mapping" >> /tmp/log
+            continue
+        else
+            echo "did not found disk path for \$disk but it is not ignored" >> /tmp/log
+            eval "disk_\${disk_name}=/dev/\${disk_name}"
+            eval "disk_path_\${disk_name}=/dev/\${disk_name}"
+        fi
+    fi
+    let found_disk=0
+
+#if $getVar('partitions_only',  '') != ""
+    #for $partition_only in $partitions_only.split(',')
+        #if not $partition_only
+            #continue
+        #end if
+    if expr match "\${disk_name}" "$partition_only"; then
+        let found_disk=1
+    else
+        echo "disk \${disk_name} does not match $partition_only" >> /tmp/log
+    fi
+    #end for
+#else
+    let found_disk=1
+#end if
+
+#if $getVar('partition_by_path', '0') != "0"
+    eval "disk=\\${disk_\${disk_name}}"
+#else
+    eval "disk=\\${disk_path_\${disk_name}}"
+#end if
+
+    if [ \${found_disk} -gt 0 ]; then
+        echo "add disk \${disk_name} in partitioning list" >> /tmp/log
+        partition_disks+=(\$disk)
+    fi
+
+    disks+=(\$disk)
+done
+echo "partition disks: \${partition_disks[@]}" >> /tmp/log
+echo "disks: \${disks[@]}" >> /tmp/log
+
+#if $getVar('sort_disks', '0') != "0" 
+sorted_disks=(\$(printf '%s\n' \${partition_disks[@]} | sort))
+#else
+sorted_disks=(\${partition_disks[@]})
+#end if
+echo "sorted disks: \${sorted_disks[@]}" >> /tmp/log
+
+#if $getVar('start_from_disk', '') != ""
+    #set $start_from_disk = $int($start_from_disk)
+    #if $start_from_disk > 0
+        #set $disk_start_offset = $start_from_disk - 1
+    #else
+        #set $disk_start_offset = 0
+    #end if
+set \${sorted_disks[@]}
+shift $disk_start_offset
+sorted_disks=(\$@)
+echo "sorted disks begin from the $start_from_disk: \${sorted_disks[@]}" >> /tmp/log
+#end if
+
+#if $getVar('disk_num', '') != ""
+set \${sorted_disks[@]}
+sorted_disks=(\$(printf '%s\n' \$@ | head -n${disk_num}))
+echo "sorted disks for $disk_num disks: \${sorted_disks[@]}" >> /tmp/log
+#end if
+
+first_disk=""
+for disk in \${sorted_disks}; do
+    if [ -z "\${first_disk}" ]; then
+        first_disk=\${disk}
+        break
+    fi
+done
+echo "first disk \${first_disk}" >> /tmp/log
+
+declare -a remove_disks
+remove_disks=()
+#if $getVar('keep_old_partitions', '0') != "0"
+for disk in \${sorted_disks[@]}; do
+    dd if=/dev/zero of=\${disk} bs=512 count=1
+    remove_disks+=(\$disk)
+done
+#else
+for disk in \${disks[@]}; do
+    dd if=/dev/zero of=\${disk} bs=512 count=1
+    remove_disks+=(\$disk)
+done
+#end if
+echo "remove disks: \${remove_disks[@]}" >> /tmp/log
+
+disk_partitions=\$(pvs --noheadings --separator :| cut -d: -f1)
+remove_partitions=""
+remove_vgs=""
+for disk_partition in \${disk_partitions}; do
+    vg=\$(pvs --noheadings --separator : \${disk_partition} | cut -d: -f2)
+    remove_vg=""
+    remove_partition=""
+    for remove_disk in \${remove_disks[@]}; do
+#if $getVar('partition_by_path', '0') != "0"
+        path_name=\$(basename \${remove_disk})
+        disk_path_name=\$(echo \${path_name} | tr '-' '_' | tr ':' '_' | tr '.' '_')
+	remove_disk_path=\${remove_disk}
+        eval "remove_disk=\\${disk_path_\${disk_path_name}}"
+#else
+        disk_name=\$(basename \${remove_disk})
+        eval "remove_disk_path=\\${disk_\${disk_name}}"
+#end if
+        if [ -z "\${remove_disk}" ]; then
+	    continue
+	fi
+	if [ -z "\${remove_disk_path}" ]; then
+            continue
+        fi
+        if expr match "\${disk_partition}" "\${remove_disk_path}.*"; then
+            remove_vg="\$vg"
+            remove_partition="\${disk_partition}"
+        else
+            echo "partition \${disk_partition} does not match \${remove_disk_path}.*" >> /tmp/log
+        fi
+        if expr match "\${disk_partition}" "\${remove_disk}.*"; then
+            remove_vg="\$vg"
+            remove_partition="\${disk_partition}"
+        else
+            echo "partition \${disk_partition} does not match \${remove_disk}.*" >> /tmp/log
+        fi
+	if [[ "\$vg" == "$vgname" ]]; then
+            remove_vg="\$vg"
+	    remove_partition="\${disk_partition}"
+        fi
+    done
+    if [ ! -z "\${remove_vg}" ]; then
+        if [ -z "\${remove_vgs}" ]; then
+            remove_vgs="\${remove_vg}"
+        else
+            vg_removed=0
+            for vg in \${remove_vgs}; do
+                if [[ "\$vg" == "\${remove_vg}" ]]; then
+                    vg_removed=1
+                fi
+            done
+            if [ \${vg_removed} -eq 0 ]; then
+                remove_vgs="\${remove_vgs} \${remove_vg}"
+            fi
+        fi
+    fi
+    if [ ! -z "\${remove_partition}" ]; then
+        if [ -z "\${remove_partitions}" ]; then
+            remove_partitions="\${remove_partition}"
+        else
+	    pv_removed=0
+	    for pv in ${remove_partitions}; do
+	        if [[ "\$pv" == "\${remove_partition}" ]]; then
+		    pv_removed=1
+		fi
+	    done
+	    if [ \${pv_removed} -eq 0 ]; then
+                remove_partitions="\${remove_partitions} \${remove_partition}"
+	    fi
+        fi
+    fi
+done
+
+echo "remove vgs: \${remove_vgs}" >> /tmp/log
+for remove_vg in \${remove_vgs}; do
+    vgremove -f \${remove_vg}
+done
+
+echo "remove partitions: \${remove_partitions} from vgs \${remove_vgs}" >> /tmp/log
+for remove_partition in \${remove_partitions}; do
+    pvremove -ff -y \${remove_partition}
+done
+
+default_partition=$getVar('default_partition', '/')
+partition_fstype=$getVar('partition_fstype', 'ext3')
+echo "default partition \${default_partition}" >> /tmp/log
+echo "partition fstype \${partition_fstype}" >> /tmp/log
+
+#if $disk_reserve_size != None
+    #set disk_sizes = [disk_size.strip() for disk_size in $disk_reserve_size.split(';') if disk_size.strip()]
+    #for disk_and_size in $disk_sizes
+        #set disk_name, size = $disk_and_size.split(' ', 1)
+        #set disk_name = $disk_name.strip()
+reserve_disk_size_${disk_name}=${size}
+    #end for
+#end if
+
+default_reserve_disk_size=${default_disk_reserve_size}
+
+#if $disk_max_size != None
+    #set disk_sizes = [disk_size.strip() for disk_size in $disk_max_size.split(';') if disk_size.strip()]
+    #for disk_and_size in $disk_sizes
+        #set disk_name, size = $disk_and_size.split(' ', 1)
+        #set disk_name = $disk_name.strip()
+max_disk_size_${disk_name}=${size}
+    #end for
+#end if
+
+default_max_disk_size=${default_disk_max_size}
+
+declare -a partition_names
+partition_names=()
+default_partition_name=""
+#if $partition != None
+    #set vol_sizes = [part.strip() for part in $partition.split(';') if part.strip()]
+    #for vol_and_size in $vol_sizes
+        #set vol, vol_size = $vol_and_size.split(' ', 1)
+        #set vol = $vol.strip()
+	#if $vol == '/'
+	    #set volname = 'root'
+	#elif $vol == 'swap'
+	    #set volname = 'swap'
+	#elif $vol.startswith('/')
+            #set volname = $vol[1:].replace('/', '_')
+	#else
+# $vol is not starts with /
+            #continue
+        #end if
+partition_names+=($volname)
+if [[ "$vol" == "\$default_partition" ]]; then
+    default_partition_name=$volname
+fi
+partition_point_$volname=$vol
+        #set vol_size = $vol_size.strip()
+        #if $vol_size.endswith('%'):
+partition_percentage_$volname=$vol_size
+        #else
+partition_size_$volname=$vol_size
+        #end if
+    #end for
+#end if
+
+#if $partition_size != None
+    #set vol_sizes = [part.strip() for part in $partition_size.split(';') if part.strip()]
+    #for vol_and_size in $vol_sizes
+        #set vol, vol_size = $vol_and_size.split(' ', 1)
+        #set vol = $vol.strip()
+	#if $vol == '/'
+	    #set volname = 'root'
+	#elif $vol == 'swap'
+	    #set volname = 'swap'
+	#elif $vol.startswith('/')
+            #set volname = $vol[1:].replace('/', '_')
+	#else
+# $vol is not starts with /
+            #continue
+        #end if
+partitions_size_$volname=${vol_size}
+    #end for
+#end if
+
+#if $partition_maxsize != None
+    #set vol_sizes = [part.strip() for part in $partition_maxsize.split(';') if part.strip()]
+    #for vol_and_size in $vol_sizes
+        #set vol, vol_size = $vol_and_size.split(' ', 1)
+        #set vol = $vol.strip()
+	#if $vol == '/'
+	    #set volname = 'root'
+	#elif $vol == 'swap'
+	    #set volname = 'swap'
+	#elif $vol.startswith('/')
+            #set volname = $vol[1:].replace('/', '_')
+	#else
+# $vol is not starts with /
+            #continue
+        #end if
+partition_maxsize_$volname=${vol_size}
+    #end for
+#end if
+
+if [ -z "\${default_partition_name}" ]; then
+    default_partition_name=root
+fi
+
+if [ -z "\${partition_point_root}" ]; then
+    partition_names+=(root)
+    partition_point_root=/
+fi
+
+eval "default_partition_point=\\${partition_point_\${default_partition_name}}"
+if [ -z "\${default_partition_point}" ]; then
+    partition_names+=(\${default_partition_name})
+    default_partition_point="/\${default_partition_name}"
+    eval "partition_point_\${default_partition_name}=\${default_partition_point}"
+fi
+
+echo "finish partition mapping" >> /tmp/log
+for key in \${partition_names[@]}; do
+    eval "mountpoint=\\${partition_point_\$key}"
+    echo "partition mountpoint \$key => \${mountpoint}" >> /tmp/log
+    eval "partition_percentage=\\${partition_percentage_\$key}"
+    echo "partition percentage \$key => \${partition_percentage}" >> /tmp/log
+    eval "partition_size=\\${partition_size_\$key}"
+    echo "partition size \$key => \${partition_size}" >> /tmp/log
+    eval "partition_max_size=\\${partition_max_size_\$key}"
+    echo "partition max size \$key => \${partition_max_size}" >> /tmp/log
+done
+
+if [ -z "\${first_disk}" ]; then
+    first_disk=/dev/sda
+fi
+
+declare -a vggroup
+vggroup=()
+for disk in \${sorted_disks[@]}; do
+    disk_name=\$(basename \$disk)
+    eval "used_disk_\${disk_name}=\$disk"
+    echo "add disk \$disk into disks" >> /tmp/log
+    echo '<drive>' >> /tmp/profile/partition.xml
+    echo "  <device>\$disk</device>" >> /tmp/profile/partition.xml
+    echo '  <initialize config:type="boolean">true</initialize>' >> /tmp/profile/partition.xml
+    echo '  <use>all</use>' >> /tmp/profile/partition.xml
+    echo '  <disklabel>gpt</disklabel>' >> /tmp/profile/partition.xml
+    echo '  <partitions config:type="list">' >> /tmp/profile/partition.xml
+
+    if [[ "\$disk" == "\${first_disk}" ]]; then
+        percentage=\${partition_percentage_boot}
+        echo "got percentage \${percentage} for partition boot" >> /tmp/log
+        if [[ ! -z "\$percentage" ]] && [[ "\$percentage" != "0" ]]; then
+            size=\$percentage
+        else
+            size=\${partition_size_boot}
+        fi
+        echo "got size \$size for partition boot" >> /tmp/log
+        used_partition_boot="/boot"
+        echo "add partition /boot into disk \$disk" >> /tmp/log
+        echo '    <partition>' >> /tmp/profile/partition.xml
+        echo "      <filesystem config:type=\"symbol\">\${partition_fstype}</filesystem>" >> /tmp/profile/partition.xml
+        echo '      <format config:type="boolean">true</format>' >> /tmp/profile/partition.xml
+#if $getVar('partition_by_path', '0') != "0" 
+        echo '      <mountby config:type="symbol">uuid</mountby>' >> /tmp/profile/partition.xml
+#else
+        echo '      <mountby config:type="symbol">device</mountby>' >> /tmp/profile/partition.xml
+#end if
+        echo '      <partition_type>primary</partition_type>' >> /tmp/profile/partition.xml
+        echo '      <mount>/boot</mount>' >> /tmp/profile/partition.xml
+        if [[ ! -z "\$size" ]] &&  [[ "$size" != "0" ]]; then
+            echo "      <size>\${size}</size>" >> /tmp/profile/partition.xml
+        else
+            echo "      <size>auto</size>" >> /tmp/profile/partition.xml
+        fi
+        echo '    </partition>' >> /tmp/profile/partition.xml
+        percentage=\${partition_percentage_swap}
+        echo "got percentage \$percentage for partition swap" >> /tmp/log
+        if [[ ! -z "\$percentage" ]] && [[ "\$percentage" != "0" ]]; then
+            size=\$percentage
+        else
+            size=\${partition_size_swap}
+        fi
+        echo "got size \$size for partition swap" >> /tmp/log
+        used_partition_swap=swap
+        echo "add partition swap into disk \$disk" >> /tmp/log
+        echo '    <partition>' >> /tmp/profile/partition.xml
+        echo "      <filesystem config:type=\"symbol\">swap</filesystem>" >> /tmp/profile/partition.xml
+        echo '      <partition_type>primary</partition_type>' >> /tmp/profile/partition.xml
+        echo '      <mount>swap</mount>' >> /tmp/profile/partition.xml
+        if [[ ! -z "\$size" ]] && [[ "$size" != "0" ]]; then
+            echo "      <size>\${size}</size>" >> /tmp/profile/partition.xml
+        else
+            echo "      <size>auto</size>" >> /tmp/profile/partition.xml
+        fi
+        echo '    </partition>' >> /tmp/profile/partition.xml
+    fi
+    echo "add lvm partition $vgname into disk \$disk" >> /tmp/log
+    echo '    <partition>' >> /tmp/profile/partition.xml
+    echo '      <lvm_group>$vgname</lvm_group>' >> /tmp/profile/partition.xml
+    eval "max_disk_size=\\${max_disk_size_\${disk_name}}"
+    if [ -z "\${max_disk_size}" ]; then
+        max_disk_size=\${default_max_disk_size}
+    fi
+    echo "got max disk size \${max_disk_size} for disk \$disk" >> /tmp/log
+    if [[ ! -z "\${max_disk_size}" ]] &&  [[ "\${max_disk_size}" != "0" ]]; then
+        echo '      <size>${max_disk_size}</size>' >> /tmp/profile/partition.xml
+    else 
+        echo "      <size>max</size>" >> /tmp/profile/partition.xml
+    fi
+    echo '    </partition>' >> /tmp/profile/partition.xml
+    vggroup+=(\$disk)
+    eval "reserve_disk_size=\\${reserve_disk_size_\${disk_name}}"
+    if [ -z "\${reserve_disk_size}" ]; then
+        reserve_disk_size=\${default_reserve_disk_size}
+    fi
+    echo "reserve size \${reserve_disk_size} on \${disk}" >> /tmp/log
+    if [[ ! -z "\${reserve_disk_size}" ]] && [[ "\${reserve_disk_size}" != "0" ]]; then
+        echo "add partition /reserved_\${disk_name} into partitions" >> /tmp/log
+        echo '    <partition>' >> /tmp/profile/partition.xml
+        echo "      <filesystem config:type=\"symbol\">\${partition_fstype}</filesystem>" >> /tmp/profile/partition.xml
+        echo '      <format config:type="boolean">true</format>' >> /tmp/profile/partition.xml
+        echo "      <mount>/reserved_\${disk_name}</mount>" >> /tmp/profile/partition.xml
+        echo '      <mountby config:type="symbol">label</mountby>' >> /tmp/profile/partition.xml
+        echo "      <label>reserved_\${disk_name}</label>" >> /tmp/profile/partition.xml
+        echo "      <size>\${reserve_disk_size}</size>" >> /tmp/profile/partition.xml
+        echo '    </partition>' >> /tmp/profile/partition.xml
+    else
+        echo "no reserve space on disk \$disk" >> /tmp/log
+    fi
+    echo '  </partitions>' >> /tmp/profile/partition.xml
+    echo '</drive>' >> /tmp/profile/partition.xml
+done
+
+#if $getVar('keep_old_partitions', '0') == "0"
+for disk in \${disks[@]}; do
+    disk_name=\$(basename \$disk)
+    eval "used_disk=\\${used_disk_\${disk_name}}"
+    if [[ -z "\$used_disk" ]]; then
+        echo '<drive>' >> /tmp/profile/partition.xml
+        echo "  <device>\$disk</device>" >> /tmp/profile/partition.xml
+        echo '  <initialize config:type="boolean">true</initialize>' >> /tmp/profile/partition.xml
+        echo '  <use>all</use>' >> /tmp/profile/partition.xml
+        echo '  <disklabel>gpt</disklabel>' >> /tmp/profile/partition.xml
+        echo '  <partitions config:type="list">' >> /tmp/profile/partition.xml
+        echo "add partition /reserved_\${disk_name} into partitions" >> /tmp/log
+        echo '    <partition>' >> /tmp/profile/partition.xml
+        echo "      <filesystem config:type=\"symbol\">\${partition_fstype}</filesystem>" >> /tmp/profile/partition.xml
+        echo '      <format config:type="boolean">true</format>' >> /tmp/profile/partition.xml
+        echo "      <mount>/reserved_\${disk_name}</mount>" >> /tmp/profile/partition.xml
+        echo '      <mountby config:type="symbol">label</mountby>' >> /tmp/profile/partition.xml
+        echo "      <label>reserved_\${disk_name}</label>" >> /tmp/profile/partition.xml
+        echo "      <size>max</size>" >> /tmp/profile/partition.xml
+        echo '    </partition>' >> /tmp/profile/partition.xml
+        echo '  </partitions>' >> /tmp/profile/partition.xml
+        echo '</drive>' >> /tmp/profile/partition.xml
+    fi
+done
+#end if
+
+echo "partition disks" >> /tmp/log
+
+if [ \${#vggroup[@]} -gt 0 ]; then
+    echo '<drive>' >> /tmp/profile/partition.xml
+    echo "  <device>/dev/$vgname</device>" >> /tmp/profile/partition.xml
+    echo '  <type config:type="symbol">CT_LVM</type>' >> /tmp/profile/partition.xml
+    echo '  <is_lvm_vg config:type="boolean">true</is_lvm_vg>' >> /tmp/profile/partition.xml
+    echo '  <pesize>4M</pesize>' >> /tmp/profile/partition.xml
+    echo '  <use>all</use>' >> /tmp/profile/partition.xml
+    echo '  <partitions config:type="list">' >> /tmp/profile/partition.xml
+    for partition_name in \${partition_names[@]}; do
+        eval "used_partition=\\${used_partition_\${partition_name}}"
+        if [ ! -z "\${used_partition}" ]; then
+            echo "ignore partition \${used_partition} since it is already used" >> /tmp/log
+            continue
+        fi
+        eval "partition=\\${partition_point_\${partition_name}}"
+        echo "setup lvm partition name \$partition_name" >> /tmp/log
+        echo '    <partition>' >> /tmp/profile/partition.xml
+        echo '      <create config:type="boolean">true</create>' >> /tmp/profile/partition.xml
+        echo "      <filesystem config:type=\"symbol\">\${partition_fstype}</filesystem>" >> /tmp/profile/partition.xml
+        echo "      <lv_name>\${partition_name}vol</lv_name>" >> /tmp/profile/partition.xml
+        echo "      <mount>\$partition</mount>" >> /tmp/profile/partition.xml
+        eval "percentage=\\${partition_percentage_\${partition_name}}"
+        echo "got percentage \${percentage} for partition \${partition_name}" >> /tmp/log
+        if [[ ! -z "\${percentage}" ]] && [[ "\${percentage}" != "0" ]]; then
+            size=\${percentage}
+            echo "set size \$size from percentage \$percentage for partition \${partition_name}" >> /tmp/log
+        else
+            eval "size=\\${partition_size_\${partition_name}}"
+        fi
+        echo "got size \$size for partition \${partition_name}" >> /tmp/log
+        if [[ ! -z "\${size}" ]] && [[ "\$size" != "0" ]]; then
+            echo "      <size>\$size</size>" >> /tmp/profile/partition.xml
+        else
+            echo '      <size>max</size>' >> /tmp/profile/partition.xml
+        fi
+        echo '    </partition>' >> /tmp/profile/partition.xml
+    done
+    echo '  </partitions>' >> /tmp/profile/partition.xml
+    echo '</drive>' >> /tmp/profile/partition.xml
+fi
+
+echo '<device_map config:type="list">' >> /tmp/profile/bootloader.xml
+echo '  <device_map_entry>' >> /tmp/profile/bootloader.xml
+echo "    <linux>\${first_disk}</linux>" >> /tmp/profile/bootloader.xml
+echo '  </device_map_entry>' >> /tmp/profile/bootloader.xml
+echo '</device_map>' >> /tmp/profile/bootloader.xml
+echo '<global>' >> /tmp/profile/bootloader.xml
+echo '  <activate>true</activate>' >> /tmp/profile/bootloader.xml
+echo '  <append>$kernel_options_post</append>' >> /tmp/profile/bootloader.xml
+echo '  <default>SUSE</default>' >> /tmp/profile/bootloader.xml
+echo '  <timeout config:type="integer">0</timeout>' >> /tmp/profile/bootloader.xml
+echo '  <generic_mbr>true</generic_mbr>' >> /tmp/profile/bootloader.xml
+echo '  <boot_mbr>true</boot_mbr>' >> /tmp/profile/bootloader.xml
+echo '  <boot_boot>true</boot_boot>' >> /tmp/profile/bootloader.xml
+echo '</global>' >> /tmp/profile/bootloader.xml

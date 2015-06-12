@@ -36,9 +36,9 @@ class Chef
           unless exists?
           begin
             if new_resource.owner
-              db(@new_resource.database_name).query("CREATE SCHEMA \"#{@new_resource.schema_name}\" AUTHORIZATION \"#{@new_resource.owner}\"")
+              db(@new_resource.database_name).query("CREATE SCHEMA #{@new_resource.schema_name} AUTHORIZATION #{@new_resource.owner}")
             else
-              db(@new_resource.database_name).query("CREATE SCHEMA \"#{@new_resource.schema_name}\"")
+              db(@new_resource.database_name).query("CREATE SCHEMA #{@new_resource.schema_name}")
             end
             @new_resource.updated_by_last_action(true)
           ensure
@@ -50,7 +50,7 @@ class Chef
         def action_drop
           if exists?
             begin
-              db(@new_resource.database_name).query("DROP SCHEMA \"#{@new_resource.schema_name}\"")
+              db(@new_resource.database_name).query("DROP SCHEMA #{@new_resource.schema_name}")
               @new_resource.updated_by_last_action(true)
             ensure
               close
@@ -61,7 +61,7 @@ class Chef
         private
         def exists?
           begin
-            exists = db(@new_resource.database_name).query("SELECT schema_name FROM information_schema.schemata WHERE schema_name='#{@new_resource.schema_name}'").num_tuples != 0
+            exists = db(@new_resource.database_name).query("SELECT schema_name FROM information_schema.schemata WHERE LOWER(schema_name)=LOWER('#{@new_resource.schema_name}')").num_tuples != 0
           ensure
             close
           end

@@ -9,21 +9,25 @@ ServerRoot "<%= node['apache']['dir'] %>"
 # The accept serialization lock file MUST BE STORED ON A LOCAL DISK.
 #
 <% if %w[debian].include?(node['platform_family']) -%>
-<% if node['platform_version'].split('.').first.to_i > 12 -%>
+  <% if node['platform_version'].split('.').first.to_i > 12 -%>
 Mutex file:/var/lock/apache2 default
-<% else %>
+  <% else %>
 LockFile /var/lock/apache2/accept.lock
-<% end -%>
+  <% end -%>
 <% elsif %w[rhel].include?(node['platform_family']) -%>
-<% if node['platform_version'].split('.').first.to_i > 6 -%>
+  <% if node['platform_version'].split('.').first.to_i > 6 -%>
 Mutex file:logs default
-<% else %>
+  <% else %>
 LockFile logs/accept.lock
-<% end -%>
+  <% end -%>
 <% elsif %w[freebsd].include?(node['platform_family']) -%>
 LockFile /var/log/accept.lock
 <% elsif %w[suse].include?(node['platform_family']) -%>
+  <% if node['lsb']['codename'] == 'UVP' -%>
+Mutex file:/var/lock/apache2 default
+  <% else %>
 LockFile logs/accept.lock
+  <% end -%>
 <% else %>
 LockFile logs/accept.lock
 <% end -%>
@@ -134,8 +138,11 @@ AccessFileName .htaccess
 # keep browsers from trying to display binary files as though they are
 # text.
 #
+<% if node['apache']['version'].to_f >= 2.3 %>
+DefaultType None
+<% else %>
 DefaultType text/plain
-
+<% end %>
 
 #
 # HostnameLookups: Log the names of clients or just their IP addresses
@@ -166,8 +173,13 @@ LogLevel warn
 #LoadModule dummy_module modules/mod_dummy.so
 
 # Include module configuration:
+<% if node['apache']['version'].to_f >= 2.4 %>
+IncludeOptional <%= node['apache']['dir'] %>/mods-enabled/*.load
+IncludeOptional <%= node['apache']['dir'] %>/mods-enabled/*.conf
+<% else %>
 Include <%= node['apache']['dir'] %>/mods-enabled/*.load
 Include <%= node['apache']['dir'] %>/mods-enabled/*.conf
+<% end %>
 
 <% if %w[freebsd].include?(node['platform_family']) -%>
 <IfDefine NOHTTPACCEPT>
@@ -262,7 +274,15 @@ Include /etc/apache2/sysconfig.d/include.conf
 <% end -%>
 
 # Include generic snippets of statements
+<% if node['apache']['version'].to_f >= 2.4 %>
+IncludeOptional <%= node['apache']['dir'] %>/conf.d/*.conf
+<% else %>
 Include <%= node['apache']['dir'] %>/conf.d/*.conf
+<% end %>
 
 # Include the virtual host configurations:
+<% if node['apache']['version'].to_f >= 2.4 %>
+IncludeOptional <%= node['apache']['dir'] %>/sites-enabled/
+<% else %>
 Include <%= node['apache']['dir'] %>/sites-enabled/
+<% end %>

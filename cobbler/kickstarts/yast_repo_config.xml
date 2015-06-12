@@ -1,0 +1,20 @@
+## Repository Config
+#set $repo_data = $getVar("repo_data",[])
+<add-on>
+  <add_on_products config:type="list">
+#for $repo in $repo_data
+    <listentry>
+    #if $repo.mirror_locally
+      <media_url>http://$http_server/cobbler/repo_mirror/${repo.name}/</media_url>
+    #else
+      <media_url>${repo.mirror}</media_url>
+    #end if
+      <product>${repo.name}</product>
+      <product_dir>/</product_dir>
+      <ask_on_error config:type="boolean">false</ask_on_error>
+      <!-- available since openSUSE 11.0/SLES 11 -->
+      <name>${repo.name}</name> <!-- available since openSUSE 11.1/SLES11 (bnc#433981) -->
+    </listentry>
+#end for
+  </add_on_products>
+</add-on>

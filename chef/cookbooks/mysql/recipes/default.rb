@@ -18,21 +18,24 @@
 #
 case node['platform']
 when 'suse'
-  mysql_repo_package = "http://dev.mysql.com/get/mysql-community-release-sles11-6.noarch.rpm"
-  if not node['proxy_url'].nil? and not node['proxy_url'].empty?
-    r = execute "download_mysql_repo" do
-      command "wget #{mysql_repo_package}"
-      cwd Chef::Config[:file_cache_path]
-      not_if { ::File.exists?("mysql-community-release-sles11-6.noarch.rpm") }
-      environment ({ 'http_proxy' =>  node['proxy_url'], 'https_proxy' => node['proxy_url'] })
+  if node['local_repo'].nil? or node['local_repo'].empty?
+    mysql_repo_package = "http://dev.mysql.com/get/mysql-community-release-sles11-6.noarch.rpm"
+    if not node['proxy_url'].nil? and not node['proxy_url'].empty?
+      r = execute "download_mysql_repo" do
+        command "wget #{mysql_repo_package}"
+        cwd Chef::Config[:file_cache_path]
+        not_if { ::File.exists?("mysql-community-release-sles11-6.noarch.rpm") }
+        environment ({ 'http_proxy' =>  node['proxy_url'], 'https_proxy' => node['proxy_url'] })
+      end
+      r.run_action(:run)
+    else
+      r = remote_file "#{Chef::Config[:file_cache_path]}/mysql-community-release-sles11-6.noarch.rpm" do
+        source mysql_repo_package
+        action :create_if_missing
+      end
+      r.run_action(:create_if_missing)
     end
-    r.run_action(:run)
-  else
-    r = remote_file "#{Chef::Config[:file_cache_path]}/mysql-community-release-sles11-6.noarch.rpm" do
-      source mysql_repo_package
-    end
-    r.run_action(:create_if_missing)
+    r = rpm_package "#{Chef::Config[:file_cache_path]}/mysql-community-release-sles11-6.noarch.rpm"
+    r.run_action(:install)
   end
-  r = rpm_package "#{Chef::Config[:file_cache_path]}/mysql-community-release-sles11-6.noarch.rpm"
-  r.run_action(:install)
 end
