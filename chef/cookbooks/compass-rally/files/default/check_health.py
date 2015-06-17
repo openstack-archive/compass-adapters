@@ -4,7 +4,6 @@ import logging
 import multiprocessing
 import os
 import simplejson as json
-import site
 import subprocess
 import sys
 import re
@@ -14,17 +13,6 @@ logging.basicConfig(filename='/var/log/check_health.log',
                     level=logging.INFO,
                     format='%(asctime)s;%(levelname)s;%(lineno)s;%(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
-
-# Activate virtual environment for Rally
-logging.info("Start to activate Rally virtual environment......")
-virtual_env = '/opt/rally'
-activate_this = '/opt/rally/bin/activate_this.py'
-execfile(activate_this, dict(__file__=activate_this))
-site.addsitedir(virtual_env)
-if virtual_env not in sys.path:
-    sys.path.append(virtual_env)
-logging.info("Activated virtual environment.")
-
 
 from oslo_config import cfg
 from rally import db
@@ -151,7 +139,7 @@ class HealthCheck(object):
     def create_deployment(self):
         dpl_file_name = '.'.join((self.deployment_name, 'json'))
         dpl_path = os.path.join(self.rally_deployment_dir, dpl_file_name)
-        logging.info('deployment config file path is %s' % dpl_path)
+        logging.debug('deployment config file path is %s' % dpl_path)
 
         if not os.path.isfile(dpl_path):
             err_msg = 'Cannot find deployment config file for rally.'
@@ -204,7 +192,7 @@ class HealthCheck(object):
                 if file.endswith('.json'):
                     tasks.append(os.path.join(dirpath, file))
 
-        logging.info("Get all tasks config are %s" % tasks)
+        logging.debug("Get all tasks config are %s" % tasks)
         return tasks
 
     def get_tasks_uuid_from_db(self, deployment_id):
@@ -220,13 +208,13 @@ class HealthCheck(object):
         logging.info(command)
         returncode, output, err = self.exec_cli(command)
 
-        logging.info("task [%s] output is %s" % (task_name, output))
-        print "Done task [%s]" % task_name
+        logging.debug("task [%s] output is %s" % (task_name, output))
+        logging.info("Done task [%s]" % task_name)
 
-        print "Start to collect report......"
+        logging.info("Start to collect report......")
         self.collect_and_send_report(task_name, output)
 
-        print "Collecting report for task [%s] is done!" % task_name
+        logging.info("Collecting report for task [%s] is done!" % task_name)
 
     def collect_and_send_report(self, task_name, task_output):
         """
@@ -267,7 +255,7 @@ class HealthCheck(object):
         command = "rally task results %s" % task_uuid
         logging.info("[collect_and_send_report] command is %s" % command)
 
-        print "Start to collect report for task [%s]" % task_name
+        logging.info("Start to collect report for task [%s]" % task_name)
         return_code, task_result, err = self.exec_cli(command)
         if return_code > 0:
             raise HealthException(err, report_url)
@@ -300,7 +288,7 @@ class HealthCheck(object):
         errors = self._get_total_errors(output)
         report['total_errors'] = errors
 
-        logging.info("task [%s] report is: %s" % (task_name, report))
+        logging.debug("task [%s] report is: %s" % (task_name, report))
 
         final_report = {"results": report, "raw_output": output}
         self.send_report(final_report, report_url)
@@ -332,8 +320,8 @@ class HealthCheck(object):
             'details': []
         }
         min_dur = sys.maxint
-        max_dur = 0 
-        total_dur = 0 
+        max_dur = 0
+        total_dur = 0
         no_action = 0
 
         results = output['result']
@@ -345,14 +333,14 @@ class HealthCheck(object):
                 no_action += 1
                 data.append(0)
                 continue
-        
+ 
             elif (atomic_actions and not atomic_actions[action]
                   or not atomic_actions and result['error']):
                 errors['count'] = errors['count'] + 1
                 errors['details'].append(result['error'])
                 data.append(0)
                 continue
-        
+
             duration = result['duration']
             if action in atomic_actions:
                 duration = atomic_actions[action]
@@ -361,7 +349,7 @@ class HealthCheck(object):
             min_dur = [min_dur, duration][duration < min_dur]
             max_dur = [max_dur, duration][duration > max_dur]
             data.append(duration)
-        
+
         error_count = errors['count']
         total_exec = output['key']['kw']['runner']['times']
 
@@ -369,7 +357,7 @@ class HealthCheck(object):
             errors['count'] = total_exec
             errors['details'] = ['Unknown error!']
             summary['errors'] = errors
-            
+
             return {
                 'summary': summary,
                 'data': data
@@ -384,7 +372,7 @@ class HealthCheck(object):
             summary['avg (sec)'] = round_float(
                 total_dur / (total_exec - error_count - no_action)
             )
-        
+
         summary['max (sec)'] = round_float(max_dur)
         summary['errors'] = errors
         summary['success'] = round_float(
@@ -394,7 +382,7 @@ class HealthCheck(object):
             1
         ) + '%'
         summary['total'] = total_exec
-        
+
         return {
             'summary': summary,
             'data': data
@@ -428,12 +416,16 @@ class HealthCheck(object):
         total_errors = report['results']['total_errors']
         exec_num = report['raw_output']['key']['kw']['runner']['times']
 
-        if total_errors >= exec_num or total_errors == 0 and exec_num > 0:
+        if total_errors >= exec_num:
+            # All actions in the scenarios are failed.
             payload['state'] = 'error'
             payload['error_message'] = "Actions in this scenario are failed."
 
         elif total_errors:
+            # Some actions failed.
             payload['state'] = 'finished'
+
+        logging.info("report state is %s" % payload['state'])
 
         resp = requests.put(
             report_url, data=json.dumps(payload), headers=REQUEST_HEADER

@@ -19,6 +19,7 @@
   "run_list": [
     "role[os-base]",
     "role[os-ops-caching]",
+    "role[compass-rally]",
     "recipe[openstack-identity::server]",
     "recipe[openstack-identity::registration]"
   ],
