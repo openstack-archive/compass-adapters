@@ -67,6 +67,17 @@ cookbook_file '/etc/nova/nova-compute.conf' do
   action :create
 end
 
+mq_ready = search(:node, "tags:mq_ready",
+             :filter_result => { 'cluster_id' => [node['compass']['cluster_id']]
+                                 })
+conductor_ready = search(:node, "tags:conductor_ready",
+                    :filter_result => { 'cluster_id' => [node['compass']['cluster_id']]
+                                 })
+if (mq_ready.empty? || conductor_ready.empty?)
+  Chef::Application.fatal!("MQ or conductor are not up yet, rerun chef-client when they are up and running")
+end
+ 
+
 service 'nova-compute' do
   service_name platform_options['compute_compute_service']
   supports status: true, restart: true

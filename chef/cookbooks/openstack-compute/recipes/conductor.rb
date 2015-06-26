@@ -36,3 +36,6 @@ service 'nova-conductor' do
   subscribes :restart, resources('template[/etc/nova/nova.conf]')
   action [:enable, :start]
 end
+
+tag = 'conductor_ready'
+node.tags << tag unless node.tags.include?(tag)

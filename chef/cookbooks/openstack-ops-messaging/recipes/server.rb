@@ -21,3 +21,5 @@
 #
 
 include_recipe "openstack-ops-messaging::#{node['openstack']['mq']['service_type']}-server"
+tag = 'mq_ready'
+node.tags << tag unless node.tags.include?(tag)
