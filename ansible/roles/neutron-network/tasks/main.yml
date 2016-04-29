@@ -66,10 +66,6 @@
   template: src=dhcp_agent.ini dest=/etc/neutron/dhcp_agent.ini
             backup=yes
 
-- name: update dnsmasq-neutron.conf
-  template: src=templates/dnsmasq-neutron.conf
-            dest=/etc/neutron/dnsmasq-neutron.conf
-
 - name: config metadata agent
   template: src=metadata_agent.ini
             dest=/etc/neutron/metadata_agent.ini backup=yes
@@ -85,13 +81,6 @@
 - name: config neutron
   template: src=templates/neutron.conf
             dest=/etc/neutron/neutron.conf backup=yes
-
-- name: force mtu to 1450 for vxlan
-  lineinfile:
-    dest: /etc/neutron/dnsmasq-neutron.conf
-    regexp: '^dhcp-option-force'
-    line: 'dhcp-option-force=26,1450'
-  when: "'vxlan' in {{ NEUTRON_TUNNEL_TYPES }}"
 
 - include: firewall.yml
   when: enable_fwaas == True
