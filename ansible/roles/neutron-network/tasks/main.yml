@@ -48,13 +48,6 @@
     - kill dnsmasq
     - restart neutron-dhcp-agent
 
-- name: update dnsmasq-neutron.conf
-  template: src=dnsmasq-neutron.conf
-            dest=/etc/neutron/dnsmasq-neutron.conf
-  notify:
-    - kill dnsmasq
-    - restart neutron-dhcp-agent
-
 - name: config metadata agent
   template: src=metadata_agent.ini
             dest=/etc/neutron/metadata_agent.ini backup=yes
