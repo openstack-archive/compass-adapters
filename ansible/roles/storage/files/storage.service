@@ -1,0 +1,15 @@
+[Unit]
+Description=Storage Service
+Before=runlevel2.target runlevel3.target runlevel4.target runlevel5.target shutdown.target
+After=remote-fs.target nss-lookup.target network-online.target time-sync.target network-online.target net_init.service
+Before=ceph.service
+Wants=network-online.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "/etc/init.d/storage"
+
+[Install]
+WantedBy=multi-user.target
+

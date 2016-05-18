@@ -1,0 +1,12 @@
+[program:contrail-tor-agent-{{ item.ansible_facts.toragent_index }}]
+command=/usr/bin/contrail-tor-agent --config_file /etc/contrail/contrail-tor-agent-{{ item.ansible_facts.toragent_index }}.conf
+priority=420
+autostart=true
+killasgroup=true
+stopsignal=KILL
+stdout_capture_maxbytes=1MB
+redirect_stderr=true
+stdout_logfile=/var/log/contrail/contrail-tor-agent-{{ item.ansible_facts.toragent_index }}-stdout.log
+stderr_logfile=/dev/null
+startsecs=5
+exitcodes=0                   ; 'expected' exit codes for process (default 0,2)

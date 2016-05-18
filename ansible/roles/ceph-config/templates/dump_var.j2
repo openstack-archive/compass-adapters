@@ -1,0 +1,8 @@
+HOSTVARS (ANSIBLE GATHERED, group_vars, host_vars) :
+
+{{ hostvars[inventory_hostname] | to_yaml }}
+
+PLAYBOOK VARS:
+
+{{ vars | to_yaml }}
+

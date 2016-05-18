@@ -1,0 +1,35 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- name: make sure template dir exits
+  file: path=/opt/os_templates state=directory mode=0755
+  tags: secgroup
+
+- name: copy configs
+  template: src={{ item.src}} dest=/opt/os_templates
+  with_items: "{{ configs_templates }}"
+  tags: secgroup
+
+- name: update controller configs
+  shell: '[ -f {{ item.1 }} ] && crudini --merge {{ item.1 }} < /opt/os_templates/{{ item.0.src }} || /bin/true'
+  tags: secgroup
+  with_subelements:
+    - configs_templates
+    - dest
+  notify: restart controller relation service
+  when: inventory_hostname in "{{ groups['controller'] }}"
+
+- name: update compute configs
+  shell: '[ -f {{ item.1 }} ] && crudini --merge {{ item.1 }} < /opt/os_templates/{{ item.0.src }} || /bin/true'
+  tags: secgroup
+  with_subelements:
+    - configs_templates
+    - dest
+  notify: restart compute relation service
+  when: inventory_hostname in "{{ groups['compute'] }}"

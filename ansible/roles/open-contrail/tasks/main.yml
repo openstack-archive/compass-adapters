@@ -1,0 +1,151 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+
+- include_vars: "{{ ansible_os_family }}.yml"
+
+- name: backup rabbitmq-server
+  shell: cp /etc/init.d/rabbitmq-server /home/rabbitmq-server
+  when: inventory_hostname in groups['opencontrail']
+
+- name: Disable Service Daemon
+  shell: if [ -f “\/opt\/service” ] ; then mv /opt/service /opt/service.bak ; fi
+  when: groups['opencontrail']|length !=0
+
+- name: Install common on all hosts for Open Contrail
+  include: install/install-common.yml
+  when: groups['opencontrail']|length !=0
+  # Compass install OpenStack with not only OpenContrail but also ODL or ONOS, and sometimes user just installs OpenStack, so item 'opencontrail_control' is kind of a mark that whether Compass install OpenContrail or not.
+
+#- name: Install kernal on all hosts for Open Contrail
+#  include: install/install-kernel.yml
+#  when: groups['opencontrail_control']|length !=0
+
+- name: Install database for Open Contrail
+  include: install/install-database.yml
+  when: inventory_hostname in groups['opencontrail']
+
+- name: Install config for Open Contrail
+  include: install/install-config.yml
+  when: inventory_hostname in groups['opencontrail']
+
+- name: Install config for Open Contrail
+  include: install/install-control.yml
+  when: inventory_hostname in groups['opencontrail']
+
+- name: Install collector for Open Contrail
+  include: install/install-collector.yml
+  when: inventory_hostname in groups['opencontrail']
+
+- name: Install webui for Open Contrail
+  include: install/install-webui.yml
+  when: inventory_hostname in groups['opencontrail']
+
+- name: Install compute for Open Contrail
+  include: install/install-compute.yml
+  when: groups['opencontrail']|length !=0 and inventory_hostname not in groups['opencontrail']
+# or inventory_hostname in groups['opencontrail_tsn']
+
+
+# change vhost0 on eth1
+#- name: Install interface on all hosts for Open Contrail
+#  include: install/install-interface.yml
+#  when: groups['opencontrail']|length !=0
+
+#- include: install/install-common.yml
+#- include: install/install-kernel.yml
+#- include: install/install-database.yml
+#- include: install/install-config.yml
+#- include: install/install-control.yml
+#- include: install/install-collector.yml
+#- include: install/install-webui.yml
+#- include: install/install-compute.yml
+#- include: install/install-interface.yml
+
+
+#- name: Provision route on all hosts for Open Contrail
+#  include: provision/provision-route.yml
+#  when: groups['opencontrail_control']|length !=0
+
+
+- name: Provision RabbitMQ on OpenContrail config nodes
+  include: provision/provision-rabbitmq.yml
+  when: inventory_hostname in groups['opencontrail']
+
+- name: Provision increase limits for Open Contrail
+  include: provision/provision-increase-limits.yml
+  when: inventory_hostname in groups['opencontrail'] 
+#or inventory_hostname in groups['opencontrail_config'] or inventory_hostname in groups['opencontrail_collector'] or inventory_hostname in groups['opencontrail_database']
+
+
+- name: Provision database for Open Contrail
+  include: provision/provision-database.yml
+  when: inventory_hostname in groups['opencontrail']
+
+
+- name: Provision config for Open Contrail
+  include: provision/provision-config.yml
+  when: inventory_hostname in groups['opencontrail']
+
+- name: Provision control for Open Contrail
+  include: provision/provision-control.yml
+  when: inventory_hostname in groups['opencontrail']
+
+
+- name: Provision collector for Open Contrail
+  include: provision/provision-collector.yml
+  when: inventory_hostname in groups['opencontrail']
+
+
+- name: Provision add nodes for Open Contrail
+  include: provision/provision-add-nodes.yml
+  when: inventory_hostname in groups['opencontrail']
+
+
+- name: Provision webui for Open Contrail
+  include: provision/provision-webui.yml
+  when: inventory_hostname in groups['opencontrail']
+
+
+- name: Provision compute for Open Contrail
+  include: provision/provision-compute.yml
+  when: groups['opencontrail']|length !=0 and inventory_hostname not in groups['opencontrail']
+
+- name: Remove openvswitch on compute
+  include: uninstall-openvswitch.yml
+  when: groups['opencontrail']|length !=0 and inventory_hostname not in groups['opencontrail']
+
+- name: Config ext-net network
+  include: ext-net.yml
+
+- name: Enable Service Daemon
+  shell: if [ -f “\/opt\/service.bak” ] ; then mv /opt/service.bak /opt/service ; fi
+  when: groups['opencontrail']|length !=0
+
+#- name: Provision tsn for Open Contrail
+#  include: provision/provision-tsn.yml
+#  when: inventory_hostname in groups['opencontrail_tsn']
+
+
+#- name: Provision toragent for Open Contrail
+#  include: provision/provision-toragent.yml
+#  when: inventory_hostname in groups['opencontrail_tsn']
+
+#- include: provision/provision-route.yml
+#- include: provision/provision-rabbitmq.yml
+#- include: provision/provision-increase-limits.yml
+#- include: provision/provision-database.yml
+#- include: provision/provision-config.yml
+#- include: provision/provision-control.yml
+#- include: provision/provision-collector.yml
+#- include: provision/provision-add-nodes.yml
+#- include: provision/provision-webui.yml
+#- include: provision/provision-compute.yml
+#- include: provision/provision-tsn.yml
+#- include: provision/provision-toragent.yml

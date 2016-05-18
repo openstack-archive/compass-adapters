@@ -1,0 +1,67 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+- name: gen ceph fsid
+  shell: uuidgen
+  register: ceph_fsid
+  when: inventory_hostname in groups['ceph_adm']
+
+- name: gen ceph conf
+  local_action:
+    module: "template"
+    src: "ceph.j2"
+    dest: "/tmp/ceph.conf"
+  when: inventory_hostname in groups['ceph_adm']
+
+- name: "make directory for ceph config file"
+  file: path="/etc/ceph" state="directory"
+
+- name: copy ceph conf to dest mon node
+  copy: src="/tmp/ceph.conf" dest="/etc/ceph/ceph.conf"
+
+- name: install ceph-related packages
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present"
+  with_items:
+    - ceph
+
+- name: gen create monmap script
+  local_action: template src="create_monmap.j2" dest="/tmp/create_monmap.sh" mode=0755
+  when: inventory_hostname in groups['ceph_adm']
+
+- name: create monmap
+  script: /tmp/create_monmap.sh
+  when: inventory_hostname in groups['ceph_mon']
+
+- name: create mon.keyring
+  shell: "ceph-authtool --create-keyring /tmp/ceph.mon.keyring --gen-key -n mon. --cap mon 'allow *'"
+  when: inventory_hostname in groups['ceph_adm']
+
+- name: create admin.keyring
+  shell: "ceph-authtool --create-keyring /etc/ceph/ceph.client.admin.keyring --gen-key -n client.admin --set-uid=0 --cap mon 'allow *' --cap osd 'allow *' --cap mds 'allow'"
+  when: inventory_hostname in groups['ceph_adm']
+
+- name: Add the client.admin key to the ceph.mon.keyring
+  shell: "ceph-authtool /tmp/ceph.mon.keyring --import-keyring /etc/ceph/ceph.client.admin.keyring"
+  when: inventory_hostname in groups['ceph_adm']
+
+- name: fetch mon.keyring to local
+  fetch: src="/tmp/ceph.mon.keyring" dest="/tmp/ceph.mon.keyring" flat=yes
+  when: inventory_hostname in groups['ceph_adm']
+
+- name: fetch client.admin.keyring to local
+  fetch: src="/etc/ceph/ceph.client.admin.keyring" dest="/tmp/ceph.client.admin.keyring" flat=yes
+  when: inventory_hostname in groups['ceph_adm']
+
+- name: copy mon.keyring to remote nodes
+  copy: src="/tmp/ceph.mon.keyring" dest="/tmp/ceph.mon.keyring"
+
+- name: copy admin.keyring to remote nodes
+  copy: src="/tmp/ceph.client.admin.keyring" dest="/etc/ceph/ceph.client.admin.keyring"
+
+
+- meta: flush_handlers

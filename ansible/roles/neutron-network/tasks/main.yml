@@ -1,4 +1,14 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
 ---
+- include_vars: "{{ ansible_os_family }}.yml"
+
 - name: activate ipv4 forwarding
   sysctl: name=net.ipv4.ip_forward value=1
           state=present reload=yes
@@ -11,80 +21,6 @@
   sysctl: name=net.ipv4.conf.default.rp_filter
           value=0 state=present reload=yes
 
-- name: install neutron network related packages
-  apt: name={{ item }} state=present force=yes
-  with_items:
-    - neutron-plugin-ml2
-    - openvswitch-datapath-dkms
-    - openvswitch-switch
-    - neutron-l3-agent
-    - neutron-dhcp-agent
-
-- name: install neutron openvswitch agent
-  apt: name=neutron-plugin-openvswitch-agent
-       state=present force=yes
-  when: "'openvswitch' in {{ NEUTRON_MECHANISM_DRIVERS }}"
-
-- name: config neutron
-  template: src=neutron-network.conf
-            dest=/etc/neutron/neutron.conf backup=yes
-  notify:
-    - restart neutron-plugin-openvswitch-agent
-    - restart neutron-l3-agent
-    - kill dnsmasq
-    - restart neutron-dhcp-agent
-    - restart neutron-metadata-agent
-
-- name: config l3 agent
-  template: src=l3_agent.ini dest=/etc/neutron/l3_agent.ini
-            backup=yes
-  notify:
-    - restart neutron-l3-agent
-
-- name: config dhcp agent
-  template: src=dhcp_agent.ini dest=/etc/neutron/dhcp_agent.ini
-            backup=yes
-  notify:
-    - kill dnsmasq
-    - restart neutron-dhcp-agent
-
-- name: update dnsmasq-neutron.conf
-  template: src=dnsmasq-neutron.conf
-            dest=/etc/neutron/dnsmasq-neutron.conf
-  notify:
-    - kill dnsmasq
-    - restart neutron-dhcp-agent
-
-- name: config metadata agent
-  template: src=metadata_agent.ini
-            dest=/etc/neutron/metadata_agent.ini backup=yes
-  notify:
-    - restart neutron-metadata-agent
-
-- name: config ml2 plugin
-  template: src=ml2_conf.ini
-            dest=/etc/neutron/plugins/ml2/ml2_conf.ini
-            backup=yes
-  notify:
-    - restart neutron-plugin-openvswitch-agent
-
-- meta: flush_handlers
-
-- name: add br-int
-  openvswitch_bridge: bridge=br-int state=present
-
-- name: add br-ex
-  openvswitch_bridge: bridge=br-ex state=present 
-  when: "'openvswitch' in {{ NEUTRON_MECHANISM_DRIVERS }}"
-
-- name: assign a port to br-ex for physical ext interface
-  openvswitch_port: bridge=br-ex port={{ INTERFACE_NAME }}
-                    state=present
-  when: "'openvswitch' in {{ NEUTRON_MECHANISM_DRIVERS }}"
-
-- include: igmp-router.yml
-  when: "'vxlan' in {{ NEUTRON_TUNNEL_TYPES }}"
-
 - name: assert kernel support for vxlan
   command: modinfo -F version vxlan
   when: "'vxlan' in {{ NEUTRON_TUNNEL_TYPES }}"
@@ -95,10 +31,81 @@
   failed_when: iproute_out.rc == 255
   when: "'vxlan' in {{ NEUTRON_TUNNEL_TYPES }}"
 
+- name: disable auto start
+  copy:
+    content: "#!/bin/sh\nexit 101"
+    dest: "/usr/sbin/policy-rc.d"
+    mode: 0755
+  when: ansible_os_family == "Debian"
+
+- name: install neutron network related packages
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present"
+  with_items: packages | union(packages_noarch)
+
+- name: enable auto start
+  file:
+    path=/usr/sbin/policy-rc.d
+    state=absent
+  when: ansible_os_family == "Debian"
+
+- name: generate neutron network service list
+  lineinfile: dest=/opt/service create=yes line='{{ item }}'
+  with_items: services | union(services_noarch)
+
+- name: fix openstack neutron plugin config file
+  shell: |
+    sed -i 's,plugins/openvswitch/ovs_neutron_plugin.ini,plugin.ini,g' /usr/lib/systemd/system/neutron-openvswitch-agent.service
+    systemctl daemon-reload
+  when: ansible_os_family == 'RedHat'
+
+- name: config l3 agent
+  template: src=l3_agent.ini dest=/etc/neutron/l3_agent.ini
+            backup=yes
+
+- name: config dhcp agent
+  template: src=dhcp_agent.ini dest=/etc/neutron/dhcp_agent.ini
+            backup=yes
+
+- name: update dnsmasq-neutron.conf
+  template: src=templates/dnsmasq-neutron.conf
+            dest=/etc/neutron/dnsmasq-neutron.conf
+
+- name: config metadata agent
+  template: src=metadata_agent.ini
+            dest=/etc/neutron/metadata_agent.ini backup=yes
+
+- name: config ml2 plugin
+  template: src=templates/ml2_conf.ini
+            dest=/etc/neutron/plugins/ml2/ml2_conf.ini
+            backup=yes
+
+- name: ln plugin.ini
+  file: src=/etc/neutron/plugins/ml2/ml2_conf.ini dest=/etc/neutron/plugin.ini state=link
+
+- name: config neutron
+  template: src=templates/neutron.conf
+            dest=/etc/neutron/neutron.conf backup=yes
+
+- name: force mtu to 1450 for vxlan
+  lineinfile:
+    dest: /etc/neutron/dnsmasq-neutron.conf
+    regexp: '^dhcp-option-force'
+    line: 'dhcp-option-force=26,1450'
+  when: "'vxlan' in {{ NEUTRON_TUNNEL_TYPES }}"
+
+- include: firewall.yml
+  when: enable_fwaas == True
+
+- include: vpn.yml
+  when: enable_vpnaas == True
+
 - include: odl.yml
   when: "'opendaylight' in {{ NEUTRON_MECHANISM_DRIVERS }}"
 
-- name: restart ovs service
-  service: name=openvswitch-switch state=restarted
+- name: restart neutron network relation service
+  service: name={{ item }} state=restarted enabled=yes
+  with_flattened:
+    - services_noarch
+    - services
 
 - meta: flush_handlers

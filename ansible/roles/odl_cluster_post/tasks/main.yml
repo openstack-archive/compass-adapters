@@ -1,0 +1,8 @@
+---
+- name: restart opendaylight
+  shell: sleep 60; service opendaylight restart; sleep 300;
+  when: inventory_hostname in groups['odl']
+
+- name: add service daemon
+  shell: echo opendaylight >> /opt/service ;
+  when: inventory_hostname in groups['odl']

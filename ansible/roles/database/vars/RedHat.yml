@@ -1,0 +1,46 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+mysql_packages:
+  - MySQL-python
+  - mysql-server
+
+maridb_packages:
+  - MySQL-python
+  - MariaDB-Galera-server
+  - MariaDB-client
+  - galera
+  - MySQL-python
+
+mongodb_packages:
+  - mongo-10gen-server
+  - mongo-10gen
+
+pip_packages:
+  - pymongo
+
+services: []
+
+mongodb_service: mongod
+
+mysql_config:
+  - dest: /etc/my.cnf
+    src: my.cnf
+  - dest: /etc/my.cnf.d/wsrep.cnf
+    src: wsrep.cnf
+
+mysql_config_dir: /etc/my.cnf.d
+mysql_data_dir: /var/lib/mysql
+
+mongodb_config:
+  dest: /etc/mongod.conf
+  src: mongodb.conf
+  journal: /var/lib/mongo/journal/*
+
+wsrep_provider_file: "/usr/lib64/galera/libgalera_smm.so"

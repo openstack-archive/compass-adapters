@@ -1,0 +1,60 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: all 
+#  sudo: yes
+#  tasks:
+
+- name: "install Ubuntu kernel"
+#  sudo: True
+#      apt:
+#        name: "linux-headers-3.13.0-40"
+#        name: "linux-headers-3.13.0-40-generic"
+#        name: "linux-image-3.13.0-40-generic"
+#        name: "linux-image-extra-3.13.0-40-generic"
+#      when: (kernel_install) and (ansible_kernel != "3.13.0-40-generic")
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present force=yes"
+  with_items: kernel_package | union(kernel_package_noarch)
+  when: (kernel_install) and (ansible_kernel != kernel_required)
+
+- name: "setup grub"
+#  sudo: True
+  lineinfile: 
+    dest: "/etc/default/grub"
+    regexp: "GRUB_DEFAULT=.*"
+    line: "GRUB_DEFAULT='Advanced options for Ubuntu>Ubuntu, with Linux 3.13.0-40-generic'"
+#      when: (kernel_install) and (ansible_kernel != "3.13.0-40-generic")
+  when: (kernel_install) and (ansible_kernel != kernel_required)
+
+- name: "reflect grub"
+#  sudo: True
+  shell: "update-grub2"
+#      when: (kernel_install) and (ansible_kernel != "3.13.0-40-generic")
+  when: (kernel_install) and (ansible_kernel != kernel_required)
+
+- name: "reboot Server"
+#  sudo: True
+  shell: "shutdown -r now"
+  async: 0
+  poll: 0
+  ignore_errors: true
+  notify: Wait for server to come back
+#      when: (kernel_install) and (ansible_kernel != "3.13.0-40-generic")
+  when: (kernel_install) and (ansible_kernel != kernel_required)
+
+#  handlers:
+- name: "Wait for server to come back"
+  local_action:
+    module: wait_for
+      host={{ inventory_hostname }}
+      port=22
+      delay=30
+      timeout=600
+#      when: (kernel_install) and (ansible_kernel != "3.13.0-40-generic")
+  when: (kernel_install) and (ansible_kernel != kernel_required)

@@ -1,0 +1,55 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- name: copy mongo js
+  template:
+    src: '{{ item.src }}'
+    dest: '{{ item.dest }}'
+  with_items:
+    - src: replica.js
+      dest: /opt/replica.js
+
+- name: init replica servers
+  shell: mongo compass /opt/replica.js
+
+- name: wait replica servers are ready
+  shell: mongo compass --eval 'printjson(rs.status())'|grep -E 'PRIMARY|SECONDARY'|wc -l
+  register: servers
+  until: servers.stdout|int == {{ haproxy_hosts|length }}
+  retries: 60
+  delay: 10
+
+- debug: msg='{{ servers.stdout |int }}'
+
+- name: wait replica servers are ready
+  shell: mongo compass --eval 'printjson(rs.status())'|grep -E 'PRIMARY'|wc -l
+  register: servers
+  until: servers.stdout|int == 1
+  retries: 60
+  delay: 10
+
+- debug: msg='{{ servers.stdout |int }}'
+
+- name: create mongodb user and db
+  mongodb_user:
+    login_host: "{{ internal_vip.ip }}"
+    database: ceilometer
+    name: ceilometer
+    password: "{{ CEILOMETER_DBPASS }}"
+    roles: 'readWrite,dbAdmin'
+    state: present
+
+- name: grant user privilege
+  mongodb_user:
+    login_host: "{{ internal_vip.ip }}"
+    database: ceilometer
+    name: ceilometer
+    password: "{{ CEILOMETER_DBPASS }}"
+    roles: 'readWrite,dbAdmin'
+    state: present

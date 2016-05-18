@@ -1,0 +1,33 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+
+- name: fix openstack neutron plugin config file
+  shell: |
+    sed -i 's,plugins/ml2/openvswitch_agent.ini,plugin.ini,g' /usr/lib/systemd/system/neutron-openvswitch-agent.service
+    systemctl daemon-reload
+  when: ansible_os_family == 'RedHat'
+
+- name: neutron-db-manage upgrade to Juno
+  shell: neutron-db-manage --config-file=/etc/neutron/neutron.conf --config-file=/etc/neutron/plugins/ml2/ml2_conf.ini upgrade head
+  register: result
+  run_once: True
+  until: result.rc == 0
+  retries: 5
+  delay: 3
+  notify:
+    - restart neutron control services
+
+- name: restart first neutron-server
+  service: name=neutron-server state=restarted enabled=yes
+
+- name: restart other neutron-server
+  service: name=neutron-server state=restarted enabled=yes
+
+- meta: flush_handlers

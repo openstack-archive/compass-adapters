@@ -1,0 +1,59 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- name: get cluster status
+  shell: mysql --silent --skip-column-names -e 'SHOW STATUS LIKE "wsrep_evs_state"'|awk '{print $2}'
+  register: cluster_status
+  when:
+    - inventory_hostname == haproxy_hosts.keys()[0]
+
+- name: start first node to create new cluster
+  shell: service mysql start --wsrep-new-cluster
+  when: |
+    inventory_hostname == haproxy_hosts.keys()[0]
+    and not cluster_status.stdout | search("OPERATIONAL")
+
+- name: wait for cluster ready
+  shell: mysql --silent --skip-column-names -e 'SHOW STATUS LIKE "wsrep_evs_state"'|awk '{print $2}'  
+  register: cluster_status
+  until: cluster_status|success
+  failed_when: not cluster_status.stdout | search("OPERATIONAL")
+  retries: 10
+  delay: 3
+  when: |
+    inventory_hostname == haproxy_hosts.keys()[0]
+    and not cluster_status.stdout | search("OPERATIONAL")
+
+- name: if I in the cluster nodes
+  shell: mysql --silent --skip-column-names -e 'SHOW STATUS LIKE "wsrep_incoming_addresses"'|awk '{print $2}'
+  register: cluster_nodes
+  changed_when: false
+
+- name: restart other nodes and join cluster
+  service:
+    name: mysql
+    state: restarted
+    enabled: yes
+  when: |
+    inventory_hostname != haproxy_hosts.keys()[0]
+    and not cluster_nodes.stdout | search( "{{ internal_ip }}")
+
+- name: remove unused user
+  script: remove_user.sh
+  when: ansible_os_family == "RedHat"
+
+- name: restart first nodes
+  service:
+    name: mysql
+    state: restarted
+  when: |
+    inventory_hostname == haproxy_hosts.keys()[0] 
+    and haproxy_hosts|length > 1
+
+

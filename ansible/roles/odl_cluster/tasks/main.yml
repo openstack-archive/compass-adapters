@@ -1,0 +1,21 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- include_vars: "{{ ansible_os_family }}.yml"
+  tags:
+    - test_odl
+
+- name: Install ODL Cluster on Controller
+  include: odl_controller.yml
+  when: inventory_hostname in groups['odl']
+
+- name: Install ODL Cluster on Compute
+  include: openvswitch.yml
+  when: groups['odl']|length !=0 and inventory_hostname not in groups['odl']
+

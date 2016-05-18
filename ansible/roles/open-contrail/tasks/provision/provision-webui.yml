@@ -1,0 +1,74 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: webui
+#  sudo: yes
+#  tasks:
+
+- name: "enable supervisor webui"
+  file:
+    path: "/etc/init/supervisor-webui.override"
+    state: "absent"
+
+- name: "redis-setup"
+  include: -redis-setup.yml
+
+- name: "node-common"
+  include: -node-common.yml
+
+- name: "set first cassandra host address"
+  set_fact:
+#    cassandra_addrs: "'{{ hostvars[item.1]['contrail_address'] }}'"
+    cassandra_addrs: "'{{ ip_settings[item.1]['br-prv']['ip'] }}'"
+  with_indexed_items: groups['opencontrail']
+  when: item.0 == 0
+
+- name: "set second or more cassandra host addresses"
+  set_fact:
+#    cassandra_addrs: "{{ cassandra_addrs }}, '{{ hostvars[item.1]['contrail_address'] }}'"
+    cassandra_addrs: "{{ cassandra_addrs }}, '{{ ip_settings[item.1]['br-prv']['ip'] }}'"
+  with_indexed_items: groups['opencontrail']
+  when: item.0 > 0
+
+- name: "modify webui global js"
+  lineinfile:
+    dest: "/etc/contrail/config.global.js"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - { regexp: "^\\s*config.networkManager.ip", line: "config.networkManager.ip = '{{ contrail_haproxy_address }}';" }
+    - { regexp: "^\\s*config.imageManager.ip", line: "config.imageManager.ip = '{{ contrail_keystone_address }}';" }
+    - { regexp: "^\\s*config.computeManager.ip", line: "config.computeManager.ip = '{{ contrail_keystone_address }}';" }
+    - { regexp: "^\\s*config.identityManager.ip", line: "config.identityManager.ip = '{{ contrail_keystone_address }}';" }
+    - { regexp: "^\\s*config.storageManager.ip", line: "config.storageManager.ip = '{{ contrail_keystone_address }}';" }
+    - { regexp: "^\\s*config.cnfg.server_ip", line: "config.cnfg.server_ip = '{{ contrail_haproxy_address }}';" }
+    - { regexp: "^\\s*config.analytics.server_ip", line: "config.analytics.server_ip = '{{ contrail_haproxy_address }}';" }
+    - { regexp: "^\\s*config.cassandra.server_ips", line: "config.cassandra.server_ips = [{{ cassandra_addrs }}];" }
+
+- name: "modify webui userauth js"
+  lineinfile:
+    dest: "/etc/contrail/contrail-webui-userauth.js"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - { regexp: "^\\s*auth.admin_user", line: "auth.admin_user = '{{ contrail_admin_user }}';" }
+    - { regexp: "^\\s*auth.admin_password", line: "auth.admin_password = '{{ contrail_admin_password }}';" }
+    - { regexp: "^\\s*auth.admin_tenant_name", line: "auth.admin_tenant_name = 'admin';" }
+
+- name: "create symbolic link from nodejs to node"
+  file:
+    src: "/usr/bin/node"
+    dest: "/usr/bin/nodejs"
+    state: "link"
+
+- name: "restart supervisor webui"
+  service:
+    name: "supervisor-webui"
+    state: "restarted"
+

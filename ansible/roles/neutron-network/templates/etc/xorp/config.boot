@@ -1,6 +1,6 @@
 interfaces {
     restore-original-config-on-shutdown: false
-    interface {{ hostvars[inventory_hostname][neutron_vxlan_interface|default(internal_interface)]['device'] }} {
+    interface {{ internal_nic }} {
         description: "Internal pNodes interface"
         disable: false
         default-system-config
@@ -10,8 +10,8 @@ interfaces {
 protocols {
     igmp {
         disable: false
-        interface {{ hostvars[inventory_hostname][neutron_vxlan_interface|default(internal_interface)]['device'] }} {
-            vif {{ hostvars[inventory_hostname][neutron_vxlan_interface|default(internal_interface)]['device'] }} {
+        interface {{ internal_nic }} {
+            vif {{ internal_nic }} {
                 disable: false
                 version: 3
             }

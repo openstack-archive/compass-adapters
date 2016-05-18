@@ -1,0 +1,128 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- name: get http server
+  shell: awk -F'=' '/compass_server/ {print $2}' /etc/compass.conf
+  register: http_server
+
+- name: creat tacker_home, tacker_client_home, tacker_horizon_home
+  shell: >
+    mkdir -p /opt/tacker
+    mkdir -p /opt/tacker_client
+    mkdir -p /opt/tacker_horizon
+
+- name: download tacker package
+  get_url: url="http://{{ http_server.stdout_lines[0] }}/packages/tacker/{{ tacker_pkg_name }}"  dest=/opt/{{ tacker_pkg_name }}
+
+- name: download tacker_client package
+  get_url: url="http://{{ http_server.stdout_lines[0] }}/packages/tacker/{{ tacker_client_pkg_name }}"  dest=/opt/{{ tacker_client_pkg_name }}
+
+- name: download tacker_horizon package
+  get_url: url="http://{{ http_server.stdout_lines[0] }}/packages/tacker/{{ tacker_horizon_pkg_name }}"  dest=/opt/{{ tacker_horizon_pkg_name }}
+
+- name: extract tacker package
+  command: su -s /bin/sh -c "tar xzf /opt/{{ tacker_pkg_name }} -C {{ tacker_home }} --strip-components 1 --no-overwrite-dir -k --skip-old-files"
+
+- name: extract tacker_client package
+  command: su -s /bin/sh -c "tar xzf /opt/{{ tacker_client_pkg_name }} -C {{ tacker_client_home }} --strip-components 1 --no-overwrite-dir -k --skip-old-files"
+
+- name: extract tacker_horizon package
+  command: su -s /bin/sh -c "tar xzf /opt/{{ tacker_horizon_pkg_name }} -C {{ tacker_horizon_home }} --strip-components 1 --no-overwrite-dir -k --skip-old-files"
+
+- name: edit ml2_conf.ini
+  shell: crudini --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 extension_drivers port_security;
+
+- name: Restart neutron-server
+  service: name=neutron-server state=restarted
+
+- name: "create haproxy configuration for tacker"
+  template:
+    src: "haproxy-tacker-cfg.j2"
+    dest: "/tmp/haproxy-tacker.cfg"
+
+- name: "combination of the haproxy configuration"
+  shell: "cat /tmp/haproxy-tacker.cfg >> /etc/haproxy/haproxy.cfg"
+
+- name: "delete temporary configuration file"
+  file:
+    dest: "/tmp/haproxy-tacker.cfg"
+    state: "absent"
+
+- name: "restart haproxy"
+  service:
+    name: "haproxy"
+    state: "restarted"
+
+- name: drop and recreate tacker database
+  shell: mysql -e "drop database if exists tacker;";
+         mysql -e "create database tacker character set utf8;";
+         mysql -e "grant all on tacker.* to 'tacker'@'%' identified by 'TACKER_DBPASS';";
+  when: inventory_hostname == haproxy_hosts.keys()[0]
+
+- name: create tacker user with admin privileges
+  shell: . /opt/admin-openrc.sh; openstack user create --password console tacker; openstack role add --project service --user tacker admin;
+  when: inventory_hostname == haproxy_hosts.keys()[0]
+
+- name: creat tacker service
+  shell: >
+    . /opt/admin-openrc.sh; openstack service create --name tacker --description "Tacker Project" nfv-orchestration
+  when: inventory_hostname == haproxy_hosts.keys()[0]
+
+- name: provide an endpoint to tacker service
+  shell: >
+    . /opt/admin-openrc.sh; openstack endpoint create --region regionOne \
+        --publicurl 'http://{{ public_vip.ip }}:8888/' \
+        --adminurl 'http://{{ internal_vip.ip }}:8888/' \
+        --internalurl 'http://{{ internal_vip.ip }}:8888/' tacker
+  when: inventory_hostname == haproxy_hosts.keys()[0]
+
+- name: install tacker
+  shell: >
+    . /opt/admin-openrc.sh; pip install tosca-parser; cd {{ tacker_home }}; python setup.py install
+
+# - name: create 'tacker' directory in '/var/cache', set ownership and permissions
+#   shell: >
+#   sudo mkdir /var/cache/tacker
+#   sudo chown <LOGIN_USER>:root /var/cache/tacker
+#   sudo chmod 700 /var/cache/tacker
+
+- name: create 'tacker' directory in '/var/log'
+  shell: mkdir -p /var/log/tacker
+
+- name: copy tacker configs
+  template: src={{ item.src }} dest=/opt/os_templates
+  with_items: "{{ tacker_configs_templates }}"
+
+- name: edit tacker configuration file
+  shell: crudini --merge /usr/local/etc/tacker/tacker.conf < /opt/os_templates/tacker.j2
+
+#- name: populate tacker database
+#  shell: >
+#    . /opt/admin-openrc.sh; /usr/local/bin/tacker-db-manage --config-file /usr/local/etc/tacker/tacker.conf upgrade head
+
+- name: install tacker client
+  shell: >
+    . /opt/admin-openrc.sh; cd {{ tacker_client_home }}; python setup.py install
+
+- name: install tacker horizon
+  shell: >
+    . /opt/admin-openrc.sh; cd {{ tacker_horizon_home }}; python setup.py install
+
+- name: enable tacker horizon in dashboard
+  shell: >
+    cp {{ tacker_horizon_home }}/openstack_dashboard_extensions/* /usr/share/openstack-dashboard/openstack_dashboard/enabled/
+
+- name: restart apache server
+  shell: service apache2 restart
+
+- name: launch tacker-server
+  shell: >
+    . /opt/admin-openrc.sh; python /usr/local/bin/tacker-server --config-file /usr/local/etc/tacker/tacker.conf --log-file /var/log/tacker/tacker.log
+  async: 9999999999999
+  poll: 0

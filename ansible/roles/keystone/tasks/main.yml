@@ -1,36 +1,23 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
 ---
-- name: install keystone packages
-  apt: name=keystone state=present force=yes
+- include: keystone_install.yml
+  tags:
+    - install
+    - keystone_install
+    - keystone
 
-- name: update keystone conf
-  template: src=keystone.conf dest=/etc/keystone/keystone.conf backup=yes
-  notify: restart keystone
+- include: keystone_config.yml
+  when: inventory_hostname == groups['controller'][0]
+  tags:
+    - config
+    - keystone_config
+    - keystone
 
-- name: delete sqlite database
-  shell: rm /var/lib/keystone/keystone.db || echo sqllite database already removed
-
-- name: manually stop keystone once
-  service: name=keystone state=stopped
-
-- name: keystone-manage db-sync
-  shell: su -s /bin/sh -c "keystone-manage db_sync"
-
-- name: cron job to purge expired tokens hourly
-  shell: (crontab -l -u keystone 2>&1 | grep -q token_flush) || echo '@hourly /usr/bin/keystone-manage token_flush > /var/log/keystone/keystone-tokenflush.log 2>&1' >> /var/spool/cron/crontabs/keystone
-
-- name: manually start keystone
-  service: name=keystone state=started
-
-- name: place keystone init script under /opt/
-  template: src=keystone_init dest=/opt/keystone_init mode=0744
-
-- name: run keystone_init
-  shell: /opt/keystone_init && touch keystone_init_complete || keystone_init_failed
-  args:
-    creates: keystone_init_complete 
-
-- name: keystone source files
-  template: src={{ item }} dest=/opt/{{ item }}
-  with_items:
-    - admin-openrc.sh
-    - demo-openrc.sh
+- meta: flush_handlers

@@ -1,0 +1,164 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+packages_noarch:
+  - python-keystoneclient
+
+services_noarch: []
+os_services:
+  - name: keystone
+    type: identity
+    region: regionOne
+    description: "OpenStack Identity"
+    publicurl: "http://{{ public_vip.ip }}:5000/v2.0"
+    internalurl: "http://{{ internal_vip.ip }}:5000/v2.0"
+    adminurl: "http://{{ internal_vip.ip }}:35357/v2.0"
+
+  - name: glance
+    type: image
+    region: regionOne
+    description: "OpenStack Image Service"
+    publicurl: "http://{{ public_vip.ip }}:9292"
+    internalurl: "http://{{ internal_vip.ip }}:9292"
+    adminurl: "http://{{ internal_vip.ip }}:9292"
+
+  - name: nova
+    type: compute
+    region: regionOne
+    description: "OpenStack Compute"
+    publicurl: "http://{{ public_vip.ip }}:8774/v2/%(tenant_id)s"
+    internalurl: "http://{{ internal_vip.ip }}:8774/v2/%(tenant_id)s"
+    adminurl: "http://{{ internal_vip.ip }}:8774/v2/%(tenant_id)s"
+
+  - name: neutron
+    type: network
+    region: regionOne
+    description: "OpenStack Networking"
+    publicurl: "http://{{ public_vip.ip }}:9696"
+    internalurl: "http://{{ internal_vip.ip }}:9696"
+    adminurl: "http://{{ internal_vip.ip }}:9696"
+
+  - name: ceilometer
+    type: metering
+    region: regionOne
+    description: "OpenStack Telemetry"
+    publicurl: "http://{{ public_vip.ip }}:8777"
+    internalurl: "http://{{ internal_vip.ip }}:8777"
+    adminurl: "http://{{ internal_vip.ip }}:8777"
+
+  - name: aodh
+    type: alarming
+    region: regionOne
+    description: "OpenStack Telemetry"
+    publicurl: "http://{{ public_vip.ip }}:8042"
+    internalurl: "http://{{ internal_vip.ip }}:8042"
+    adminurl: "http://{{ internal_vip.ip }}:8042"
+
+  - name: cinder
+    type: volume
+    region: regionOne
+    description: "OpenStack Block Storage"
+    publicurl: "http://{{ public_vip.ip }}:8776/v1/%(tenant_id)s"
+    internalurl: "http://{{ internal_vip.ip }}:8776/v1/%(tenant_id)s"
+    adminurl: "http://{{ internal_vip.ip }}:8776/v1/%(tenant_id)s"
+
+  - name: cinderv2
+    type: volumev2
+    region: regionOne
+    description: "OpenStack Block Storage v2"
+    publicurl: "http://{{ public_vip.ip }}:8776/v2/%(tenant_id)s"
+    internalurl: "http://{{ internal_vip.ip }}:8776/v2/%(tenant_id)s"
+    adminurl: "http://{{ internal_vip.ip }}:8776/v2/%(tenant_id)s"
+
+  - name: heat
+    type: orchestration
+    region: regionOne
+    description: "OpenStack Orchestration"
+    publicurl: "http://{{ public_vip.ip }}:8004/v1/%(tenant_id)s"
+    internalurl: "http://{{ internal_vip.ip }}:8004/v1/%(tenant_id)s"
+    adminurl: "http://{{ internal_vip.ip }}:8004/v1/%(tenant_id)s"
+
+  - name: heat-cfn
+    type: cloudformation
+    region: regionOne
+    description: "OpenStack CloudFormation Orchestration"
+    publicurl: "http://{{ public_vip.ip }}:8000/v1"
+    internalurl: "http://{{ internal_vip.ip }}:8000/v1"
+    adminurl: "http://{{ internal_vip.ip }}:8000/v1"
+
+os_users:
+  - user: admin
+    password: "{{ ADMIN_PASS }}"
+    email: admin@admin.com
+    role: admin
+    tenant: admin
+    tenant_description: "Admin Tenant"
+
+  - user: glance
+    password: "{{ GLANCE_PASS }}"
+    email: glance@admin.com
+    role: admin
+    tenant: service
+    tenant_description: "Service Tenant"
+
+  - user: nova
+    password: "{{ NOVA_PASS }}"
+    email: nova@admin.com
+    role: admin
+    tenant: service
+    tenant_description: "Service Tenant"
+
+  - user: keystone
+    password: "{{ KEYSTONE_PASS }}"
+    email: keystone@admin.com
+    role: admin
+    tenant: service
+    tenant_description: "Service Tenant"
+
+  - user: neutron
+    password: "{{ NEUTRON_PASS }}"
+    email: neutron@admin.com
+    role: admin
+    tenant: service
+    tenant_description: "Service Tenant"
+
+  - user: ceilometer
+    password: "{{ CEILOMETER_PASS }}"
+    email: ceilometer@admin.com
+    role: admin
+    tenant: service
+    tenant_description: "Service Tenant"
+
+  - user: cinder
+    password: "{{ CINDER_PASS }}"
+    email: cinder@admin.com
+    role: admin
+    tenant: service
+    tenant_description: "Service Tenant"
+
+  - user: aodh
+    password: "{{ AODH_PASS }}"
+    email: aodh@admin.com
+    role: admin
+    tenant: service
+    tenant_description: "Service Tenant"
+
+  - user: heat
+    password: "{{ HEAT_PASS }}"
+    email: heat@admin.com
+    role: admin
+    tenant: service
+    tenant_description: "Service Tenant"
+
+  - user: demo
+    password: ""
+    email: heat@demo.com
+    role: heat_stack_user
+    tenant: demo
+    tenant_description: "Demo Tenant"

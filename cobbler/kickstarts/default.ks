@@ -85,7 +85,7 @@ $SNIPPET('kickstart_pre_anamon')
 
 # Packages
 %packages --nobase
-@core 
+@core
 iproute
 ntp
 openssh-clients
@@ -93,10 +93,11 @@ wget
 yum-plugin-priorities
 json-c
 libestr
-libgt
-liblogging
 rsyslog
 parted
+vim
+lsof
+strace
 #if $os_version == "rhel7"
 net-tools
 #end if

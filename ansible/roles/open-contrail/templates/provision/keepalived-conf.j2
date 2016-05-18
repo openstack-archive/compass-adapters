@@ -1,0 +1,29 @@
+vrrp_script chk_haproxy {
+	script "killall -0 haproxy"
+	interval 1
+	timeout 3
+	rise 2
+	fall 2
+}
+
+vrrp_instance INTERNAL_1 {
+	interface {{ contrail_device }}
+	state MASTER
+	preemt_delay 7
+	grap_master_delay 5
+	grap_master_repeat 3
+	grap_master_refresh 1
+	advert_int 1
+	virtual_router_id 85
+	vmac_xmit_base
+	priority 10{{ item.0 }}
+	virtual_ipaddress {
+		{{ contrail_haproxy_address }} dev {{ contrail_device }}
+	}
+	track_script {
+		chk_haproxy
+	}
+	track_interface {
+		{{ contrail_device }}
+	}
+}

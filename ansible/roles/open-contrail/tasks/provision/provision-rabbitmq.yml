@@ -1,0 +1,87 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: config
+#  sudo: yes
+#  tasks:
+- name: turn off rabbitmq server on control node
+  shell: sed -i '/rabbitmq-server/d' /opt/service ;
+
+- name: "start supervisor support service"
+  service:
+    name: "supervisor-support-service"
+    state: "started"
+
+- name: "stop rabbitmq server via supervisor"
+  supervisorctl:
+    name: "rabbitmq-server"
+    state: "stopped"
+    server_url: "unix:///tmp/supervisord_support_service.sock"
+
+- include: -rabbitmq-stop.yml
+
+- name: "update hosts"
+  lineinfile:
+    dest: "/etc/hosts"
+    line: "{{ ip_settings[item]['br-prv']['ip'] }}\t{{ hostvars[item]['ansible_hostname'] }} {{ hostvars[item]['ansible_hostname'] }}-ctrl"
+  with_items: groups['opencontrail']
+
+- name: "fix up rabbitmq env"
+  template:
+    src: "../../templates/provision/rabbitmq-env-conf.j2"
+    dest: "/etc/rabbitmq/rabbitmq-env.conf"
+
+- name: "fix up rabbitmq config for single node"
+  template:
+    src: "../../templates/provision/rabbitmq-conf-single.j2"
+    dest: "/etc/rabbitmq/rabbitmq.config"
+  when: groups['opencontrail'][1] is not defined
+
+- name: fix up rabbitmq config for multi nodes
+  template:
+    src: "../../templates/provision/rabbitmq-conf.j2"
+    dest: "/etc/rabbitmq/rabbitmq.config"
+  when: groups['opencontrail'][1] is defined
+
+- include: -rabbitmq-stop.yml
+
+#- name: "create cookie uuid temporary"
+#  local_action:
+#    module: "template"
+#    src: "templates/rabbitmq-cookie.j2"
+#    dest: "/tmp/tmp-rabbitmq-cookie"
+#  run_once: yes
+#
+#- name: "update cookie uuid"
+#  copy:
+#    src: "/tmp/tmp-rabbitmq-cookie"
+#    dest: "/var/lib/rabbitmq/.erlang.cookie"
+#    owner: "rabbitmq"
+#    group: "rabbitmq"
+#    mode: 0400
+#
+#- name: "delete temporary cookie uuid"
+#  local_action:
+#    module: "file"
+#    dest: "/tmp/tmp-rabbitmq-cookie"
+#    state: "absent"
+#  run_once: yes
+
+- name: "start rabbitmq server"
+  service:
+    name: "rabbitmq-server"
+    state: "started"
+
+- name: add rabbitmq user
+  shell: >
+    rabbitmqctl add_user {{ RABBIT_USER }} {{ RABBIT_PASS }} ;
+    rabbitmqctl set_permissions {{ RABBIT_USER }} ".*" ".*" ".*" ;
+
+- name: "check rabbitmq server"
+  shell: netstat -lpen --tcp | grep beam |  grep 5672; while [ $? -ne 0 ]; do sleep 10; netstat -lpen --tcp | grep beam | grep 5672; done

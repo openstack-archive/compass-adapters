@@ -1,0 +1,104 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: all
+#  sudo: yes
+#  tasks:
+#- name: "copy contrail install package temporary"
+#  sudo: True
+#  copy:
+#    src: "{{ package }}"
+#    dest: "/tmp/{{ package }}"
+
+- name: get image http server
+  shell: awk -F'=' '/compass_server/ {print $2}' /etc/compass.conf
+  register: http_server
+
+- name: download OpenContrail package file
+  get_url: url="http://{{ http_server.stdout_lines[0] }}/packages/open-contrail/{{ package }}"  dest=/tmp/{{ package }}
+#"
+
+- name: "install contrail install package"
+#  sudo: True
+  apt:
+    deb: "/tmp/{{ package }}"
+    force: yes
+
+- name: "delete temporary contrail install package"
+#  sudo: True
+  file:
+      dest: "/tmp/{{ package }}"
+      state: "absent"
+
+- name: "make directory for contrail binary files"
+#  sudo: True
+  file:
+    path: "/opt/contrail/bin"
+    state: "directory"
+
+- name: "make directory for contrail repository"
+#  sudo: True
+  file:
+    path: "/opt/contrail/contrail_install_repo"
+    state: "directory"
+
+- name: "unarchive contrail packages"
+#  sudo: True
+  unarchive:
+    src: "/opt/contrail/contrail_packages/contrail_debs.tgz"
+    dest: "/opt/contrail/contrail_install_repo"
+    copy: no
+
+- name: "find required packages in advance"
+#  sudo: True
+  shell: "find /opt/contrail/contrail_install_repo -name binutils_*.deb -or -name make_*.deb -or -name libdpkg-perl_*.deb -or -name dpkg-dev_*.deb -or -name patch_*.deb -type f"
+  register: required_packages
+  changed_when: no
+
+- name: "install required packages"
+#  sudo: True
+  apt:
+    deb: "{{ item }}"
+    force: yes
+  with_items: required_packages.stdout_lines
+  ignore_errors: True
+
+- name: modify source list
+#  sudo: True
+  lineinfile:
+    dest: "/etc/apt/sources.list"
+    line: "deb file:/opt/contrail/contrail_install_repo ./"
+    insertbefore: "BOF"
+
+- name: "modify apt configuration"
+#  sudo: True
+  lineinfile:
+    dest: "/etc/apt/apt.conf"
+    line: "APT::Get::AllowUnauthenticated \"true\";"
+    create: "yes"
+
+- name: "copy apt preferences file"
+#  sudo: True
+  shell: "cp /opt/contrail/contrail_packages/preferences /etc/apt/preferences"
+  args:
+    creates: "/etc/apt/preferences"
+
+- name: create contrail packages list
+#  sudo: True
+  shell: "dpkg-scanpackages . | gzip -9c > Packages.gz"
+  args:
+    chdir: "/opt/contrail/contrail_install_repo"
+    creates: "Packages.gz"
+
+- name: install contrail setup package
+  sudo: True
+  apt:
+    name: "contrail-setup"
+    update_cache: yes
+    force: yes

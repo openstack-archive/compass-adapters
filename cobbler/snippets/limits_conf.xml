@@ -51,7 +51,7 @@
 #@faculty        hard    nproc           50
 #ftp             hard    nproc           0
 #@student        -       maxlogins       4
-*                -       nofile          100000 
+*                -       nofile          100000
 # End of file
 #end raw
 ]]>

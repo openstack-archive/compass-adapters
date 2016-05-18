@@ -1,0 +1,67 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- name: create all needed db
+  mysql_db: login_unix_socket=/var/run/mysqld/mysqld.sock name={{ item.db }}  state=present
+  with_items: "{{ credentials }}"
+  tags:
+    - test_db
+
+- name: create service db user
+  mysql_user:
+    login_unix_socket=/var/run/mysqld/mysqld.sock
+    name={{ item[0].user }}
+    password={{ item[0].password }}
+    priv=*.*:ALL,GRANT
+    host={{ item[1] }}
+    state=present
+  with_nested:
+    - "{{ credentials }}"
+    - ['%', 'localhost']
+  tags:
+    - test_user
+
+- name: create wsrep db user
+  mysql_user:
+    login_unix_socket=/var/run/mysqld/mysqld.sock
+    name={{ WSREP_SST_USER }}
+    password={{ WSREP_SST_PASS }}
+    priv=*.*:ALL,GRANT
+    host={{ item }}
+    state=present
+  with_items: ['%', 'localhost']
+
+- name: remove unused user
+  script: remove_user.sh
+  when: ansible_os_family == "RedHat"
+
+- name: restart first nodes
+  service:
+    name: mysql
+    state: restarted
+  when: inventory_hostname == haproxy_hosts.keys()[0] and haproxy_hosts|length > 1
+
+- name: wait for cluster ready
+  command: mysql -e"show status like 'wsrep%'"
+  register: cluster_status
+  until: cluster_status|success
+  failed_when: not cluster_status.stdout | search("ON")
+  retries: 10
+  delay: 3
+  when:
+    - inventory_hostname == haproxy_hosts.keys()[0]
+
+- name: restart other nodes
+  service:
+    name: mysql
+    state: restarted
+    enabled: yes
+  when:
+    - inventory_hostname != haproxy_hosts.keys()[0]
+

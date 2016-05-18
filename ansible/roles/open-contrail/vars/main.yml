@@ -1,0 +1,86 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#package: "contrail-install-packages_2.21-102~juno_all.deb" # mv to {os}.yml
+kernel_install: no
+#ansible_ssh_user: "root"
+#ansible_ssh_pass: "root"
+
+#contrail_keystone_address: "{{ internal_vip.ip }}"
+contrail_keystone_address: "{{ public_vip.ip }}"
+contrail_admin_user: "admin"
+contrail_admin_password: "console"
+
+
+# network infor adapter for compass
+# contrail_address: "{{ internal_ip }}"
+contrail_address: "{{ ip_settings[inventory_hostname]['br-prv']['ip'] }}"
+#contrail_device: # compass openstack device
+contrail_netmask: "255.255.255.0"
+#contrail_gateway: "10.84.50.254"
+contrail_gateway:
+#contrail_mgmt_address: "172.27.113.91"
+
+
+
+###########################################################
+### we make an independent NIC for OpenContrail vRouter ###
+###########################################################
+contrail_vhost_device: "{{ network_cfg['provider_net_mappings'][0]['interface'] }}"
+contrail_vhost_address: "{{ ip_settings[inventory_hostname]['br-prv']['ip'] }}"
+contrail_vhost_gateway: "{{ ip_settings[inventory_hostname]['br-prv']['gw'] }}"
+contrail_vhost_netmask: "{{ ip_settings[inventory_hostname]['br-prv']['netmask'] }}"
+###########################################################
+###########################################################
+###########################################################
+
+
+
+
+contrail_keepalived: no 
+#contrail_haproxy_address: "10.0.0.22" # 10.0.0.80
+#contrail_haproxy_address: "{{ internal_vip.ip }}"
+contrail_haproxy_address: "{{ public_vip.ip }}"
+contrail_netmask: "255.255.255.0"
+contrail_prefixlen: "24"
+contrail_gateway: "10.0.0.1"
+
+contrail_router_asn: "64512"
+
+### Modify when need openstack provisioning
+keystone_provision: no
+install_nova: no
+#rabbit_password: {{ RABBIT_PASS }}
+
+contrail_tor_agents:
+  - name: "test01"
+    address: "10.0.0.81"
+    ovs_protocol: "pssl"
+    ovs_port: "9991"
+    tunnel_address: "10.0.0.81"
+    http_server_port: "9011"
+    vendor_name: "Juniper"
+    product_name: "QFX5100"
+    tsn_names: [ "system002" ]
+  - name: "test02"
+    address: "10.0.0.82"
+    ovs_protocol: "pssl"
+    ovs_port: "9992"
+    tunnel_address: "10.0.0.82"
+    http_server_port: "9012"
+    vendor_name: "Juniper"
+    product_name: "QFX5100"
+    tsn_names: [ "system002" ]
+
+
+# adapter for compass
+kernel_package_noarch: []
+
+compute_package_noarch: []
+

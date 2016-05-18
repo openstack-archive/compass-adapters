@@ -1,0 +1,31 @@
+[DEFAULTS]
+ifmap_server_ip = {{ contrail_haproxy_address }}
+ifmap_server_port = 8443
+ifmap_username = svc-monitor
+ifmap_password = svc-monitor
+api_server_ip = {{ contrail_haproxy_address }}
+api_server_port = 8082
+zk_server_ip = {% for cur_host in groups['opencontrail'] %}{{ ip_settings[cur_host]['br-prv']['ip'] }}:2181{% if not loop.last %}, {% endif %}{% endfor %}
+
+cassandra_server_list = {% for cur_host in groups['opencontrail'] %}{{ ip_settings[cur_host]['br-prv']['ip'] }}:9160{% if not loop.last %} {% endif %}{% endfor %}
+
+disc_server_ip = {{ contrail_haproxy_address }}
+disc_server_port = 5998
+rabbit_server = {{ contrail_haproxy_address }}
+rabbit_port = 5672
+rabbit_user = {{ RABBIT_USER }}
+rabbit_password = {{ RABBIT_PASS }}
+region_name = RegionOne
+log_file = /var/log/contrail/contrail-svc-monitor.log
+log_level = SYS_NOTICE
+log_local = 1
+
+[SECURITY]
+use_certs = False
+keyfile = /etc/contrail/ssl/private_keys/apiserver_key.pem
+certfile = /etc/contrail/ssl/certs/apiserver.pem
+ca_certs = /etc/contrail/ssl/certs/ca.pem
+
+[SCHEDULER]
+analytics_server_ip = {{ contrail_haproxy_address }}
+analytics_server_port = 8081

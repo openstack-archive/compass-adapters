@@ -1,0 +1,26 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- name: install glance packages
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
+  with_items: packages | union(packages_noarch)
+
+- name: generate glance service list
+  lineinfile: dest=/opt/service create=yes line='{{ item }}'
+  with_items: services | union(services_noarch)
+
+- name: update glance conf
+  template: src={{ item }} dest=/etc/glance/{{ item }}
+            backup=yes
+  with_items:
+    - glance-api.conf
+    - glance-registry.conf
+
+- name: remove default sqlite db
+  shell: rm /var/lib/glance/glance.sqlite || touch glance.sqllite.db.removed

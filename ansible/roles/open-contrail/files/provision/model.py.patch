@@ -1,0 +1,12 @@
+*** a/model.py	Mon Sep 28 15:05:29 2015
+--- b/model.py	Mon Sep 28 15:17:32 2015
+***************
+*** 39,44 ****
+--- 39,45 ----
+  VIF_TYPE_HW_VEB = 'hw_veb'
+  VIF_TYPE_MLNX_DIRECT = 'mlnx_direct'
+  VIF_TYPE_MIDONET = 'midonet'
++ VIF_TYPE_VROUTER = 'vrouter'
+  VIF_TYPE_OTHER = 'other'
+  
+  # Constants for dictionary keys in the 'vif_details' field in the VIF

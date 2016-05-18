@@ -13,7 +13,7 @@ service tftp
         user                    = $user
         server                  = $binary
         server_args             = -B 1380 -v -s $args
-        instances		= 1000
+        instances               = 1000
         per_source              = 1000
         cps                     = 1000 2
         flags                   = IPv4

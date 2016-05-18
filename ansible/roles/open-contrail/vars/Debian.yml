@@ -1,0 +1,48 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+
+package: "contrail-install-packages_2.21-102-ubuntu-14-04juno_all.deb"
+
+common_package:
+  - contrail-setup
+
+kernel_package:
+  - linux-headers-3.13.0-40
+  - linux-headers-3.13.0-40-generic
+  - linux-image-3.13.0-40-generic
+  - linux-image-extra-3.13.0-40-generic
+
+kernel_required: "3.13.0-40-generic"
+
+database_package:
+  - contrail-openstack-database
+
+config_package:
+  - contrail-openstack-config
+
+control_package:
+  - contrail-openstack-control
+
+collector_package:
+  - contrail-openstack-analytics
+
+webui_package:
+  - contrail-openstack-webui
+
+vrouter_package:
+  - contrail-vrouter-3.13.0-40-generic
+
+dkms_package:
+  - contrail-vrouter-dkms
+
+compute_package:
+  - contrail-vrouter-common
+  - contrail-nova-vif
+

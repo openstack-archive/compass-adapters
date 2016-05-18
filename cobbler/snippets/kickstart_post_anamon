@@ -87,3 +87,5 @@ test -d /selinux && restorecon /etc/init.d/set_state
 
 ## enable the script
 chkconfig set_state on
+
+echo "compass_server=$server" >> /etc/compass.conf

@@ -1,0 +1,69 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: control
+#  sudo: yes
+#  tasks:
+- name: "enable supervisor control"
+  file:
+    path: "/etc/init/supervisor-control.override"
+    state: "absent"
+
+- name: "enable supervisor dns"
+  file:
+    path: "/etc/init/supervisor-dns.override"
+    state: "absent"
+
+- name: "modify ifmap server basicauthusers properties for control"
+  lineinfile:
+    dest: "/etc/ifmap-server/basicauthusers.properties"
+#    line: "{{ hostvars[item]['contrail_address' ] }}:{{ hostvars[item]['contrail_address' ] }}"
+    line: "{{ ip_settings[item]['br-prv']['ip'] }}:{{ ip_settings[item]['br-prv']['ip'] }}"
+  with_items: groups['opencontrail']
+
+- name: "modify ifmap server basicauthusers properties for dns"
+  lineinfile:
+    dest: "/etc/ifmap-server/basicauthusers.properties"
+#    line: "{{ hostvars[item]['contrail_address' ] }}.dns:{{ hostvars[item]['contrail_address' ] }}.dns"
+    line: "{{ ip_settings[item]['br-prv']['ip'] }}.dns:{{ ip_settings[item]['br-prv']['ip'] }}.dns"
+  with_items: groups['opencontrail']
+
+- name: "node-common"
+  include: -node-common.yml
+
+- name: "fix up contrail control config"
+  template:
+    src: "../../templates/provision/contrail-control-conf.j2"
+    dest: "/etc/contrail/contrail-control.conf"
+
+- name: "fix up contrail dns config"
+  template:
+    src: "../../templates/provision/contrail-dns-conf.j2"
+    dest: "/etc/contrail/contrail-dns.conf"
+
+- name: "fix up contrail control nodemgr config"
+  ini_file:
+    dest: "/etc/contrail/contrail-control-nodemgr.conf"
+    section: "DISCOVERY"
+    option: "server"
+    value: "{{ contrail_haproxy_address }}"
+
+- name: "modify dns configuration"
+  replace:
+    dest: "/etc/contrail/dns/{{ item }}"
+    regexp: "secret \"secret123\""
+    replace: "secret \"xvysmOR8lnUQRBcunkC6vg==\""
+  with_items:
+    - "contrail-rndc.conf"
+    - "contrail-named.conf"
+
+- name: "restart supervisor control"
+  service:
+    name: "supervisor-control"
+    state: "restarted"

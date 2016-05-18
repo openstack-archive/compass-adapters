@@ -1,0 +1,5 @@
+monmaptool --create --clobber --fsid {{ ceph_fsid.stdout }} 
+{%- for host in groups['ceph_mon']%}
+ --add {{host}} {{ ip_settings[host].mgmt.ip }}:6789 
+{%- endfor %}
+ /tmp/monmap 

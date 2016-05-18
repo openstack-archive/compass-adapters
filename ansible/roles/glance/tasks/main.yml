@@ -1,47 +1,29 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
 ---
-- name: install glance packages
-  apt: name={{ item }} state=latest force=yes
-  with_items:
+- include_vars: "{{ ansible_os_family }}.yml"
+
+- include: glance_install.yml
+  tags:
+    - install
+    - glance_install
     - glance
-    - python-glanceclient
 
-- name: update glance conf
-  template: src={{ item }} dest=/etc/glance/{{ item }}
-            backup=yes
-  with_items:
-    - glance-api.conf
-    - glance-registry.conf
-  notify:
-    - restart glance-registry
-    - restart glance-api
+- include: nfs.yml
+  tags:
+    - nfs
 
-#- name: manually stop glance-api
-#  service: name=glance-api state=stopped
-
-#- name: manually stop glance-registry
-#  service: name=glance-registry state=stopped
-
-- name: remove default sqlite db
-  shell: rm /var/lib/glance/glance.sqlite || touch glance.sqllite.db.removed
-
-- name: sync glance db
-  shell: su -s /bin/sh -c "glance-manage db_sync" glance
-  notify:
-    - restart glance-registry
-    - restart glance-api
+- include: glance_config.yml
+  when: inventory_hostname == groups['controller'][0]
+  tags:
+    - config
+    - glance_config
+    - glance
 
 - meta: flush_handlers
-
-- name: place image upload script
-  template: src=image_upload.sh dest=/opt/image_upload.sh mode=0744
-
-- name: download cirros image file
-  get_url: url={{ build_in_image }} dest=/opt/{{ build_in_image_name }}
-
-- name: wait for 9292 port to become available
-  wait_for: port=9292 delay=5
-
-- name: run image upload
-  shell: /opt/image_upload.sh && touch image_upload_completed
-  args:
-    creates: image_upload_completed

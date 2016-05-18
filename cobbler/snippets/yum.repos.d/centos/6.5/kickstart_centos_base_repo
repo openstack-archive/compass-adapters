@@ -6,7 +6,7 @@ cat << EOF > /etc/yum.repos.d/CentOS-Base.repo
 # geographically close to the client.  You should use this for CentOS updates
 # unless you are manually picking other mirrors.
 #
-# If the mirrorlist= does not work for you, as a fall back you can try the 
+# If the mirrorlist= does not work for you, as a fall back you can try the
 # remarked out baseurl= line instead.
 #
 #
@@ -19,7 +19,7 @@ gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
 skip_if_unavailable=1
 
-# released updates 
+# released updates
 [updates]
 name=CentOS-6.5 - Updates
 mirrorlist=http://mirrorlist.centos.org/?release=6&arch=\\$basearch&repo=updates

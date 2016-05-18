@@ -1,0 +1,47 @@
+---
+- name: add ext-network router of vgw on controller for open-contrail
+  shell: >
+    ip route add {{ public_net_info.floating_ip_cidr }} via {{ ip_settings[groups['compute'][0]]['br-prv']['ip'] }} dev {{ network_cfg.public_vip.interface }} ;
+    echo "ip route add {{ public_net_info.floating_ip_cidr }} via {{ ip_settings[groups['compute'][0]]['br-prv']['ip'] }} dev {{ network_cfg.public_vip.interface }}" >> /opt/contrail/bin/if-vhost0 ;
+  when: inventory_hostname in groups['opencontrail']
+
+
+- name: create vgw for open-contrail
+  shell: >
+    echo "lsof -ni :9090 ;  while [ $? -ne 0 ]; do sleep 10; lsof -ni :9090; done" >> /etc/init.d/net_init;
+    echo "sleep 10" >> /etc/init.d/net_init;
+    echo "python /opt/contrail/utils/provision_vgw_interface.py --oper create --interface vgw1 --subnets {{ public_net_info.floating_ip_cidr }} --routes 0.0.0.0/0 --vrf default-domain:admin:{{ public_net_info.network }}:{{ public_net_info.network }}" >> /etc/init.d/net_init;
+  when: groups['opencontrail']|length !=0 and inventory_hostname == groups['compute'][0]
+
+
+- name: add vgw router on compute(without vgw) for open-contrail
+  shell: echo "ip route add {{ public_net_info.floating_ip_cidr }} via {{ ip_settings[groups['compute'][0]]['br-prv']['ip'] }} dev vhost0" >> /etc/init.d/net_init
+  when: groups['opencontrail']|length !=0 and inventory_hostname not in groups['opencontrail'] and inventory_hostname != groups['compute'][0]
+
+
+
+
+
+# create a file with vgw ip on CompassCore, so that Jumper Host could access this to get vgw ip
+- name: add vgw file on compass
+  local_action: file path=/home/opencontrail1.rc state=touch mode=0777
+  run_once: True
+  when: groups['opencontrail']|length !=0
+
+- name: update vgw file
+  local_action: lineinfile dest=/home/opencontrail1.rc line={{ ip_settings[groups['compute'][0]]['br-prv']['ip'] }}
+  run_once: True
+  when: groups['opencontrail']|length !=0
+
+- name: add vgw file on compass
+  local_action: file path=/home/opencontrail2.rc state=touch mode=0777
+  run_once: True
+  when: groups['opencontrail']|length !=0
+
+- name: update vgw file
+  local_action: lineinfile dest=/home/opencontrail2.rc line={{ public_net_info.floating_ip_cidr }}
+  run_once: True
+  when: groups['opencontrail']|length !=0
+
+
+

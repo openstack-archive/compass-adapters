@@ -1,123 +1,31 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
 ---
-- name: install mysql client and server packages
-  apt: name={{ item }} state=present
-  with_items:
-    - python-mysqldb
-    - mysql-server
+- include_vars: "{{ ansible_os_family }}.yml"
+  tags:
+    - test_mongo
 
-- name: update mysql my.cnf
-  copy: src=my.cnf
-        dest=/etc/mysql/my.cnf
-        backup=yes
-  notify:
-    - restart mysql
+- include: mariadb_install.yml
+- include: mariadb_cluster.yml
 
-- name: manually restart mysql server
-  service: name=mysql
-           state=restarted
+- include: mariadb_config.yml
+  when:
+    - inventory_hostname == haproxy_hosts.keys()[0]
 
-- name: create keystone db model
-  mysql_db: name=keystone
-            state=present
+- include: mongodb_install.yml
+  tags:
+    - test_mongo
 
-- name: create keystone local user
-  mysql_user: name=keystone
-              password={{ KEYSTONE_DBPASS }}
-              priv=keystone.*:ALL
-              state=present
+- include: mongodb_config.yml
+  when:
+    - inventory_hostname == haproxy_hosts.keys()[0]
+  tags:
+    - test_mongo
 
-- name: create keystone remote user
-  mysql_user: host=%
-              name=keystone
-              password={{ KEYSTONE_DBPASS }}
-              priv=keystone.*:ALL
-              state=present
-
-# glance
-- name: create glance database
-  mysql_db: name=glance
-            state=present
-
-- name: create glance local user
-  mysql_user: name=glance
-              password={{ GLANCE_DBPASS }}
-              priv=glance.*:ALL
-              state=present
-
-- name: create glance remote user
-  mysql_user: host=%
-              name=glance
-              password={{ GLANCE_DBPASS }}
-              priv=glance.*:ALL
-              state=present
-
-# neutron
-- name: create neutron database
-  mysql_db: name=neutron
-            state=present
-
-- name: create neutron local user
-  mysql_user: name=neutron
-              password={{ NEUTRON_DBPASS }}
-              priv=neutron.*:ALL
-              state=present
-
-- name: create neutron remote user
-  mysql_user: host=%
-              name=neutron
-              password={{ NEUTRON_DBPASS }}
-              priv=neutron.*:ALL
-              state=present
-
-- name: create ovs_neutron database
-  mysql_db: name=ovs_neutron
-            state=present
-
-- name: grant access to ovs_neutron
-  mysql_user: name=neutron
-              password={{ NEUTRON_DBPASS }}
-              priv=ovs_neutron.*:ALL
-              state=present
-
-- name: grant remote access to ovs_neutron
-  mysql_user: host=%
-              name=neutron
-              password={{ NEUTRON_DBPASS }}
-              priv=ovs_neutron.*:ALL
-              state=present
-
-# nova
-- name: create nova database
-  mysql_db: name=nova
-            state=present
-
-- name: create nova local user
-  mysql_user: name=nova
-              password={{ NOVA_DBPASS }}
-              priv=neutron.*:ALL
-              state=present
-
-- name: create nova remote user
-  mysql_user: host=%
-              name=nova
-              password={{ NOVA_DBPASS }}
-              priv=nova.*:ALL
-              state=present
-
-# cinder
-- name: create cinder database
-  mysql_db: name=cinder
-            state=present
-
-- name: create cinder local user
-  mysql_user: name=cinder
-              password={{ CINDER_DBPASS }}
-              priv=cinder.*:ALL
-              state=present
-
-- name: create cinder remote user
-  mysql_user: host=%
-              name=cinder
-              password={{ CINDER_DBPASS }}
-              priv=cinder.*:ALL
-              state=present
+- meta: flush_handlers

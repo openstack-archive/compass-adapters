@@ -9,7 +9,7 @@
 mkdir -p $home/.ssh
 chmod 700 -R $home/.ssh
     #set $firstline = True
-    #for $ssh_key in $ssh_keys.split(',') 
+    #for $ssh_key in $ssh_keys.split(',')
         #if not $ssh_key
             #continue
         #end if

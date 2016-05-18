@@ -1,0 +1,85 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: tsn
+#  sudo: yes
+#  tasks:
+- name: "create temporary directory for ssl files"
+  local_action:
+    module: "file"
+    dest: "/tmp/tmp-toragent-{{ item }}"
+    state: "directory"
+  with_items:
+    - "certs"
+    - "private"
+  run_once: yes
+
+- name: "create ssl files"
+  local_action: "shell openssl req -new -x509 -days 3650 -text -sha256 -newkey rsa:4096 -nodes -subj \"/C=US/ST=Global/O={{ item.1.vendor_name }}/CN={{ ansible_fqdn }}\" -keyout /tmp/tmp-toragent-private/tor.{{ item.0 }}.privkey.pem -out /tmp/tmp-toragent-certs/tor.{{ item.0 }}.cert.pem"
+  with_indexed_items: contrail_tor_agents
+  run_once: yes
+
+- name: "set tor agent list"
+  set_fact:
+    toragent_index: "{{ item.0 }}"
+    toragent_params:  "{{ item.1 }}"
+  register: contrail_toragent_list
+  with_indexed_items: contrail_tor_agents
+  when: inventory_hostname in item.1.tsn_names
+
+- name: "fix up tor agent conf"
+  template:
+    src: "templates/contrail-tor-agent-conf.j2"
+    dest: "/etc/contrail/contrail-tor-agent-{{ item.ansible_facts.toragent_index }}.conf"
+  with_items: contrail_toragent_list.results
+
+- name: "fix up tor agent ini"
+  template:
+    src: "provision/contrail-tor-agent-ini.j2"
+    dest: "/etc/contrail/supervisord_vrouter_files/contrail-tor-agent-{{ item.ansible_facts.toragent_index }}.ini"
+  with_items: contrail_toragent_list.results
+
+- name: "copy init script"
+  shell: "cp /etc/init.d/contrail-vrouter-agent /etc/init.d/contrail-tor-agent-{{ item.ansible_facts.toragent_index }}"
+  with_items: contrail_toragent_list.results
+
+- name: "copy ssl certs"
+  copy:
+    src: "/tmp/tmp-toragent-certs/tor.{{ item.ansible_facts.toragent_index }}.cert.pem"
+    dest: "/etc/contrail/ssl/certs/tor.{{ item.ansible_facts.toragent_index }}.cert.pem"
+  with_items: contrail_toragent_list.results
+
+- name: "copy ssl private"
+  copy:
+    src: "/tmp/tmp-toragent-private/tor.{{ item.ansible_facts.toragent_index }}.privkey.pem"
+    dest: "/etc/contrail/ssl/private/tor.{{ item.ansible_facts.toragent_index }}.privkey.pem"
+  with_items: contrail_toragent_list.results
+
+- name: "copy ca cert"
+  copy:
+    src: "files/cacert.pem"
+    dest: "/etc/contrail/ssl/certs/cacert.pem"
+
+- name: "delete temporary directory"
+  local_action:
+    module: "file"
+    dest: "/tmp/tmp-toragent-{{ item }}"
+    state: "absent"
+  with_items:
+    - "certs"
+    - "private"
+  run_once: yes
+
+- name: "add tor agent to contrail"
+  shell: "python /opt/contrail/utils/provision_vrouter.py --api_server_ip {{ contrail_haproxy_address }} --admin_user {{ contrail_admin_user }} --admin_password {{ contrail_admin_password }} --admin_tenant_name admin --openstack_ip {{ contrail_keystone_address }} --oper add --host_name {{ inventory_hostname }}-{{ item.ansible_facts.toragent_index }} --host_ip {{ contrail_address }} --router_type tor-agent"
+  with_items: contrail_toragent_list.results
+
+- name: "add device to contrail"
+  shell: "python /opt/contrail/utils/provision_physical_device.py --api_server_ip {{ contrail_haproxy_address }} --admin_user {{ contrail_admin_user }} --admin_password {{ contrail_admin_password }} --admin_tenant_name admin --openstack_ip {{ contrail_keystone_address }} --oper add --device_name {{ item.ansible_facts.toragent_params.name }} --vendor_name {{ item.ansible_facts.toragent_params.vendor_name }} --product_name {{ item.ansible_facts.toragent_params.product_name }} --device_mgmt_ip {{ item.ansible_facts.toragent_params.address }} --device_tunnel_ip {{ item.ansible_facts.toragent_params.tunnel_address }} --device_tor_agent {{ inventory_hostname }}-{{ item.ansible_facts.toragent_index }} --device_tsn {{ inventory_hostname }}"
+  with_items: contrail_toragent_list.results

@@ -25,7 +25,7 @@ fi
 exit \$RC
 #end raw
 EOF
-chmod +x /sbin/ifup-local 
+chmod +x /sbin/ifup-local
 
 #if $hostname != ""
 # set the hostname in the network configuration file
@@ -147,18 +147,18 @@ for logical_interface in \${!logical_interface_mapping[@]}; do
     physical_interface=\${logical_interface_mapping[\${logical_interface}]}
     if [ -z "\${physical_interface}" ]; then
         # check if the same name physical interface is mapped
-	mapped_logical_interface=\${physical_interface_mapping[\${logical_interface}]}
-	if [ -z "\${mapped_logical_interface}" ]; then
+    mapped_logical_interface=\${physical_interface_mapping[\${logical_interface}]}
+    if [ -z "\${mapped_logical_interface}" ]; then
             # check if the same name physical interface exists
             if [ ! -z "\${physical_interfaces[\${logical_interface}]}" ]; then
                 logical_interface_mapping[\${logical_interface}]=\${logical_interface}
-	        physical_interface_mapping[\${logical_interface}]=\${logical_interface}
-	    else
-	        echo "ignore logical interface \${logical_interface} since the same name physical interface does not exist" >> /tmp/network_log
+            physical_interface_mapping[\${logical_interface}]=\${logical_interface}
+        else
+            echo "ignore logical interface \${logical_interface} since the same name physical interface does not exist" >> /tmp/network_log
             fi
-	else
-	    echo "ignore logical interface \${logical_interface} since the same name physical interface is mapped by logical interface \${mapped_logical_interface}" >> /tmp/network_log
-	fi
+    else
+        echo "ignore logical interface \${logical_interface} since the same name physical interface is mapped by logical interface \${mapped_logical_interface}" >> /tmp/network_log
+    fi
     else
         echo "ignore logical interface \${logical_interface} since it is mapped to physical interface \${physical_interface}" >> /tmp/network_log
     fi
@@ -235,22 +235,22 @@ if [ \${#sorted_unset_logical_interfaces[@]} -gt 0 ]; then
     # get all available logical interfaces which the same name physical interface is not used
     for logical_interface in \${logical_interfaces[@]}; do
         mapped_logical_interface=\${physical_interface_mapping[\${logical_interface}]}
-	if [ -z "\${mapped_logical_interface}" ]; then
-	    available_logical_interfaces[\${logical_interface}]=\${logical_interface}
-	else
-	    echo "ignore logical interface \${logical_interface} since the same name physical interface mapped to logical interface \${mapped_logical_interface}" >> /tmp/network_log
-	fi
+    if [ -z "\${mapped_logical_interface}" ]; then
+        available_logical_interfaces[\${logical_interface}]=\${logical_interface}
+    else
+        echo "ignore logical interface \${logical_interface} since the same name physical interface mapped to logical interface \${mapped_logical_interface}" >> /tmp/network_log
+    fi
     done
 
     #first map logical interface to the same name physical interface if that physical interface name is not used
     for logical_interface in \${sorted_unset_logical_interfaces[@]}; do
         available_logical_interface=\${available_logical_interfaces[\${logical_interface}]}
-	if [ ! -z "\${available_logical_interface}" ]; then
-	    unset unset_logical_interfaces[\${logical_interface}]
-	    unset available_logical_interfaces[\${available_logical_interface}]
-	    logical_interface_mapping[\${logical_interface}]=\${available_logical_interface}
-	    physical_interface_mapping[\${available_logical_interface}]=\${logical_interface}
-	fi
+    if [ ! -z "\${available_logical_interface}" ]; then
+        unset unset_logical_interfaces[\${logical_interface}]
+        unset available_logical_interfaces[\${available_logical_interface}]
+        logical_interface_mapping[\${logical_interface}]=\${available_logical_interface}
+        physical_interface_mapping[\${available_logical_interface}]=\${logical_interface}
+    fi
     done
 
     echo "finish mapping ramaining unmapped logical interfaces to the same name physical interface" >> /tmp/network_log
@@ -272,14 +272,14 @@ if [ \${#sorted_unset_logical_interfaces[@]} -gt 0 ]; then
     echo "sorted available logical interfaces: \${sorted_available_logical_interfaces[@]}" >> /tmp/network_log
     while [ \${#sorted_unset_logical_interfaces[@]} -gt 0 -a \${#sorted_available_logical_interfaces[@]} -gt 0 ]; do
         logical_interface=\${sorted_unset_logical_interfaces[0]}
-	available_logical_interface=\${sorted_available_logical_interfaces[0]}
-	echo "map logical interface \${logical_interface} to unused physical interface \${available_logical_interface}" >> /tmp/network_log
+    available_logical_interface=\${sorted_available_logical_interfaces[0]}
+    echo "map logical interface \${logical_interface} to unused physical interface \${available_logical_interface}" >> /tmp/network_log
         unset sorted_unset_logical_interfaces[0]
-	unset unset_logical_interfaces[\${logical_interface}]
-	unset sorted_available_logical_interfaces[0]
-	unset available_logical_interfaces[\${available_logical_interface}]
-	logical_interface_mapping[\${logical_interface}]=\${available_logical_interface}
-	physical_interface_mapping[\${available_logical_interface}]=\${logical_interface}
+    unset unset_logical_interfaces[\${logical_interface}]
+    unset sorted_available_logical_interfaces[0]
+    unset available_logical_interfaces[\${available_logical_interface}]
+    logical_interface_mapping[\${logical_interface}]=\${available_logical_interface}
+    physical_interface_mapping[\${available_logical_interface}]=\${logical_interface}
     done
 fi
 
@@ -302,22 +302,22 @@ if [ \${#sorted_unset_physical_interfaces[@]} -gt 0 ]; then
     # get all available physical interfaces which the same name logical interface is not used
     for physical_interface in \${physical_interfaces[@]}; do
         mapped_physical_interface=\${logical_interface_mapping[\${physical_interface}]}
-	if [ -z "\${mapped_physical_interface}" ]; then
-	    available_physical_interfaces[\${physical_interface}]=\${physical_interface}
-	else
-	    echo "ignore physical interface \${physical_interface} since the same name logical interface mapped to physical interface \${mapped_physical_interface}" >> /tmp/network_log
-	fi
+    if [ -z "\${mapped_physical_interface}" ]; then
+        available_physical_interfaces[\${physical_interface}]=\${physical_interface}
+    else
+        echo "ignore physical interface \${physical_interface} since the same name logical interface mapped to physical interface \${mapped_physical_interface}" >> /tmp/network_log
+    fi
     done
 
     #first map physical interface to the same name logical interface if that logical interface name is not used
     for physical_interface in \${sorted_unset_physical_interfaces[@]}; do
         available_physical_interface=\${available_physical_interfaces[\${physical_interface}]}
-	if [ ! -z "\${available_physical_interface}" ]; then
-	    unset unset_physical_interfaces[\${physical_interface}]
-	    unset available_physical_interfaces[\${available_physical_interface}]
-	    logical_interface_mapping[\${available_physical_interface}]=\${physical_interface}
-	    physical_interface_mapping[\${physical_interface}]=\${available_physical_interface}
-	fi
+    if [ ! -z "\${available_physical_interface}" ]; then
+        unset unset_physical_interfaces[\${physical_interface}]
+        unset available_physical_interfaces[\${available_physical_interface}]
+        logical_interface_mapping[\${available_physical_interface}]=\${physical_interface}
+        physical_interface_mapping[\${physical_interface}]=\${available_physical_interface}
+    fi
     done
     echo "finish mapping ramaining unmapped physical interfaces to the same name logical interface" >> /tmp/network_log
     for key in \${!logical_interface_mapping[@]}; do
@@ -338,14 +338,14 @@ if [ \${#sorted_unset_physical_interfaces[@]} -gt 0 ]; then
     echo "sorted available physical interfaces: \${sorted_available_physical_interfaces[@]}" >> /tmp/network_log
     while [ \${#sorted_unset_physical_interfaces[@]} -gt 0 -a \${#sorted_available_physical_interfaces[@]} -gt 0 ]; do
         physical_interface=\${sorted_unset_physical_interfaces[0]}
-	available_physical_interface=\${sorted_available_physical_interfaces[0]}
-	echo "map physical interface \${physical_interface} to unused logical interface \${available_physical_interface}" >> /tmp/network_log
+    available_physical_interface=\${sorted_available_physical_interfaces[0]}
+    echo "map physical interface \${physical_interface} to unused logical interface \${available_physical_interface}" >> /tmp/network_log
         unset sorted_unset_physical_interfaces[0]
-	unset unset_physical_interfaces[\${physical_interface}]
-	unset sorted_available_physical_interfaces[0]
-	unset available_physical_interfaces[\${available_physical_interface}]
-	physical_interface_mapping[\${available_physical_interface}]=\${physical_interface}
-	logical_interface_mapping[\${physical_interface}]=\${available_physical_interface}
+    unset unset_physical_interfaces[\${physical_interface}]
+    unset sorted_available_physical_interfaces[0]
+    unset available_physical_interfaces[\${available_physical_interface}]
+    physical_interface_mapping[\${available_physical_interface}]=\${physical_interface}
+    logical_interface_mapping[\${physical_interface}]=\${available_physical_interface}
     done
 fi
 
@@ -385,7 +385,7 @@ for key in \${!logical_interface_mapping[@]}; do
     if [ ! -z "\${physical_mac}" ]; then
         physical_mac=\${physical_mac,,}
         echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\"\${physical_mac}\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"\$key\"" >> /etc/udev/rules.d/\${udev_network_rule_filename}.new
-	echo "add network interface \$key mac \$physical_mac into udev rules" >> /tmp/network_log
+    echo "add network interface \$key mac \$physical_mac into udev rules" >> /tmp/network_log
     else
         echo "network interface \$key does not find mac address to add to udev rules" >> /tmp/network_log
     fi
@@ -508,7 +508,7 @@ echo "GATEWAY=$if_gateway" >> $devfile
             #end if
 
             #if $netmask == ""
-	        ## Default to 255.255.255.0?
+            ## Default to 255.255.255.0?
                 #set $netmask = "255.255.255.0"
             #end if
 echo "NETMASK=$netmask" >> $devfile
@@ -538,9 +538,9 @@ echo "MTU=$mtu" >> $devfile
                 #set $nct = $nct + 1
 echo "DNS$nct=$nameserver" >> $devfile
             #end for
-	    #set $nameserver_set = 1
+        #set $nameserver_set = 1
         #end if
-   #end if 
+   #end if
 
     #for $route in $static_routes
         #set routepattern = $re.compile("[0-9/.]+:[0-9.]+")

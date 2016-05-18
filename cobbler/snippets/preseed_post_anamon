@@ -76,3 +76,5 @@ chmod 755 /etc/init.d/set_state
 test -d /selinux && restorecon /etc/init.d/set_state
 
 update-rc.d set_state defaults 99 99
+
+echo "compass_server=$server" >> /etc/compass.conf

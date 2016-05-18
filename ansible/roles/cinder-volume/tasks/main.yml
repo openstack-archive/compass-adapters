@@ -1,51 +1,39 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
 ---
+- include_vars: "{{ ansible_os_family }}.yml"
+
+- name: disable auto start
+  copy:
+    content: "#!/bin/sh\nexit 101"
+    dest: "/usr/sbin/policy-rc.d"
+    mode: 0755
+  when: ansible_os_family == "Debian"
+
 - name: install cinder-volume and lvm2 packages
-  apt: name={{ item }} state=present force=yes
-  with_items:
-    - cinder-volume
-    - lvm2
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present"
+  with_items: packages | union(packages_noarch)
 
-- name: check if physical device exists
-  stat: path={{ physical_device }}
-  register: st
+- name: enable auto start
+  file:
+    path=/usr/sbin/policy-rc.d
+    state=absent
+  when: ansible_os_family == "Debian"
 
-- name: repace physical_device if st is false
-  local_action: copy src=loop.yml dest=/tmp/loop.yml
-  when: st.stat.exists == False
-
-- name: load loop.yml
-  include_vars: /tmp/loop.yml
-  when: st.stat.exists == False
-
-- name: check if cinder-volumes is mounted
-  shell: ls /mnt
-  register: cindervolumes
-
-- name: get available partition size
-  shell: df / | awk '$3 ~ /[0-9]+/ { print $4 }'
-  register: partition_size
-
-- name: if not mounted, mount it
-  shell: dd if=/dev/zero of=/mnt/cinder-volumes
-         bs=1 count=0 seek={{ partition_size.stdout }}
-  when: cindervolumes.stdout != 'cinder-volumes'
-
-- name: get first lo device
-  shell: ls /dev/loop* | egrep 'loop[0-9]+'|sed -n 1p
-  register: first_lo
-  when: cindervolumes.stdout != 'cinder-volumes'
-
-- name: do a losetup on /mnt/cinder-volumes
-  shell: losetup {{ first_lo.stdout }} /mnt/cinder-volumes
-  when: cindervolumes.stdout != 'cinder-volumes'
-
-- name: create physical and group volumes
-  lvg: vg=cinder-volumes pvs={{ physical_device }}
-       vg_options=--force
+- name: generate cinder volume service list
+  lineinfile: dest=/opt/service create=yes line='{{ item }}'
+  with_items: services | union(services_noarch)
 
 - name: upload cinder-volume configuration
   template: src=cinder.conf dest=/etc/cinder/cinder.conf
             backup=yes
   notify:
-     - restart cinder-volume
-     - restart tgt
+     - restart cinder-volume services
+
+- meta: flush_handlers

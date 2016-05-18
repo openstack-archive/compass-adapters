@@ -1,0 +1,22 @@
+[DEFAULTS]
+ifmap_server_ip = {{ contrail_haproxy_address }}
+ifmap_server_port = 8443
+ifmap_username = schema-transformer
+ifmap_password = schema-transformer
+api_server_ip = {{ contrail_haproxy_address }}
+api_server_port = 8082
+zk_server_ip = {% for cur_host in groups['opencontrail'] %}{{ ip_settings[cur_host]['br-prv']['ip']  }}:2181{% if not loop.last %}, {% endif %}{% endfor %}
+
+cassandra_server_list = {% for cur_host in groups['opencontrail'] %}{{ ip_settings[cur_host]['br-prv']['ip'] }}:9160{% if not loop.last %} {% endif %}{% endfor %}
+
+disc_server_ip = {{ contrail_haproxy_address }}
+disc_server_port = 5998
+log_file = /var/log/contrail/contrail-schema.log
+log_level = SYS_NOTICE
+log_local = 1
+
+[SECURITY]
+use_certs = False
+keyfile = /etc/contrail/ssl/private_keys/apiserver_key.pem
+certfile = /etc/contrail/ssl/certs/apiserver.pem
+ca_certs = /etc/contrail/ssl/certs/ca.pem

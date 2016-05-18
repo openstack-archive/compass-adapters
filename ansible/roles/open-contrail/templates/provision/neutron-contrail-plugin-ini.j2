@@ -1,0 +1,15 @@
+[APISERVER]
+api_server_ip={{ contrail_haproxy_address }}
+api_server_port=8082
+multi_tenancy=True
+contrail_extensions=ipam:neutron_plugin_contrail.plugins.opencontrail.contrail_plugin_ipam.NeutronPluginContrailIpam,policy:neutron_plugin_contrail.plugins.opencontrail.contrail_plugin_policy.NeutronPluginContrailPolicy,route-table:neutron_plugin_contrail.plugins.opencontrail.contrail_plugin_vpc.NeutronPluginContrailVpc,contrail:None
+
+[COLLECTOR]
+analytics_api_ip={{ contrail_haproxy_address }}
+analytics_api_port=8081
+
+[KEYSTONE]
+auth_url=http://{{ contrail_keystone_address }}:35357/v2.0
+admin_tenant_name=admin
+admin_user={{ contrail_admin_user }}
+admin_password={{ contrail_admin_password }}

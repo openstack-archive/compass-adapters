@@ -29,7 +29,7 @@ mkdir -p /root/.chef/trusted_certs
 cat << EOF > /root/.chef/trusted_certs/$filename
             #echo $f.read()
 EOF
-            #silent $f.close() 
+            #silent $f.close()
         #end if
     #end for
 #end if

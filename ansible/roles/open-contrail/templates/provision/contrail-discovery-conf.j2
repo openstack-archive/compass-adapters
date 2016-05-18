@@ -1,0 +1,43 @@
+[DEFAULTS]
+listen_ip_addr = {{ contrail_haproxy_address }}
+listen_port = 5998
+zk_server_ip = {% for cur_host in groups['opencontrail'] %}{{ ip_settings[cur_host]['br-prv']['ip'] }}{% if not loop.last %}, {% endif %}{% endfor %}
+
+zk_server_port = 2181
+cassandra_server_list = {% for cur_host in groups['opencontrail'] %}{{ ip_settings[cur_host]['br-prv']['ip'] }}:9160{% if not loop.last %} {% endif %}{% endfor %}
+
+log_file = /var/log/contrail/contrail-discovery.log
+log_level = SYS_NOTICE
+log_local = 1
+
+# minimim time to allow client to cache service information (seconds)
+ttl_min = 300
+
+# maximum time to allow client to cache service information (seconds)
+ttl_max = 1800
+
+# health check ping interval < = 0 for disabling
+hc_interval = 5
+
+# maximum hearbeats to miss before server will declare publisher out of
+# service.
+hc_max_miss = 3
+
+# use short TTL for agressive rescheduling if all services are not up
+ttl_short = 1
+
+# for DNS service, we use fixed policy
+# even when the cluster has more than two control nodes, only two of these
+# should provide the DNS service
+[DNS-SERVER]
+policy = fixed
+
+######################################################################
+# Other service specific knobs ...
+
+# use short TTL for agressive rescheduling if all services are not up
+# ttl_short = 1
+
+# specify policy to use when assigning services
+# policy = [load-balance | round-robin | fixed]
+######################################################################

@@ -10,7 +10,7 @@
   <product>${repo.name}</product>
   <product_dir>/</product_dir>
   <ask_on_error config:type="boolean">false</ask_on_error>
-  <name>${repo.name}</name> 
+  <name>${repo.name}</name>
 </listentry>
 #end for
 

@@ -1,0 +1,209 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: database
+#  sudo: yes
+#  tasks:
+
+
+- name: "enable supervisor database"
+#  sudo: True
+  file:
+    path: "/etc/init/supervisor-database.override"
+    state: "absent"
+
+
+- name: "-node-common"
+#  sudo: True
+  include: -node-common.yml
+
+
+- name: "update hosts"
+#  sudo: True
+  lineinfile:
+    dest: "/etc/hosts"
+#    regexp: "^{{ contrail_address }}\t{{ ansible_hostname }}( .*)?$"
+#    line: "{{ contrail_address }}\t{{ ansible_hostname }}\\1"
+    regexp: "^{{ contrail_address }}\t{{ inventory_hostname }}( .*)?$"
+    line: "{{ contrail_address }}\t{{ inventory_hostname }}\\1"
+    backrefs: yes
+
+
+- name: "make directory for contrail analytics"
+#  sudo: True
+  file:
+    path: "/var/lib/cassandra/data/ContrailAnalytics"
+    state: "directory"
+
+
+- name: "modify cassandra conf"
+#  sudo: True
+  lineinfile:
+    dest: "/etc/cassandra/cassandra.yaml"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - { regexp: "^(#(\\s*)?)?listen_address:", line: "listen_address: {{ contrail_address }}"}
+    - { regexp: "^(#(\\s*)?)?cluster_name:", line: "cluster_name: \"Contrail\"" }
+    - { regexp: "^(#(\\s*)?)?rpc_address:", line: "rpc_address: {{ contrail_address }}" }
+    - { regexp: "^(#(\\s*)?)?num_tokens:", line: "num_tokens: 256" }
+    - { regexp: "^(#(\\s*)?)?initial_token:", line: "# initial_token:" }
+
+
+
+- name: "set first database host seed"
+#  sudo: True
+  set_fact:
+#    dbseeds: "{{ hostvars[item.1][ contrail_address ] }}"
+     dbseeds: "{{ ip_settings[item.1]['br-prv']['ip'] }}"
+  with_indexed_items: groups['opencontrail']
+  when: item.0 == 0
+
+
+
+
+
+- name: "set second database host seed"
+#  sudo: True
+  set_fact:
+#    dbseeds: "{{ dbseeds }},{{ hostvars[item.1]['contrail_address'] }}"
+    dbseeds: "{{ dbseeds }},{{ ip_settings[item.1]['br-prv']['ip'] }}"
+  with_indexed_items: groups['opencontrail']
+  when: item.0 == 1
+
+
+- name: "modify seeds list in cassandra conf"
+#  sudo: True
+  replace:
+    dest: "/etc/cassandra/cassandra.yaml"
+    regexp: "- seeds:.*$"
+    replace: "- seeds: {{ dbseeds }}"
+
+
+- name: "modify cassandra env"
+#  sudo: True
+  replace:
+    dest: "/etc/cassandra/cassandra-env.sh"
+    regexp: "{{ item.regexp }}"
+    replace: "{{ item.replace }}"
+  with_items:
+    - { regexp: "(#(\\s*)?)?JVM_OPTS=\"\\$JVM_OPTS -XX:\\+PrintGCDetails\"", replace: "JVM_OPTS=\"$JVM_OPTS -XX:+PrintGCDetails\"" }
+    - { regexp: "(#(\\s*)?)?JVM_OPTS=\"\\$JVM_OPTS -Xss\\d+k\"", replace: "JVM_OPTS=\"$JVM_OPTS -Xss512k\"" }
+    - { regexp: "(#(\\s*)?)?JVM_OPTS=\"\\$JVM_OPTS -XX:\\+PrintGCDateStamps\"", replace: "JVM_OPTS=\"$JVM_OPTS -XX:+PrintGCDateStamps\"" }
+    - { regexp: "(#(\\s*)?)?JVM_OPTS=\"\\$JVM_OPTS -XX:\\+PrintHeapAtGC\"", replace: "JVM_OPTS=\"$JVM_OPTS -XX:+PrintHeapAtGC\"" }
+    - { regexp: "(#(\\s*)?)?JVM_OPTS=\"\\$JVM_OPTS -XX:\\+PrintTenuringDistribution\"", replace: "JVM_OPTS=\"$JVM_OPTS -XX:+PrintTenuringDistribution\"" }
+    - { regexp: "(#(\\s*)?)?JVM_OPTS=\"\\$JVM_OPTS -XX:\\+PrintGCApplicationStoppedTime\"", replace: "JVM_OPTS=\"$JVM_OPTS -XX:+PrintGCApplicationStoppedTime\"" }
+    - { regexp: "(#(\\s*)?)?JVM_OPTS=\"\\$JVM_OPTS -XX:\\+PrintPromotionFailure\"", replace: "JVM_OPTS=\"$JVM_OPTS -XX:+PrintPromotionFailure\"" }
+    - { regexp: "(#(\\s*)?)?JVM_OPTS=\"\\$JVM_OPTS -XX:PrintFLSStatistics=1\"", replace: "JVM_OPTS=\"$JVM_OPTS -XX:PrintFLSStatistics=1\"" }
+    - { regexp: "(#(\\s*)?)?JVM_OPTS=\"\\$JVM_OPTS -Xloggc:/var/log/cassandra/gc-`date \\+%s`\\.log\"", replace: "JVM_OPTS=\"$JVM_OPTS -Xloggc:/var/log/cassandra/gc-`date +%s`.log\"" }
+
+
+- name: "modify zookeeper conf"
+#  sudo: True
+  lineinfile:
+    dest: "/etc/zookeeper/conf/zoo.cfg"
+    line: "{{ item }}"
+  with_items:
+    - "maxSessionTimeout=120000"
+    - "autopurge.purgeInterval=3"
+
+
+- name: "modify zookeeper log4j properties"
+#  sudo: True
+  lineinfile:
+    dest: "/etc/zookeeper/conf/log4j.properties"
+    regexp: "(log4j.appender.ROLLINGFILE.MaxBackupIndex=.*)$"
+    line: "\\1"
+    backrefs: yes
+
+
+- name: "add server addresses to zookeeper config"
+#  sudo: True
+  lineinfile:
+    dest: "/etc/zookeeper/conf/zoo.cfg"
+    regexp: "server.{{ item.0 + 1 }}="
+#    line: "server.{{ item.0 + 1 }}={{ hostvars[item.1]['contrail_address'] }}:2888:3888"
+    line: "server.{{ item.0 + 1 }}={{ ip_settings[item.1]['br-prv']['ip'] }}:2888:3888"
+  with_indexed_items: groups['opencontrail']
+
+
+- name: "set zookeeper unique id"
+#  sudo: True
+  template:
+    src: "../../templates/provision/zookeeper-unique-id.j2"
+    dest: "/var/lib/zookeeper/myid"
+  with_indexed_items: groups['opencontrail']
+  when: item.1 == inventory_hostname
+
+
+- name: "remove kafka ini file"
+#  sudo: True
+  file:
+    path: "/etc/contrail/supervisord_database_files/kafka.ini"
+    state: "absent"
+
+
+- name: "set first zookeeper host address"
+#  sudo: True
+  set_fact:
+#    zkaddrs: "{{ hostvars[item.1]['contrail_address'] }}:2181"
+    zkaddrs: "{{ ip_settings[item.1]['br-prv']['ip'] }}:2181"
+  with_indexed_items: groups['opencontrail']
+  when: item.0 == 0
+
+
+- name: "set second or more zookeeper host addresses"
+#  sudo: True
+  set_fact:
+#    zkaddrs: "{{ zkaddrs }},{{ hostvars[item.1]['contrail_address'] }}:2181"
+    zkaddrs: "{{ zkaddrs }},{{ ip_settings[item.1]['br-prv']['ip'] }}:2181"
+  with_indexed_items: groups['opencontrail']
+  when: item.0 > 0
+
+
+- name: "modify zookeeper host addresses in kafka properties"
+#  sudo: True
+  lineinfile:
+    dest: "/usr/share/kafka/config/server.properties"
+    regexp: "zookeeper.connect="
+    line: "zookeeper.connect={{ zkaddrs }}"
+
+
+- name: "modify kafka properties"
+#  sudo: True
+  lineinfile:
+    dest: "/usr/share/kafka/config/server.properties"
+    regexp: "default.replication.factor="
+    line: "default.replication.factor=2"
+
+
+- name: "fix up contrail database nodemgr config"
+#  sudo: True
+  ini_file:
+    dest: "/etc/contrail/contrail-database-nodemgr.conf"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  with_items:
+    - { section: "DEFAULT", option: "hostip", value: "{{ contrail_address }}" }
+    - { section: "DISCOVERY", option: "server", value: "{{ contrail_haproxy_address }}" }
+
+
+- name: "restart zookeeper"
+#  sudo: True
+  service:
+    name: "zookeeper"
+    state: "restarted"
+
+
+- name: "restart supervisor database"
+#  sudo: True
+  service:
+    name: "supervisor-database"
+    state: "restarted"

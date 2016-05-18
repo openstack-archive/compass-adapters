@@ -1,0 +1,28 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- name: "disable ufw"
+  ufw:
+    state: "disabled"
+
+- name: "change value of kernel.core_pattern"
+  sysctl:
+    name: "kernel.core_pattern"
+    value: "/var/crashes/core.%e.%p.%h.%t"
+
+- name: "change value of net.ipv4.ip_forward"
+  sysctl:
+    name: "net.ipv4.ip_forward"
+    value: "1"
+
+- name: "make crashes directory"
+  file:
+    path: "/var/crashes"
+    state: "directory"
+    mode: 0777

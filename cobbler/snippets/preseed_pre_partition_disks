@@ -43,13 +43,13 @@ if [ -e /dev/disk/by-path ]; then
             else
                 disk_mapping="\${disk_mapping} \${disk_name}"
             fi
-	    if [ -z "\${disk_path_mapping}" ]; then
+        if [ -z "\${disk_path_mapping}" ]; then
                 disk_path_mapping="\${disk_path_name}"
-	    else
-	        disk_path_mapping="\${disk_path_mapping} \${disk_path_name}"
+        else
+            disk_path_mapping="\${disk_path_mapping} \${disk_path_name}"
             fi
             eval "disk_\${disk_name}=/dev/disk/by-path/\${path_name}"
-	    eval "disk_\${disk_path_name}=/dev/disk/by-path/\${path_name}"
+        eval "disk_\${disk_path_name}=/dev/disk/by-path/\${path_name}"
             eval "disk_path_\${disk_path_name}=/dev/\${disk_name}"
             eval "disk_path_\${disk_name}=/dev/\${disk_name}"
         else
@@ -77,7 +77,7 @@ partition_disks=""
 disks=""
 for disk in \$(list-devices disk); do
     disk_name=\$(basename \$disk)
-    eval "disk_path=\\${disk_\${disk_name}}" 
+    eval "disk_path=\\${disk_\${disk_name}}"
     if [ -z "\${disk_path}" ]; then
         eval "ignore_disk_path=\\${ignore_disk_\${disk_name}}"
         if [ ! -z "\${ignore_disk_path}" ]; then
@@ -186,16 +186,16 @@ for disk_partition in \${disk_partitions}; do
 #if $getVar('partition_by_path', '0') != "0"
         path_name=\$(basename \${remove_disk})
         disk_path_name=\$(echo \${path_name} | tr '-' '_' | tr ':' '_' | tr '.' '_')
-	remove_disk_path=\${remove_disk}
+    remove_disk_path=\${remove_disk}
         eval "remove_disk=\\${disk_path_\${disk_path_name}}"
 #else
         disk_name=\$(basename \${remove_disk})
         eval "remove_disk_path=\\${disk_\${disk_name}}"
 #end if
         if [ -z "\${remove_disk}" ]; then
-	    continue
-	fi
-	if [ -z "\${remove_disk_path}" ]; then
+        continue
+    fi
+    if [ -z "\${remove_disk_path}" ]; then
             continue
         fi
         if expr match "\${disk_partition}" "\${remove_disk_path}.*"; then
@@ -210,9 +210,9 @@ for disk_partition in \${disk_partitions}; do
         else
             echo "partition \${disk_partition} does not match \${remove_disk}.*" >> /tmp/preseed.log
         fi
-	if [[ "\$vg" == "$vgname" ]]; then
+    if [[ "\$vg" == "$vgname" ]]; then
             remove_vg="\$vg"
-	    remove_partition="\${disk_partition}"
+        remove_partition="\${disk_partition}"
         fi
     done
     if [ ! -z "\${remove_vg}" ]; then
@@ -234,15 +234,15 @@ for disk_partition in \${disk_partitions}; do
         if [ -z "\${remove_partitions}" ]; then
             remove_partitions="\${remove_partition}"
         else
-	    pv_removed=0
-	    for pv in ${remove_partitions}; do
-	        if [[ "\$pv" == "\${remove_partition}" ]]; then
-		    pv_removed=1
-		fi
-	    done
-	    if [ \${pv_removed} -eq 0 ]; then
+        pv_removed=0
+        for pv in ${remove_partitions}; do
+            if [[ "\$pv" == "\${remove_partition}" ]]; then
+            pv_removed=1
+        fi
+        done
+        if [ \${pv_removed} -eq 0 ]; then
                 remove_partitions="\${remove_partitions} \${remove_partition}"
-	    fi
+        fi
         fi
     fi
 done
@@ -288,17 +288,17 @@ echo "partition fstype \${partition_fstype}" >> /tmp/preseed.log
     #for disk_and_size in $disk_sizes
         #set disk_name, size = $disk_and_size.split(' ', 1)
         #set disk_name = $disk_name.strip()
-	#if $size.endswith('K')
-	    #set disk_size = $int($size[:-1]) / 1000
-	#elif $size.endswith('M')
-	    #set disk_size = $int($size[:-1])
-	#elif $size.endswith('G')
-	    #set disk_size = $int($size[:-1]) * 1000
-	#elif $size.endswith('T')
-	    #set disk_size = $int($size[:-1]) * 1000000
-	#else
-	    #set disk_size = $int($size)
-	#end if
+    #if $size.endswith('K')
+        #set disk_size = $int($size[:-1]) / 1000
+    #elif $size.endswith('M')
+        #set disk_size = $int($size[:-1])
+    #elif $size.endswith('G')
+        #set disk_size = $int($size[:-1]) * 1000
+    #elif $size.endswith('T')
+        #set disk_size = $int($size[:-1]) * 1000000
+    #else
+        #set disk_size = $int($size)
+    #end if
 reserve_disk_size_${disk_name}=${disk_size}
     #end for
 #end if
@@ -321,17 +321,17 @@ default_reserve_disk_size=${disk_size}
     #for disk_and_size in $disk_sizes
         #set disk_name, size = $disk_and_size.split(' ', 1)
         #set disk_name = $disk_name.strip()
-	#if $size.endswith('K')
-	    #set disk_size = $int($size[:-1]) / 1000
-	#elif $size.endswith('M')
-	    #set disk_size = $int($size[:-1])
-	#elif $size.endswith('G')
-	    #set disk_size = $int($size[:-1]) * 1000
-	#elif $size.endswith('T')
-	    #set disk_size = $int($size[:-1]) * 1000000
-	#else
-	    #set disk_size = $int($size)
-	#end if
+    #if $size.endswith('K')
+        #set disk_size = $int($size[:-1]) / 1000
+    #elif $size.endswith('M')
+        #set disk_size = $int($size[:-1])
+    #elif $size.endswith('G')
+        #set disk_size = $int($size[:-1]) * 1000
+    #elif $size.endswith('T')
+        #set disk_size = $int($size[:-1]) * 1000000
+    #else
+        #set disk_size = $int($size)
+    #end if
 max_disk_size_${disk_name}=${disk_size}
     #end for
 #end if
@@ -356,13 +356,13 @@ default_partition_name=""
     #for vol_and_size in vol_sizes
         #set vol, vol_size = $vol_and_size.split(' ', 1)
         #set vol = $vol.strip()
-	#if $vol == '/'
-	    #set volname = 'root'
-	#elif $vol == 'swap'
-	    #set volname = 'swap'
-	#elif $vol.startswith('/')
+    #if $vol == '/'
+        #set volname = 'root'
+    #elif $vol == 'swap'
+        #set volname = 'swap'
+    #elif $vol.startswith('/')
             #set volname = $vol[1:].replace('/', '_')
-	#else
+    #else
 # $vol is not starts with /
             #continue
         #end if
@@ -376,21 +376,21 @@ if [[ "$vol" == "\$default_partition" ]]; then
 fi
 partition_point_$volname=$vol
         #set vol_size = $vol_size.strip()
-	#if $vol_size.endswith('%')
-	    #set vol_percent = $vol_size[:-1]
+    #if $vol_size.endswith('%')
+        #set vol_percent = $vol_size[:-1]
 partition_percentage_$volname=$vol_percent
         #else
-	    #if $vol_size.endswith('K')
+        #if $vol_size.endswith('K')
                 #set vol_min_size = $int($vol_size[:-1]) / 1000
             #elif $vol_size.endswith('M')
-	        #set vol_min_size = $int($vol_size[:-1])
+            #set vol_min_size = $int($vol_size[:-1])
             #elif $vol_size.endswith('G')
-	        #set vol_min_size = $int($vol_size[:-1]) * 1000
-	    #elif $vol_size.endswith('T')
-	        #set vol_min_size = $int($vol_size[:-1]) * 1000000
-	    #else
-	        #set vol_min_size = $int($vol_size)
-	    #end if
+            #set vol_min_size = $int($vol_size[:-1]) * 1000
+        #elif $vol_size.endswith('T')
+            #set vol_min_size = $int($vol_size[:-1]) * 1000000
+        #else
+            #set vol_min_size = $int($vol_size)
+        #end if
 partition_size_$volname=$vol_min_size
         #end if
     #end for
@@ -401,27 +401,27 @@ partition_size_$volname=$vol_min_size
     #for vol_and_size in $vol_sizes
         #set vol, vol_size = $vol_and_size.split(' ', 1)
         #set vol = $vol.strip()
-	#if $vol == '/'
-	    #set volname = 'root'
-	#elif $vol == 'swap'
-	    #set volname = 'swap'
-	#elif $vol.startswith('/')
+    #if $vol == '/'
+        #set volname = 'root'
+    #elif $vol == 'swap'
+        #set volname = 'swap'
+    #elif $vol.startswith('/')
             #set volname = $vol[1:].replace('/', '_')
-	#else
+    #else
 # $vol is not starts with /
             #continue
         #end if
-	#if $vol_size.endswith('K')
-	    #set vol_min_size = $int($vol_size[:-1]) / 1000
-	#elif $vol_size.endswith('M')
-	    #set vol_min_size = $int($vol_size[:-1])
-	#elif $vol_size.endswith('G')
-	    #set vol_min_size = $int($vol_size[:-1]) * 1000
-	#elif $vol_size.endswith('T')
-	    #set vol_min_size = $int($vol_size[:-1]) * 1000000
-	#else
-	    #set vol_min_size = $int($vol_size)
-	#end if
+    #if $vol_size.endswith('K')
+        #set vol_min_size = $int($vol_size[:-1]) / 1000
+    #elif $vol_size.endswith('M')
+        #set vol_min_size = $int($vol_size[:-1])
+    #elif $vol_size.endswith('G')
+        #set vol_min_size = $int($vol_size[:-1]) * 1000
+    #elif $vol_size.endswith('T')
+        #set vol_min_size = $int($vol_size[:-1]) * 1000000
+    #else
+        #set vol_min_size = $int($vol_size)
+    #end if
 partitions_size_$volname=${vol_min_size}
     #end for
 #end if
@@ -431,27 +431,27 @@ partitions_size_$volname=${vol_min_size}
     #for vol_and_size in $vol_sizes
         #set vol, vol_size = $vol_and_size.split(' ', 1)
         #set vol = $vol.strip()
-	#if $vol == '/'
-	    #set volname = 'root'
-	#elif $vol == 'swap'
-	    #set volname = 'swap'
-	#elif $vol.startswith('/')
+    #if $vol == '/'
+        #set volname = 'root'
+    #elif $vol == 'swap'
+        #set volname = 'swap'
+    #elif $vol.startswith('/')
             #set volname = $vol[1:].replace('/', '_')
-	#else
+    #else
 # $vol is not starts with /
             #continue
         #end if
-	#if $vol_size.endswith('K')
-	    #set vol_max_size = $int($vol_size[:-1]) / 1000
-	#elif $vol_size.endswith('M')
-	    #set vol_max_size = $int($vol_size[:-1])
-	#elif $vol_size.endswith('G')
-	    #set vol_max_size = $int($vol_size[:-1]) * 1000
-	#elif $vol_size.endswith('T')
-	    #set vol_max_size = $int($vol_size[:-1]) * 1000000
-	#else
-	    #set vol_max_size = $int($vol_size)
-	#end if
+    #if $vol_size.endswith('K')
+        #set vol_max_size = $int($vol_size[:-1]) / 1000
+    #elif $vol_size.endswith('M')
+        #set vol_max_size = $int($vol_size[:-1])
+    #elif $vol_size.endswith('G')
+        #set vol_max_size = $int($vol_size[:-1]) * 1000
+    #elif $vol_size.endswith('T')
+        #set vol_max_size = $int($vol_size[:-1]) * 1000000
+    #else
+        #set vol_max_size = $int($vol_size)
+    #end if
 partition_maxsize_$volname=${vol_max_size}
     #end for
 #end if
@@ -602,7 +602,7 @@ in_vg{ $vgname } lv_name{ \${key}vol } \
 mountpoint{ \$partition }"
     fi
     echo "partition param \$partition => \${partition_param}" >> /tmp/preseed.log
-    recipe="\$recipe \${partition_size} \${partition_factor} \${partition_maxsize} \${partition_param} ." 
+    recipe="\$recipe \${partition_size} \${partition_factor} \${partition_maxsize} \${partition_param} ."
 done
 
 for disk in \${sorted_disks}; do
@@ -641,7 +641,7 @@ method{ lvm } vg_name{ $vgname }"
 \\$defaultignore{ } device{ \${disk} } \
 method{ lvm } vg_name{ reserved }"
         recipe="\$recipe \${reserve_disk_size} \${reserve_disk_size} \${reserve_disk_size} \${reserve_disk_param} ."
-	echo "reserve partition param \${disk_name} => \${reserve_disk_param}" >> /tmp/preseed.log
+    echo "reserve partition param \${disk_name} => \${reserve_disk_param}" >> /tmp/preseed.log
     fi
 done
 
@@ -662,7 +662,7 @@ for disk in \$disks; do
 \\$defaultignore{ } device{ \${disk} } \
 method{ lvm } vg_name{ reserved }"
         recipe="\$recipe 512 512+100% -1 \${reserve_disk_param} ."
-	echo "reserve partition param \${disk_name} => \${reserve_disk_param}" >> /tmp/preseed.log
+    echo "reserve partition param \${disk_name} => \${reserve_disk_param}" >> /tmp/preseed.log
     fi
 done
 #end if

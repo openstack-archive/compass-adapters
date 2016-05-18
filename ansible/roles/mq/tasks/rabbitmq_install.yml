@@ -1,0 +1,91 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- name: create rabbitmq directory
+  file: path=/etc/rabbitmq state=directory mode=0755
+
+- name: disable auto start
+  copy:
+    content: "#!/bin/sh\nexit 101"
+    dest: "/usr/sbin/policy-rc.d"
+    mode: 0755
+  when: ansible_os_family == "Debian"
+
+- name: install rabbitmq-server
+  action: "{{ ansible_pkg_mgr }} name=rabbitmq-server state=present"
+  with_items: packages | union(packages_noarch)
+
+- name: enable auto start
+  file:
+    path=/usr/sbin/policy-rc.d
+    state=absent
+  when: ansible_os_family == "Debian"
+
+- name: make sure rabbitmq-server stopped
+  service:
+    name: rabbitmq-server
+    state: stopped
+    enabled: yes
+
+- name: replace cookie
+  copy:
+    content: "{{ ERLANG_TOKEN }}"
+    dest: /var/lib/rabbitmq/.erlang.cookie
+    mode: 0400
+    owner: rabbitmq
+    group: rabbitmq
+
+- name: replace config
+  copy:
+    content: "RABBITMQ_NODE_IP_ADDRESS={{ internal_ip }}"
+    dest: /etc/rabbitmq/rabbitmq-env.conf
+    mode: 0400
+    owner: rabbitmq
+    group: rabbitmq
+
+- name: set open file limit for rabbitmq
+  copy:
+    content: "ulimit -n 65536"
+    dest: /etc/default/rabbitmq-server
+    mode: 0400
+    owner: rabbitmq
+    group: rabbitmq
+
+- name: restart rabbitmq-server
+  service:
+    name: rabbitmq-server
+    state: restarted
+
+- name: enable queue mirroring
+  rabbitmq_policy:
+    name: "ha-all"
+    pattern: '^(?!amq\.).*'
+    tags: "ha-mode=all"
+
+- name: get cluster name
+  shell: |
+    rabbitmqctl cluster_status | grep -w '<<"compass">>'
+  register: cluster_status
+  failed_when: false
+  changed_when: cluster_status.rc != 0
+  when: |
+     inventory_hostname == haproxy_hosts.keys()[0]
+
+- name: set cluster name
+  shell: rabbitmqctl set_cluster_name compass
+  when: |
+     inventory_hostname == haproxy_hosts.keys()[0]
+     and cluster_status.rc != 0
+
+- include: rabbitmq_cluster.yml
+  when: inventory_hostname != haproxy_hosts.keys()[0]
+
+- name: generate mq service list
+  shell: echo {{ item }} >> /opt/service
+  with_items: services_noarch

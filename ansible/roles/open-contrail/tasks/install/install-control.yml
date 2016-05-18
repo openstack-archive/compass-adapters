@@ -1,0 +1,32 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: control
+#  sudo: yes
+#  tasks:
+- name: "temporary disable supervisor control"
+#  sudo: True
+  template:
+#        src: "templates/override.j2"
+    src: "../../templates/install/override.j2"
+    dest: "/etc/init/supervisor-control.override"
+
+- name: "temporary disable supervisor dns"
+#  sudo: True
+  template:
+#        src: "templates/override.j2"
+    src: "../../templates/install/override.j2"
+    dest: "/etc/init/supervisor-dns.override"
+
+- name: "install contrail openstack control package"
+#  sudo: True
+#      apt:
+#        name: "contrail-openstack-control"
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present force=yes"
+  with_items: control_package

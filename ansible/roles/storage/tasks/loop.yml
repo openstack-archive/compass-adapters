@@ -1,0 +1,31 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+
+- name: get available /var partition size
+  script: get_var_size.sh
+  register: part_size
+
+- name: create image file if not exitst
+  script: create_img.sh \"{{ part_size.stdout }}\"
+
+- name: do a losetup on storage volumes
+  script: losetup.sh
+  register: loop_device
+
+- name: debug loop device
+  debug: msg={{ loop_device.stdout }}
+
+- name: get device
+  shell: echo '{{ loop_device.stdout }}' | sed ':a;N;$!ba;s/.*\n\(\/dev\)/\1/g'
+  register: loop_device_filterd
+
+- name: create physical and group volumes
+  lvg: vg=storage-volumes pvs={{ loop_device_filterd.stdout }}
+       vg_options=--force

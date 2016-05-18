@@ -41,9 +41,9 @@ kernel.shmall = 4294967296
 
 # increase TCP max buffer size settable using setsockopt()
 net.core.rmem_max = 16777216
-net.core.wmem_max = 16777216 
+net.core.wmem_max = 16777216
 
-# increase Linux autotuning TCP buffer limit 
+# increase Linux autotuning TCP buffer limit
 net.ipv4.tcp_rmem = 4096 87380 16777216
 net.ipv4.tcp_wmem = 4096 65536 16777216
 
@@ -51,7 +51,7 @@ net.ipv4.tcp_wmem = 4096 65536 16777216
 net.core.netdev_max_backlog = 30000
 net.ipv4.tcp_max_syn_backlog = 4096
 
-# recommended default congestion control is htcp 
+# recommended default congestion control is htcp
 net.ipv4.tcp_congestion_control=htcp
 
 # recommended for hosts with jumbo frames enabled
@@ -63,12 +63,12 @@ net.ipv4.tcp_fin_timeout=30
 
 # fast cycling of sockets in time_wait state and re-using them
 net.ipv4.tcp_tw_recycle = 1
-net.ipv4.tcp_tw_reuse = 1 
+net.ipv4.tcp_tw_reuse = 1
 
 # increase the maximum number of requests queued to a listen socket
 net.core.somaxconn = 8192
 
-# avoid caching tcp network transfer statistics 
+# avoid caching tcp network transfer statistics
 net.ipv4.route.flush=1
 #end raw
 ]]>

@@ -1,0 +1,22 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- include_vars: "{{ ansible_os_family }}.yml"
+
+- name: copy service check file
+  copy: src=check_{{ ansible_os_family }}_service.sh dest=/usr/local/bin/check_service.sh mode=0777
+
+- name: copy cron file
+  copy: src=root dest={{ cron_path }}/root mode=0600
+
+- name: restart cron
+  service: name={{ cron }} state=restarted
+
+- meta: flush_handlers
+

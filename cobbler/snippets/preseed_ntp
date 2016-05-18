@@ -6,10 +6,10 @@ cat << EOF > /etc/ntp.conf
 # For more information about this file, see the man pages
 # ntp.conf(5), ntp_acc(5), ntp_auth(5), ntp_clock(5), ntp_misc(5), ntp_mon(5).
 
-# Include the option tinker panic 0 at the top of your ntp.conf file. 
+# Include the option tinker panic 0 at the top of your ntp.conf file.
 # By default, the NTP daemon sometimes panics and exits if the underlying clock
-# appears to be behaving erratically. This option causes the daemon to keep 
-# running instead of panicking. 
+# appears to be behaving erratically. This option causes the daemon to keep
+# running instead of panicking.
 tinker panic 0
 
 driftfile /var/lib/ntp/drift
@@ -22,7 +22,7 @@ restrict -6 default kod nomodify notrap nopeer noquery
 # Permit all access over the loopback interface.  This could
 # be tightened as well, but to do so would effect some of
 # the administrative functions.
-restrict 127.0.0.1 
+restrict 127.0.0.1
 restrict -6 ::1
 
 # Hosts on local network are less restricted.
@@ -35,16 +35,16 @@ restrict -6 ::1
 # server 2.ubuntu.pool.ntp.org
 server $ntp_server
 
-# broadcast 192.168.1.255 autokey	# broadcast server
-# broadcastclient			# broadcast client
-# broadcast 224.0.1.1 autokey		# multicast server
-# multicastclient 224.0.1.1		# multicast client
-# manycastserver 239.255.254.254		# manycast server
+# broadcast 192.168.1.255 autokey        # broadcast server
+# broadcastclient                        # broadcast client
+# broadcast 224.0.1.1 autokey            # multicast server
+# multicastclient 224.0.1.1              # multicast client
+# manycastserver 239.255.254.254         # manycast server
 # manycastclient 239.255.254.254 autokey # manycast client
 
 # Undisciplined Local Clock. This is a fake driver intended for backup
-# and when no outside source of synchronized time is available. 
-server	127.127.1.0	# local clock
+# and when no outside source of synchronized time is available.
+server    127.127.1.0    # local clock
 
 # Enable public key cryptography.
 # crypto
@@ -52,7 +52,7 @@ server	127.127.1.0	# local clock
 includefile /etc/ntp/crypto/pw
 
 # Key file containing the keys and key identifiers used when operating
-# with symmetric key cryptography. 
+# with symmetric key cryptography.
 keys /etc/ntp/keys
 
 # Specify the key identifiers which are trusted.

@@ -1,0 +1,343 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: config
+#  sudo: yes
+#  tasks:
+- name: "enable supervisor config"
+  file:
+    path: "/etc/init/supervisor-config.override"
+    state: "absent"
+
+- name: "enable neutron server"
+  file:
+    path: "/etc/init/neutron-server.override"
+    state: "absent"
+
+# Compass is using this
+#- name: "enable haproxy"
+#  replace:
+#    dest: "/etc/default/haproxy"
+#    regexp: "^ENABLED\\s*=.*$"
+#    replace: "ENABLED=1"
+
+# Compass is using this
+#- name: "modify haproxy global configuration"
+#  lineinfile:
+#    dest: "/etc/haproxy/haproxy.cfg"
+#    regexp: "{{ item.regexp }}"
+#    line: "{{ item.line }}"
+#    insertafter: "^global"
+#  with_items:
+#    - { regexp: "^\\s*tune.bufsize", line: "\ttune.bufsize 16384" }
+#    - { regexp: "^\\s*tune.maxrewrite", line: "\ttune.maxrewrite 1024" }
+
+#chenshuai, add later
+#- name: "delete haproxy configuration for contrail"
+#  shell: "sed -i -e '/^#contrail-marker-start/,/^#contrail-marker-end/d' /etc/haproxy/haproxy.cfg"
+
+#chenshuai, add later
+#- name: "create haproxy configuration for contrail"
+#  template:
+#    src: "provision/haproxy-contrail-cfg.j2"
+#    src: "../../templates/provision/haproxy-contrail-cfg.j2"
+#    dest: "/tmp/haproxy-contrail.cfg"
+
+#chenshuai, add later
+#- name: "combination of the haproxy configuration"
+#  shell: "cat /tmp/haproxy-contrail.cfg >> /etc/haproxy/haproxy.cfg"
+
+#chenshuai, add later
+#- name: "delete temporary configuration file"
+#  file:
+#    dest: "/tmp/haproxy-contrail.cfg"
+#    state: "absent"
+
+#chenshuai, add later
+#- name: "restart haproxy"
+#  service:
+#    name: "haproxy"
+#    state: "restarted"
+
+# Compass is using this
+#- name: "create keepalived configuration"
+#  template:
+#    src: "../../templates/provision/keepalived-conf.j2"
+#    dest: "/etc/keepalived/keepalived.conf"
+#  with_indexed_items: groups['opencontrail_config']
+#  when: contrail_keepalived and item.1 == inventory_hostname
+
+#- name: "restart keepalived"
+#  service:
+#    name: "keepalived"
+#    state: "restarted"
+#  when: contrail_keepalived
+
+- name: "node-common"
+  include: -node-common.yml
+
+- name: "fix up contrail keystone auth config"
+  template:
+    src: "../../templates/provision/contrail-keystone-auth-conf.j2"
+    dest: "/etc/contrail/contrail-keystone-auth.conf"
+
+- name: "fix up ifmap server log4j properties"
+  template:
+    src: "../../templates/provision/ifmap-log4j-properties.j2"
+    dest: "/etc/ifmap-server/log4j.properties"
+
+- name: "fix up ifmap server authorization properties"
+  template:
+    src: "../../templates/provision/ifmap-authorization-properties.j2"
+    dest: "/etc/ifmap-server/authorization.properties"
+
+- name: "fix up ifmap server basicauthusers properties"
+  template:
+    src: "../../templates/provision/ifmap-basicauthusers-properties.j2"
+    dest: "/etc/ifmap-server/basicauthusers.properties"
+
+- name: "fix up ifmap server publisher properties"
+  template:
+    src: "../../templates/provision/ifmap-publisher-properties.j2"
+    dest: "/etc/ifmap-server/publisher.properties"
+
+- name: "fix up contrail api config"
+  template:
+    src: "../../templates/provision/contrail-api-conf.j2"
+    dest: "/etc/contrail/contrail-api.conf"
+
+- name: "fix up contrail api supervisord config"
+  template:
+    src: "../../templates/provision/contrail-api-supervisord-conf.j2"
+    dest: "/etc/contrail/supervisord_config_files/contrail-api.ini"
+
+- name: "modify contrail api init script"
+  lineinfile:
+    dest: "/etc/init.d/contrail-api"
+    regexp: "supervisorctl -s unix:///tmp/supervisord_config.sock"
+    line: "supervisorctl -s unix:///tmp/supervisord_config.sock ${1} `basename ${0}:0`"
+
+- name: "fix up contrail schema config"
+  template:
+    src: "../../templates/provision/contrail-schema-conf.j2"
+    dest: "/etc/contrail/contrail-schema.conf"
+
+- name: "fix up contrail device manager config"
+  template:
+    src: "../../templates/provision/contrail-device-manager-conf.j2"
+    dest: "/etc/contrail/contrail-device-manager.conf"
+
+- name: "fix up contrail svc monitor config"
+  template:
+    src: "../../templates/provision/contrail-svc-monitor-conf.j2"
+    dest: "/etc/contrail/contrail-svc-monitor.conf"
+
+- name: "fix up contrail discovery supervisord config"
+  template:
+    src: "../../templates/provision/contrail-discovery-supervisord-conf.j2"
+    dest: "/etc/contrail/supervisord_config_files/contrail-discovery.ini"
+
+- name: "fix up contrail discovery config"
+  template:
+    src: "../../templates/provision/contrail-discovery-conf.j2"
+    dest: "/etc/contrail/contrail-discovery.conf"
+
+- name: "modify contrail discovery init script"
+  lineinfile:
+    dest: "/etc/init.d/contrail-discovery"
+    regexp: "supervisorctl -s unix:///tmp/supervisord_config.sock"
+    line: "supervisorctl -s unix:///tmp/supervisord_config.sock ${1} `basename ${0}:0`"
+
+- name: "fix up contrail vnc api library config"
+  template:
+    src: "../../templates/provision/contrail-vnc-api-lib-ini.j2"
+    dest: "/etc/contrail/vnc_api_lib.ini"
+
+- name: "fix up contrail config nodemgr config"
+  ini_file:
+    dest: "/etc/contrail/contrail-config-nodemgr.conf"
+    section: "DISCOVERY"
+    option: "server"
+    value: "{{ contrail_haproxy_address }}"
+
+- name: "fix up contrail sudoers"
+  template:
+    src: "../../templates/provision/contrail-sudoers.j2"
+    dest: "/etc/sudoers.d/contrail_sudoers"
+    mode: 0440
+
+- name: "create directory for neutron plugins"
+  file:
+    dest: "/etc/neutron/plugins/opencontrail"
+    state: "directory"
+
+- name: "fix up contrail plugin for nuetron"
+  template:
+    src: "../../templates/provision/neutron-contrail-plugin-ini.j2"
+    dest: "/etc/neutron/plugins/opencontrail/ContrailPlugin.ini"
+
+- name: "modify neutron server configuration"
+  lineinfile:
+    dest: "/etc/default/neutron-server"
+    regexp: "NEUTRON_PLUGIN_CONFIG="
+    line: "NEUTRON_PLUGIN_CONFIG=\"/etc/neutron/plugins/opencontrail/ContrailPlugin.ini\""
+
+#- name: "change owner neutron log directory"
+#  file:
+#    dest: "/var/log/neutron"
+#    state: "directory"
+#    owner: "neutron"
+#    group: "neutron"
+#    recurse: yes
+
+- name: "set values to neutron config"
+  ini_file:
+    dest: "/etc/neutron/neutron.conf"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  with_items:
+#    - { section: "DEFAULT", option: "bind_port", value: "9697" }
+#    - { section: "DEFAULT", option: "auth_strategy", value: "keystone" }
+#    - { section: "DEFAULT", option: "allow_overlapping_ips", value: "True" }
+    - { section: "DEFAULT", option: "core_plugin", value: "neutron_plugin_contrail.plugins.opencontrail.contrail_plugin.NeutronPluginContrailCoreV2" }
+    - { section: "DEFAULT", option: "api_extensions_path", value: "/usr/lib/python2.7/dist-packages/neutron_plugin_contrail/extensions" }
+#    - { section: "DEFAULT", option: "rabbit_host", value: "{{ contrail_haproxy_address }}" }
+#    - { section: "DEFAULT", option: "rabbit_port", value: "5673" }
+#    - { section: "DEFAULT", option: "service_plugins", value: "neutron_plugin_contrail.plugins.opencontrail.loadbalancer.plugin.LoadBalancerPlugin" }
+    - { section: "DEFAULT", option: "service_plugins", value: " " }
+    - { section: "DEFAULT", option: "notify_nova_on_port_data_changes", value: "False" }
+    - { section: "service_providers", option: "service_provider", value: "LOADBALANCER:Opencontrail:neutron_plugin_contrail.plugins.opencontrail.loadbalancer.driver.OpencontrailLoadbalancerDriver:default" }
+    - { section: "quotas", option: "quota_driver", value: "neutron_plugin_contrail.plugins.opencontrail.quota.driver.QuotaDriver" }
+#    - { section: "quotas", option: "quota_network", value: "-1" }
+#    - { section: "quotas", option: "quota_subnet", value: "-1" }
+#    - { section: "quotas", option: "quota_port", value: "-1" }
+#    - { section: "keystone_authtoken", option: "admin_tenant_name", value: "admin" }
+#    - { section: "keystone_authtoken", option: "admin_user", value: "{{ contrail_admin_user }}" }
+#    - { section: "keystone_authtoken", option: "admin_password", value: "{{ contrail_admin_password }}" }
+#    - { section: "keystone_authtoken", option: "auth_host", value: "{{ contrail_keystone_address }}" }
+#    - { section: "keystone_authtoken", option: "auth_protocol", value: "http" }
+
+#- name: "add respawn to neutron server config"
+#  lineinfile:
+#    dest: "/etc/init/neutron-server.conf"
+#    line: "respawn"
+#    insertbefore: "pre-start script"
+
+#- name: "add respawn limit to neutron server config"
+#  lineinfile:
+#    dest: "/etc/init/neutron-server.conf"
+#    line: "respawn limit 10 90"
+#    insertafter: "respawn"
+
+- name: "restart supervisor config"
+  service:
+    name: "supervisor-config"
+    state: "restarted"
+
+
+
+###########################################################
+############# neutron plugins workaround ##################
+###########################################################
+
+- name: "copy neutron plugs on controller"
+  copy:
+    src: "../../templates/neutron_plugin_contrail.tar.gz"
+    dest: "/opt/neutron_plugin_contrail.tar.gz"
+
+- name: "unzip neutron plugs"
+  command: su -s /bin/sh -c "tar xzf /opt/neutron_plugin_contrail.tar.gz -C /opt/" 
+
+- name: "remove original neutron plugs"
+  shell: rm -rf /usr/lib/python2.7/dist-packages/neutron_plugin_contrail/
+  
+- name: "use new neutron plugs"
+  shell: mv /opt/neutron_plugin_contrail/  /usr/lib/python2.7/dist-packages/neutron_plugin_contrail/
+
+###########################################################
+
+
+
+- name: "restart neutron-server"
+  service:
+    name: "neutron-server"
+    state: "restarted"
+
+# Compass configured
+#- name: "add neutron service"
+#  shell: "keystone service-get 'neutron' || keystone service-create --name 'neutron' --type 'network' --description 'Neutron Network Service'"
+#  environment:
+#    OS_AUTH_URL: "http://{{ contrail_keystone_address }}:35357/v2.0"
+#    OS_USERNAME: "{{ contrail_admin_user }}"
+#    OS_PASSWORD: "{{ contrail_admin_password }}"
+#    OS_TENANT_NAME: "admin"
+#  run_once: yes
+#  when: keystone_provision 
+#
+#
+# Compass configured
+#- name: "add neutron endpoint"
+#  shell: "keystone endpoint-list | grep -q $(keystone service-get 'neutron' | grep '| *id *|' | awk '{print $4}') || keystone endpoint-create --region 'RegionOne' --service 'neutron' --publicurl 'http://{{ contrail_haproxy_address }}:9696' --internal 'http://{{ contrail_haproxy_address }}:9696' --adminurl 'http://{{ contrail_haproxy_address }}:9696'"
+#  environment:
+#    OS_AUTH_URL: "http://{{ contrail_keystone_address }}:35357/v2.0"
+#    OS_USERNAME: "{{ contrail_admin_user }}"
+#    OS_PASSWORD: "{{ contrail_admin_password }}"
+#    OS_TENANT_NAME: "admin"
+#  run_once: yes
+#  when: keystone_provision 
+#
+#- name: "add neutron user"
+#  keystone_user:
+#    user: "neutron"
+#    password: "{{ contrail_admin_password }}"
+#    email: "neutron@example.com"
+#    tenant: "service"
+#    endpoint: "http://{{ contrail_keystone_address }}:35357/v2.0"
+#    login_user: "{{ contrail_admin_user }}"
+#    login_password: "{{ contrail_admin_password }}"
+#    login_tenant_name: "admin"
+#  run_once: yes
+#  when: keystone_provision 
+#
+#- name: "apply role to user"
+#  keystone_user:
+#    tenant: "service"
+#    user: "neutron"
+#    role: "admin"
+#    endpoint: "http://{{ contrail_keystone_address }}:35357/v2.0"
+#    login_user: "{{ contrail_admin_user }}"
+#    login_password: "{{ contrail_admin_password }}"
+#    login_tenant_name: "admin"
+#  run_once: yes
+#  when: keystone_provision 
+
+
+
+#- name: "set values to nova config"
+#  ini_file:
+#    dest: "/etc/nova/nova.conf"
+#    section: "{{ item.section }}"
+#    option: "{{ item.option }}"
+#    value: "{{ item.value }}"
+#  with_items:
+#    - { section: "DEFAULT", option: "network_api_class", value: "nova_contrail_vif.contrailvif.ContrailNetworkAPI" }
+
+
+#- name: "restart nova-server"
+#  service:
+#    name: "{{ item }}"
+#    state: "restarted"
+#  with_items:
+#    - nova-api
+#    - nova-cert
+#    - nova-conductor
+#    - nova-consoleauth
+#    - nova-novncproxy
+#    - nova-scheduler

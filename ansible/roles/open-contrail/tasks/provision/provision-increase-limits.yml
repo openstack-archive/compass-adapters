@@ -1,0 +1,60 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: [database, config, control, collector]
+#  sudo: yes
+#  tasks:
+- name: "delete line"
+#  sudo: True
+  lineinfile:
+    dest: "/etc/limits.conf"
+    regexp: "^root\\s*soft\\s*nproc\\s*.*"
+    state: "absent"
+
+- name: "check EOF"
+#  sudo: True
+  lineinfile:
+    dest: "/etc/security/limits.conf"
+    regexp: "^# End of file"
+    line: "# End of file"
+
+- name: "add lines"
+#  sudo: True
+  lineinfile:
+    dest: "/etc/security/limits.conf"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    insertbefore: "^# End of file"
+  with_items:
+    - { regexp: "^root\\s*hard\\s*nofile\\s*.*", line: "root hard nofile 65535" }
+    - { regexp: "^root\\s*soft\\s*nofile\\s*.*", line: "root soft nofile 65535" }
+    - { regexp: "^\\*\\s*hard\\s*nofile\\s*.*", line: "* hard nofile 65535" }
+    - { regexp: "^\\*\\s*soft\\s*nofile\\s*.*", line: "* soft nofile 65535" }
+    - { regexp: "^\\*\\s*hard\\s*nproc\\s*.*", line: "* hard nproc 65535" }
+    - { regexp: "^\\*\\s*soft\\s*nproc\\s*.*", line: "* soft nproc 65535" }
+
+- name: change value of sysctl fs.file-max
+#  sudo: True
+  sysctl:
+    name: "fs.file-max"
+    value: "65535"
+
+- name: "find supervisord conf files"
+#  sudo: True
+  shell: "find /etc/contrail -name supervisor*.conf -type f"
+  register: supervisordconfs
+  changed_when: no
+
+- name: "modify supervisord conf"
+#  sudo: True
+  replace:
+    dest: "{{ item }}"
+    regexp: "^minfds=\\d*"
+    replace: "minfds=10240"
+  with_items: supervisordconfs.stdout_lines

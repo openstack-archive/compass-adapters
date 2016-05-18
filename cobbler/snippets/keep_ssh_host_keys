@@ -11,8 +11,8 @@ keys_found=no
 # /var could be a separate partition
 SHORTDIR=${SEARCHDIR#/var}
 if [ $SHORTDIR = $SEARCHDIR ]; then
-	SHORTDIR=''
-fi	
+    SHORTDIR=''
+fi
 insmod /lib/jbd.o
 insmod /lib/ext3.o
 
@@ -27,19 +27,19 @@ function findkeys
     mkdir -p /tmp/$tmpdir
     mount $disk /tmp/$tmpdir
     if [ $? -ne 0 ]; then # Skip to the next partition if the mount fails
-      rm -rf /tmp/$tmpdir                                                
-      continue                                                           
-    fi                                                                   
+      rm -rf /tmp/$tmpdir
+      continue
+    fi
     # Copy current host keys out to be reused
-    if [ -d /tmp/$tmpdir$SEARCHDIR ] &&  cp -a /tmp/$tmpdir$SEARCHDIR/${PATTERN}* /tmp/$TEMPDIR; then 
+    if [ -d /tmp/$tmpdir$SEARCHDIR ] &&  cp -a /tmp/$tmpdir$SEARCHDIR/${PATTERN}* /tmp/$TEMPDIR; then
         keys_found="yes"
-	umount /tmp/$tmpdir
-	rm -r /tmp/$tmpdir
-	break
-    elif [ -n "$SHORTDIR" ] && [ -d /tmp/$tmpdir$SHORTDIR ] && cp -a /tmp/$tmpdir$SHORTDIR/${PATTERN}* /tmp/$TEMPDIR; then 
-	keys_found="yes"
+    umount /tmp/$tmpdir
+    rm -r /tmp/$tmpdir
+    break
+    elif [ -n "$SHORTDIR" ] && [ -d /tmp/$tmpdir$SHORTDIR ] && cp -a /tmp/$tmpdir$SHORTDIR/${PATTERN}* /tmp/$TEMPDIR; then
+    keys_found="yes"
         umount /tmp/$tmpdir
-	rm -r /tmp/$tmpdir
+    rm -r /tmp/$tmpdir
         break
     fi
     umount /tmp/$tmpdir
@@ -60,7 +60,7 @@ if [ "$keys_found" = "no" ]; then
   if mdadm -As; then
       DISKS=$(awk '/md/{print "/dev/"$1}' /proc/mdstat)
       findkeys
-      # unmount and deactivate all md 
+      # unmount and deactivate all md
       for md in $DISKS ; do
           umount $md
           mdadm -S $md
@@ -77,9 +77,9 @@ if [ "$keys_found" = "no" ]; then
         # Activate any VG we found
         lvm vgchange -ay $vg
     done
-    
+
     DISKS=$(lvm lvs | tail -n +2 | awk '{ print "/dev/" $2 "/" $1 }')
-    findkeys    
+    findkeys
 
     # And clean up..
     for vg in $vgs; do

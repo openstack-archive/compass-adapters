@@ -28,7 +28,7 @@ for remove_partition in \${remove_partitions}; do
     partition_number=\$2
     if [ ! -z "\${partition_disk}" ]; then
         if [ ! -z "\${partition_number}" ]; then
-            echo "remove partition \${remove_partition} on \${partition_disk} number \${partition_number}" >> /tmp/post_partition.log 
+            echo "remove partition \${remove_partition} on \${partition_disk} number \${partition_number}" >> /tmp/post_partition.log
             parted \${partition_disk} --script -- rm \${partition_number}
         else
             echo "no partition number found for \${remove_partition}" >> /tmp/post_partition.log

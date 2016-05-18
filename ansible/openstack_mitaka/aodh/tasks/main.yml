@@ -1,0 +1,29 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- include_vars: "{{ ansible_os_family }}.yml"
+
+- name: install aodh packages
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present"
+  with_items: packages | union(packages_noarch)
+
+- name: update aodh conf
+  template: src={{ item }} dest=/etc/aodh/{{ item }}
+            backup=yes
+  with_items:
+    - aodh.conf.j2
+#    - api_paste.ini.j2
+#    - policy.json.j2
+  notify: restart aodh services
+
+- name: write services to monitor list
+  lineinfile: dest=/opt/service create=yes line='{{ item }}'
+  with_items: services
+
+- meta: flush_handlers

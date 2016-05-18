@@ -1,0 +1,39 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- name: install mongodb packages
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present"
+  with_items: mongodb_packages | union(packages_noarch)
+
+- name: install pymongod packages
+  pip: name={{ item }} state=present extra_args='--pre'
+  with_items: pip_packages
+
+- name: copy ceilometer configs
+  template: src=mongodb.conf dest=/opt/os_templates backup=yes
+
+- name: update mongodb config file
+  shell: crudini --merge {{ mongodb_config.dest }} < /opt/os_templates/mongodb.conf
+
+- name: rm prealloc files
+  file:
+    dest: "{{ item }}"
+    state: absent
+  with_fileglob:
+    - "{{ mongodb_config.journal }}"
+
+- name: manually restart mongodb server
+  service: name={{ mongodb_service }} state=restarted enabled=yes
+  ignore_errors: true
+
+- name: write mongodb to monitor list
+  lineinfile: dest=/opt/service create=yes line={{ mongodb_service}}
+
+- name: wait for mongod ready
+  wait_for: host=0.0.0.0 port=27017 delay=10

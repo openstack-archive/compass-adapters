@@ -32,8 +32,8 @@ PIDFILE=/tmp/chef_client_run.pid
 if [ -f \\$PIDFILE ]; then
     pid=\\$(cat \\$PIDFILE)
     if [ -f /proc/\\$pid/exe ]; then
-	echo "there are chef_client_run.sh running with pid \\$pid" >> /var/log/chef.log 2>&1
-	exit 1
+    echo "there are chef_client_run.sh running with pid \\$pid" >> /var/log/chef.log 2>&1
+    exit 1
     fi
 fi
 echo \\$$ > \\$PIDFILE
@@ -53,7 +53,7 @@ while true; do
         let all_nodes_success=1
         for node in \\$nodes; do
             mkdir -p /var/log/chef/\\$node
-	    if [ ! -f /etc/chef/\\$node.json ]; then
+        if [ ! -f /etc/chef/\\$node.json ]; then
                 cat << EOL > /etc/chef/\\$node.json
 {
     "local_repo": "$local_repo_url",

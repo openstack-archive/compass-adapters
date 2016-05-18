@@ -34,7 +34,7 @@ get_ifname() {
     #set ikeys = $interfaces.keys()
     #for $iname in $ikeys
         #set $idata         = $interfaces[$iname]
-	#set $management    = $idata["management"]
+        #set $management    = $idata["management"]
         #if $management
             #set $management_nic = $iname
         #end if

@@ -1,0 +1,31 @@
+[DEFAULTS]
+host_ip = {{ contrail_haproxy_address }}
+rest_api_ip = {{ contrail_haproxy_address }}
+rest_api_port = 8081
+#cassandra_server_list = {% for cur_host in groups['controller'] %}{{ ip_settings[cur_host]['mgmt']['ip'] }}:9160{% if not loop.last %} {% endif %}{% endfor %}
+#chenshuai: This kind of written is also correct, but the following is better, this as record
+cassandra_server_list = {% for cur_host in groups['opencontrail'] %}{{ ip_settings[cur_host]['br-prv']['ip'] }}:9160{% if not loop.last %} {% endif %}{% endfor %}
+
+collectors = {{ contrail_haproxy_address }}:8086
+http_server_port = 8090
+log_file = /var/log/contrail/contrail-analytics-api.log
+log_level = SYS_NOTICE
+log_local = 1
+
+# Time-to-live in hours of the various data stored by collector into
+# cassandra
+# analytics_config_audit_ttl, if not set (or set to -1), defaults to analytics_data_ttl
+# analytics_statistics_ttl, if not set (or set to -1), defaults to analytics_data_ttl
+# analytics_flow_ttl, if not set (or set to -1), defaults to analytics_statsdata_ttl
+analytics_data_ttl = 48
+analytics_config_audit_ttl = -1
+analytics_statistics_ttl = -1
+analytics_flow_ttl = -1
+
+[DISCOVERY]
+disc_server_ip = {{ contrail_haproxy_address }}
+disc_server_port = 5998
+
+[REDIS]
+redis_server_port = 6379
+redis_query_port = 6379

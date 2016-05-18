@@ -12,9 +12,9 @@
 ##
 
 #if $getVar('$preserve_files','') != ''
-  #set $preserve_files = $getVar('$preserve_files','')	
-  preserve_files = $preserve_files  
-  
+  #set $preserve_files = $getVar('$preserve_files','')
+  preserve_files = $preserve_files
+
 #raw
 # Nifty trick to restore keys without using a nochroot %post
 
@@ -31,19 +31,19 @@ function findkeys
     mkdir -p /tmp/$tmpdir
     mount $disk /tmp/$tmpdir
     if [ $? -ne 0 ]; then # Skip to the next partition if the mount fails
-      rm -rf /tmp/$tmpdir                                                
-      continue                                                           
-    fi                                                                   
+      rm -rf /tmp/$tmpdir
+      continue
+    fi
     # Copy current host keys out to be reused
     if [ -d /tmp/$tmpdir$SEARCHDIR ] && cp -a /tmp/$tmpdir$SEARCHDIR/${PATTERN}* /tmp/$TEMPDIR; then
         keys_found="yes"
-	umount /tmp/$tmpdir
-	rm -r /tmp/$tmpdir
-	break
+    umount /tmp/$tmpdir
+    rm -r /tmp/$tmpdir
+    break
     elif [ -n "$SHORTDIR" ] && [ -d /tmp/$tmpdir$SHORTDIR ] && cp -a /tmp/$tmpdir$SHORTDIR/${PATTERN}* /tmp/$TEMPDIR; then
-	keys_found="yes"
+    keys_found="yes"
         umount /tmp/$tmpdir
-	rm -r /tmp/$tmpdir
+    rm -r /tmp/$tmpdir
         break
     fi
     umount /tmp/$tmpdir
@@ -62,8 +62,8 @@ function search_for_keys
  # /var could be a separate partition
  SHORTDIR=${SEARCHDIR#/var}
  if [ $SHORTDIR = $SEARCHDIR ]; then
-	SHORTDIR=''
- fi	
+    SHORTDIR=''
+ fi
 
  mkdir -p /tmp/$TEMPDIR
 
@@ -92,9 +92,9 @@ function search_for_keys
         # Activate any VG we found
         lvm vgchange -ay $vg
     done
-    
+
     DISKS=$(lvm lvs | tail -n +2 | awk '{ print "/dev/" $2 "/" $1 }')
-    findkeys    
+    findkeys
 
     # And clean up..
     for vg in $vgs; do

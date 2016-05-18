@@ -1,0 +1,86 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: config
+#  sudo: yes
+#  tasks:
+
+#- name: "recover rabbitmq-server service script"
+#  shell: cp /home/rabbitmq-server /etc/init.d/rabbitmq-server
+
+#- name: "restart rabbitmq-server"
+#  service:
+#    name: "rabbitmq-server"
+#    state: "restarted"
+
+#- name: "wait rabbitmq-server start"
+#  shell: sleep 5
+
+- name: "restart contrail-discovery"
+  service:
+    name: "contrail-discovery"
+    state: "restarted"
+
+- name: "wait contrail-discovery"
+  shell: sleep 5
+
+- name: "restart contrail-api"
+  service:
+    name: "contrail-api"
+    state: "restarted"
+
+- name: "check contrail-api"
+  shell: lsof -ni :8082 ; while [ $? -ne 0 ]; do sleep 10; lsof -ni :8082; done; sleep 20;
+
+- name: "wait contrail-api"
+  shell: sleep 20
+
+- name: "provision config node"
+  shell: "python /opt/contrail/utils/provision_config_node.py --api_server_ip {{ contrail_haproxy_address }} --admin_user {{ contrail_admin_user }} --admin_password {{ contrail_admin_password }} --admin_tenant_name admin --oper add --host_name {{ ansible_hostname }} --host_ip {{ contrail_address }}"
+#  when: inventory_hostname in groups['opencontrail_config']
+
+#- hosts: database
+#  sudo: yes
+#  tasks:
+- name: "provision database node"
+  shell: "python /opt/contrail/utils/provision_database_node.py --api_server_ip {{ contrail_haproxy_address }} --admin_user {{ contrail_admin_user }} --admin_password {{ contrail_admin_password }} --admin_tenant_name admin --oper add --host_name {{ ansible_hostname }} --host_ip {{ contrail_address }}"
+#  when: inventory_hostname in groups['opencontrail_database']
+  
+  
+#- hosts: collector
+#  sudo: yes
+#  tasks:
+- name: "provision collector node"
+  shell: "python /opt/contrail/utils/provision_analytics_node.py --api_server_ip {{ contrail_haproxy_address }} --admin_user {{ contrail_admin_user }} --admin_password {{ contrail_admin_password }} --admin_tenant_name admin --oper add --host_name {{ ansible_hostname }} --host_ip {{ contrail_address }}"
+#  when: inventory_hostname in groups['opencontrail_collector']
+
+#- hosts: control
+#  sudo: yes
+#  tasks:
+- name: "provision control node"
+  shell: "python /opt/contrail/utils/provision_control.py --api_server_ip {{ contrail_haproxy_address }} --api_server_port 8082 --admin_user {{ contrail_admin_user }} --admin_password {{ contrail_admin_password }} --admin_tenant_name admin --oper add --host_name {{ ansible_hostname }} --host_ip {{ contrail_address }} --router_asn {{ contrail_router_asn }}"
+#  when: inventory_hostname in groups['opencontrail_control']
+  
+#- hosts: config
+#  sudo: yes
+#  tasks:
+- name: "provision metadata services"
+  shell: "python /opt/contrail/utils/provision_linklocal.py --api_server_ip {{ contrail_haproxy_address }} --admin_user {{ contrail_admin_user }} --admin_password {{ contrail_admin_password }} --admin_tenant_name admin --oper add --ipfabric_service_ip 10.84.50.1 --ipfabric_service_port 8775 --linklocal_service_name metadata --linklocal_service_ip 169.254.169.254 --linklocal_service_port 80"
+  run_once: yes
+#  when: inventory_hostname in groups['opencontrail_config']
+
+
+#- hosts: config
+#  sudo: yes
+#  tasks:
+- name: "provision encap"
+  shell: "python /opt/contrail/utils/provision_encap.py --api_server_ip {{ contrail_haproxy_address }} --admin_user {{ contrail_admin_user }} --admin_password {{ contrail_admin_password }} --oper add --encap_priority MPLSoUDP,MPLSoGRE,VXLAN"
+  run_once: yes
+#  when: inventory_hostname in groups['opencontrail_config']
+  

@@ -1,0 +1,115 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- name: "change owner nova log directory"
+  file:
+    dest: "/var/log/nova"
+    state: "directory"
+    owner: "nova"
+    group: "nova"
+    recurse: yes
+
+- name: "delete values from nova config"
+  ini_file:
+    dest: "/etc/nova/nova.conf"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+  with_items:
+    - { section: "DEFAULT", option: "sql_connection" }
+    - { section: "DEFAULT", option: "quantum_admin_tenant_name" }
+    - { section: "DEFAULT", option: "quantum_admin_username" }
+    - { section: "DEFAULT", option: "quantum_admin_password" }
+    - { section: "DEFAULT", option: "quantum_admin_auth_url" }
+    - { section: "DEFAULT", option: "quantum_auth_strategy" }
+    - { section: "DEFAULT", option: "quantum_url" }
+
+- name: "set values to nova config"
+  ini_file:
+    dest: "/etc/nova/nova.conf"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  with_items:
+    - { section: "DEFAULT", option: "auth_strategy", value: "keystone" }
+    - { section: "DEFAULT", option: "libvirt_nonblocking", value: "True" }
+    - { section: "DEFAULT", option: "libvirt_inject_partition", value: "-1" }
+    - { section: "DEFAULT", option: "rabbit_host", value: "{{ contrail_haproxy_address }}" }
+    - { section: "DEFAULT", option: "rabbit_port", value: "5672" }
+    - { section: "DEFAULT", option: "glance_host", value: "{{ contrail_haproxy_address }}" }
+    - { section: "DEFAULT", option: "glance_port", value: "9292" }  
+    - { section: "DEFAULT", option: "neutron_admin_tenant_name", value: "service" }
+    - { section: "DEFAULT", option: "neutron_admin_username", value: "neutron" }
+    - { section: "DEFAULT", option: "neutron_admin_password", value: "{{ contrail_admin_password }}" }
+    - { section: "DEFAULT", option: "neutron_admin_auth_url", value: "http://{{ contrail_haproxy_address }}:35357/v2.0/" }
+    - { section: "DEFAULT", option: "neutron_url", value: "http://{{ contrail_haproxy_address }}:9696/" }
+    - { section: "DEFAULT", option: "neutron_url_timeout", value: "300" }
+    - { section: "DEFAULT", option: "network_api_class", value: "nova.network.neutronv2.api.API" }
+    - { section: "DEFAULT", option: "compute_driver", value: "libvirt.LibvirtDriver" }
+    - { section: "DEFAULT", option: "network_api_class", value: " nova_contrail_vif.contrailvif.ContrailNetworkAPI" }
+    - { section: "DEFAULT", option: "ec2_private_dns_show_ip", value: "False" }
+    - { section: "DEFAULT", option: "novncproxy_base_url", value: "http://{{ contrail_haproxy_address }}:5999/vnc_auto.html" }
+    - { section: "DEFAULT", option: "vncserver_enabled", value: "True" }
+    - { section: "DEFAULT", option: "vncserver_listen", value: "{{ contrail_address }}" }
+    - { section: "DEFAULT", option: "vncserver_proxyclient_address", value: "{{ contrail_address }}" }
+    - { section: "DEFAULT", option: "security_group_api", value: "neutron" }
+    - { section: "DEFAULT", option: "heal_instance_info_cache_interval", value: "0" }
+    - { section: "DEFAULT", option: "image_cache_manager_interval", value: "0" }
+    - { section: "DEFAULT", option: "libvirt_cpu_mode", value: "none" }
+    - { section: "DEFAULT", option: "libvirt_vif_driver", value: "nova_contrail_vif.contrailvif.VRouterVIFDriver" }
+    - { section: "database", option: "connection", value: "mysql://nova:nova@{{ contrail_haproxy_address }}/nova?charset=utf8" }
+    - { section: "database", option: "idle_timeout", value: "180" }
+    - { section: "database", option: "max_retries", value: "-1" }
+    - { section: "keystone_authtoken", option: "admin_tenant_name", value: "service" }
+    - { section: "keystone_authtoken", option: "admin_user", value: "nova" }
+    - { section: "keystone_authtoken", option: "admin_password", value: "{{ contrail_admin_password }}" }
+    - { section: "keystone_authtoken", option: "auth_protocol", value: "http" }
+    - { section: "keystone_authtoken", option: "auth_host", value: "{{ contrail_haproxy_address }}" }
+    - { section: "keystone_authtoken", option: "signing_dir", value: "/tmp/keystone-signing-nova" }
+
+
+
+#- { section: "DEFAULT", option: "rabbit_host", value: "{{ hostvars[groups['config'][0]]['contrail_address'] }}" }
+#- { section: "DEFAULT", option: "glance_host", value: "{{ hostvars[groups['openstack'][0]]['contrail_address'] }}" }
+#- { section: "DEFAULT", option: "neutron_admin_auth_url", value: "http://{{ hostvars[groups['openstack'][0]]['contrail_address'] }}:35357/v2.0/" }
+#- { section: "DEFAULT", option: "neutron_url", value: "http://{{ hostvars[groups['config'][0]]['contrail_address'] }}:9696/" }
+#- { section: "DEFAULT", option: "novncproxy_base_url", value: "http://{{ hostvars[groups['openstack'][0]]['contrail_mgmt_address'] }}:5999/vnc_auto.html" }
+#- { section: "database", option: "connection", value: "mysql://nova:nova@{{ hostvars[groups['openstack'][0]]['contrail_address'] }}/nova?charset=utf8" }
+#- { section: "keystone_authtoken", option: "auth_host", value: "{{ hostvars[groups['openstack'][0]]['contrail_address'] }}" }
+
+
+
+- name: "change database address if same node as first openstack node"
+  ini_file:
+    dest: "/etc/nova/nova.conf"
+    section: "database"
+    option: "connection"
+    value: "mysql://nova:nova@127.0.0.1/nova?charset=utf8"
+  when: groups['openstack'][0] == inventory_hostname
+
+- name: "add respawn to nova compute config"
+  lineinfile:
+    dest: "/etc/init/nova-compute.conf"
+    line: "respawn"
+    insertbefore: "pre-start script"
+
+- name: "add respawn limit to nova compute config"
+  lineinfile:
+    dest: "/etc/init/nova-compute.conf"
+    line: "respawn limit 10 90"
+    insertafter: "respawn"
+
+- name: "restart nova compute"
+  service:
+    name: "nova-compute"
+    state: "restarted"
+
+- name: "delete nova sqlite database"
+  file:
+    dest: "/var/lib/nova/nova.sqlite"
+    state: "absent"

@@ -1,29 +1,25 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
 ---
-- name: install cinder packages
-  apt: name={{ item }} state=present force=yes
-  with_items:
-    - cinder-api
-    - cinder-scheduler
-    - python-cinderclient
+- include_vars: "{{ ansible_os_family }}.yml"
 
-- name: upload cinder conf
-  template: src=cinder.conf dest=/etc/cinder/cinder.conf
-  notify:
-    - restart cinder-scheduler
-    - restart cinder-api
+- include: cinder_install.yml
+  tags:
+    - install
+    - cinder-install
+    - cinder
 
-- name: sync cinder db
-  shell: su -s /bin/sh -c "cinder-manage db sync" cinder && cinder
-  notify:
-    - restart cinder-scheduler
-    - restart cinder-api
+- include: cinder_config.yml
+  when: inventory_hostname == groups['controller'][0]
+  tags:
+    - config
+    - cinder-config
+    - cinder
 
 - meta: flush_handlers
-
-- name: upload cinder keystone register script
-  template: src=cinder_init.sh dest=/opt/cinder_init.sh mode=0744
-
-- name: run cinder register script
-  shell: /opt/cinder_init.sh && touch cinder_init_complete
-  args:
-    creates: cinder_init_complete

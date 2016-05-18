@@ -1,0 +1,58 @@
+[DEFAULT]
+dhcpbridge_flagfile=/etc/nova/nova.conf
+dhcpbridge=/usr/bin/nova-dhcpbridge
+logdir=/var/log/nova
+state_path=/var/lib/nova
+lock_path=/var/lib/nova/tmp
+force_dhcp_release=True
+libvirt_use_virtio_for_bridges=True
+verbose=True
+ec2_private_dns_show_ip=False
+auth_strategy = keystone
+libvirt_nonblocking = True
+libvirt_inject_partition = -1
+compute_driver = libvirt.LibvirtDriver
+novncproxy_base_url = http://{{ contrail_keystone_address }}:6080/vnc_auto.html
+vncserver_enabled = true
+vncserver_listen = {{ contrail_address }}
+vncserver_proxyclient_address = {{ contrail_address }}
+security_group_api = neutron
+heal_instance_info_cache_interval = 0
+image_cache_manager_interval = 0
+libvirt_cpu_mode = none
+libvirt_vif_driver = nova_contrail_vif.contrailvif.VRouterVIFDriver
+firewall_driver = nova.virt.firewall.NoopFirewallDriver
+glance_host = {{ contrail_keystone_address }}
+glance_port = 9292
+glance_num_retries = 10
+rabbit_host = {{ contrail_keystone_address }}
+rabbit_port = 5672
+rabbit_password = {{ rabbit_password  }}
+rabbit_retry_interval = 1
+rabbit_retry_backoff = 2
+rabbit_max_retries = 0
+rabbit_ha_queues = True
+rpc_cast_timeout = 30
+rpc_conn_pool_size = 40
+rpc_response_timeout = 60
+rpc_thread_pool_size = 70
+report_interval = 15
+novncproxy_port = 6080
+vnc_port = 5900
+vnc_port_total = 100
+resume_guests_state_on_host_boot = True
+service_down_time = 300
+periodic_fuzzy_delay = 30
+disable_process_locking = True
+neutron_admin_auth_url =
+
+[keystone_authtoken]
+admin_tenant_name = service
+admin_user = nova
+admin_password = {{ contrail_admin_password }}
+auth_host = {{ contrail_keystone_address }}
+auth_protocol = http
+auth_port = 5000
+signing_dir = /tmp/keystone-signing-nova
+
+

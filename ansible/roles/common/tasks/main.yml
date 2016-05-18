@@ -1,38 +1,92 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
 ---
-- name: first update pkgs
-  apt: update_cache=yes
+- include_vars: "{{ ansible_os_family }}.yml"
 
-- name: install ubuntu-cloud-keyring(ubuntu)
-  apt: name={{ item }} state=latest
-  with_items:
-    - ubuntu-cloud-keyring
-
-- name: add juno cloudarchive
-  apt_repository: repo="{{ juno_cloud_archive }}" state=present
-
-- name: update packages once
-  apt: update_cache=yes 
+- name: speed up ansible by purging landscape-common
+  apt: pkg=landscape-common state=absent purge=yes
+  when: ansible_os_family == "Debian"
 
 - name: update hosts files to all hosts
-  template: src=hosts
-            dest=/etc/hosts
-            backup=yes
+  template: src=hosts dest=/etc/hosts backup=yes
 
-- name: install common packages
-  apt: name={{ item }} state=latest
-  with_items:
-    - python-pip
-    - python-dev
-    - python-mysqldb
-    - ntp
+- name: get compass-core hostname
+  local_action: shell hostname
+  register: name
+
+- name: get compass-core addr
+  shell: awk -F'=' '/compass_server/ {print $2}' /etc/compass.conf
+  register: COMPASS_SERVER
+
+- name: update compass-core name and ip to hosts files
+  shell: |
+    echo "# compass" >> /etc/hosts
+    echo {{ COMPASS_SERVER.stdout_lines[0] }} {{ name.stdout_lines[0] }} >> /etc/hosts
+
+- name: install python-crypto
+  yum: name=python-crypto state=present
+  register: python_crypto_result
+  ignore_errors: yes
+  when: ansible_os_family == "RedHat"
+
+- name: remove python crypt egg file to work-around https://bugs.centos.org/view.php?id=9896&nbn=2
+  shell: rm -rf /usr/lib64/python2.7/site-packages/pycrypto-2.6.1-py2.7.egg-info
+  when: ansible_os_family == "RedHat" and python_crypto_result.msg == "Error unpacking rpm package python2-crypto-2.6.1-9.el7.x86_64\n"
+
+- name: install packages
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest update_cache=yes"
+  with_items: packages | union(packages_noarch)
+
+- name: make config template dir exist
+  file: path=/opt/os_templates state=directory mode=0755
+
+- name: create pip config directory
+  file: path=~/.pip state=directory
+
+- name: update pip.conf
+  template: src=pip.conf dest=~/.pip/{{ pip_conf }}
+
+- name: install pip packages
+  pip: name={{ item }} state=present extra_args='--pre'
+  with_items: pip_packages
+
+- name: install keyczar for accelerate
+  pip: name=python-keyczar state=present extra_args='--pre'
+  delegate_to: 127.0.0.1
+  run_once: true
 
 - name: update ntp conf
   template: src=ntp.conf dest=/etc/ntp.conf backup=yes
-  notify:
-    - restart ntp
 
-- name: update pip
-  pip: name={{ item }} state=latest
-  with_items:
-    - pip
+- name: use ntpdate once for initial sync time
+  shell: ntpdate {{ ntp_server }}
+  ignore_errors: True
 
+- name: sync sys clock to hard clock
+  shell: hwclock --systohc
+  ignore_errors: True
+
+- name: create fireball keys dir
+  file: path=~/.fireball.keys state=directory mode=0700
+  delegate_to: 127.0.0.1
+  run_once: true
+
+- name: restart services
+  service: name={{ item }} state=restarted enabled=yes
+  with_items: services| union(services_noarch)
+
+- name: write services to monitor list
+  lineinfile: dest=/opt/service create=yes line='{{ item }}'
+  with_items: services| union(services_noarch)
+
+- name: kill daemon for accelerate
+  shell: lsof -ni :5099|grep LISTEN|awk '{print $2}'|xargs kill -9
+  ignore_errors: true
+
+- meta: flush_handlers

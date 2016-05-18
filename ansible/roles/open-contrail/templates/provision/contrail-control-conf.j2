@@ -1,0 +1,15 @@
+[DEFAULT]
+hostip = {{ contrail_address }}
+hostname = {{ ansible_hostname }}
+log_file = /var/log/contrail/contrail-control.log
+log_level = SYS_NOTICE
+log_local = 1
+
+[DISCOVERY]
+server = {{ contrail_haproxy_address }}
+port = 5998
+
+[IFMAP]
+certs_store = 
+user = {{ contrail_address }}
+password = {{ contrail_address }}

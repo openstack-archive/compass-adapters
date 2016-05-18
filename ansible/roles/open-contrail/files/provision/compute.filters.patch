@@ -1,0 +1,14 @@
+*** a/compute.filters	Mon Sep 28 15:13:48 2015
+--- b/compute.filters	Mon Sep 28 15:16:06 2015
+***************
+*** 83,88 ****
+--- 83,91 ----
+  # nova/network/linux_net.py: 'ovs-vsctl', ....
+  ovs-vsctl: CommandFilter, ovs-vsctl, root
+  
++ # nova/virt/libvirt/vif.py: 'vrouter-port-control', ...
++ vrouter-port-control: CommandFilter, vrouter-port-control, root
++ 
+  # nova/network/linux_net.py: 'ovs-ofctl', ....
+  ovs-ofctl: CommandFilter, ovs-ofctl, root
+  

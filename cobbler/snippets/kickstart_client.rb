@@ -12,7 +12,7 @@ chef_server_url  'https://$server'
 validation_client_name 'chef-validator'
 json_attribs nil
 pid_file '/var/run/chef-client.pid'
-# Using default node name (fqdn) 
+# Using default node name (fqdn)
 no_lazy_load true
 ssl_verify_mode :verify_none
 #if $os_version == "rhel7"
@@ -33,7 +33,7 @@ mkdir -p /etc/chef/trusted_certs
 cat << EOF > /etc/chef/trusted_certs/$filename
             #echo $f.read()
 EOF
-            #silent $f.close() 
+            #silent $f.close()
         #end if
     #end for
 #end if

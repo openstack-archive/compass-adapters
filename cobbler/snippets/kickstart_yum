@@ -36,7 +36,7 @@ mv -f /etc/yum.repos.d/* /root/repo_backup/
 #set os_info = $profile_name.split('-')
 #set osname = $os_info[0].lower()
 #set osversion = $os_info[1]
-#set osversion_flat = $osversion.replace('.', '_') 
+#set osversion_flat = $osversion.replace('.', '_')
 
 cat << EOF > /etc/yum.repos.d/${osname}_${osversion_flat}_os_repo.repo
 [${osname}_${osversion_flat}_os_repo]

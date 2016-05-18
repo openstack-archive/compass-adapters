@@ -1,0 +1,55 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: [compute, tsn]
+#  sudo: yes
+#  tasks:
+- name: "temporary disable supervisor vrouter"
+#  sudo: True
+  template:
+    src: "../../templates/install/override.j2"
+    dest: "/etc/init/supervisor-vrouter.override"
+
+#    - name: "install nova-compute for contrail package"
+#      apt:
+#        name: "nova-compute"
+#      when: install_nova
+
+- name: "install contrail vrouter 3.13.0-40 package"
+#      apt:
+#        name: "contrail-vrouter-3.13.0-40-generic"
+#      when: ansible_kernel == "3.13.0-40-generic"
+#  sudo: True
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present force=yes"
+  with_items: vrouter_package
+  when: ansible_kernel == kernel_required
+
+- name: "install contrail vrouter dkms package"
+#      apt:
+#        name: "contrail-vrouter-dkms"
+#      when: ansible_kernel != "3.13.0-40-generic"
+#  sudo: True
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present force=yes"
+  with_items: dkms_package
+  when: ansible_kernel != kernel_required
+
+#    - name: "install contrail vrouter common package"
+#      apt:
+#        name: "contrail-vrouter-common"
+
+#    - name: "install contrail nova vif package"
+#      apt:
+#        name: "contrail-nova-vif"
+
+- name: "install contrail vrouter common & nova vif package"
+#  sudo: True
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present"
+  with_items: compute_package | union(compute_package_noarch)
+
+

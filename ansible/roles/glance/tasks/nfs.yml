@@ -1,0 +1,57 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- name: install nfs
+  local_action: yum  name={{ item }} state=present
+  with_items:
+    - rpcbind
+    - nfs-utils
+  run_once: True
+
+- name: create image directory
+  local_action: file path=/opt/images state=directory mode=0777
+  run_once: True
+
+- name: remove nfs config item if exist
+  local_action: lineinfile dest=/etc/exports state=absent
+              regexp="^/opt/images"
+  run_once: True
+
+- name: update nfs config
+  local_action: lineinfile dest=/etc/exports state=present
+              line="/opt/images *(rw,insecure,sync,all_squash)"
+  run_once: True
+
+- name: restart compass nfs service
+  local_action: service name={{ item }} state=restarted enabled=yes
+  with_items:
+      - rpcbind
+      - nfs-server
+  run_once: True
+
+- name: get mount info
+  command: mount
+  register: mount_info
+
+- name: get nfs server
+  shell: awk -F'=' '/compass_server/ {print $2}' /etc/compass.conf
+  register: ip_info
+
+- name: restart host nfs service
+  service: name={{ item }} state=restarted enabled=yes
+  with_items: '{{ nfs_services }}'
+
+- name: mount image directory
+  shell: |
+    mount -t nfs  -onfsvers=3 {{ ip_info.stdout_lines[0] }}:/opt/images /var/lib/glance/images
+    sed -i '/\/var\/lib\/glance\/images/d' /etc/fstab
+    echo {{ ip_info.stdout_lines[0] }}:/opt/images /var/lib/glance/images/ nfs nfsvers=3 >> /etc/fstab
+  when: mount_info.stdout.find('images') == -1
+  retries: 5
+  delay: 3

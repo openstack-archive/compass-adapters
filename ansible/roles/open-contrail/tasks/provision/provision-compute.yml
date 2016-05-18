@@ -1,0 +1,262 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: compute
+#  sudo: yes
+#  tasks:
+- name: "enable supervisor vrouter"
+  file:
+    path: "/etc/init/supervisor-vrouter.override"
+    state: "absent"
+
+- include: -node-common.yml
+
+- name: "check cgroup device acl in qemu conf"
+  shell: "grep -q '^\\s*cgroup_device_acl' /etc/libvirt/qemu.conf"
+  register: deviceacl
+  ignore_errors: yes
+  changed_when: no
+
+- name: "create cgroup device acl for qemu conf"
+  template:
+    src: "../../templates/provision/qemu-device-acl-conf.j2"
+    dest: "/tmp/qemu-device-acl.conf"
+  when: deviceacl | failed
+
+- name: "combination of the qemu configuration"
+  shell: "cat /tmp/qemu-device-acl.conf >> /etc/libvirt/qemu.conf"
+  when: deviceacl | failed
+
+- name: "delete temporary configuration file"
+  file:
+    dest: "/tmp/qemu-device-acl.conf"
+    state: "absent"
+  when: deviceacl | failed
+
+- name: "fix up vrouter nodemgr param"
+  template:
+    src: "../../templates/provision/vrouter-nodemgr-param.j2"
+    dest: "/etc/contrail/vrouter_nodemgr_param"
+
+- name: "set contrail device name for ansible"
+  set_fact:
+    contrail_ansible_device: "ansible_{{ contrail_vhost_device }}"
+
+- name: "fix up default pmac"
+  template:
+    src: "../../templates/provision/default-pmac.j2"
+    dest: "/etc/contrail/default_pmac"
+
+- name: "copy agent param config from template"
+  shell: "cp /etc/contrail/agent_param.tmpl /etc/contrail/agent_param"
+
+- name: "modify agent param config"
+  lineinfile:
+    dest: "/etc/contrail/agent_param"
+    regexp: "dev=__DEVICE__"
+    line: "dev={{ contrail_vhost_device }}"
+
+#- name: "get last ip address"
+#  shell: expr substr `cat /etc/hostname` 5 1
+#  register: lastip
+
+- name: "fix up contrail vrouter agent config"
+  template:
+    src: "../../templates/provision/contrail-vrouter-agent-conf.j2"
+    dest: "/etc/contrail/contrail-vrouter-agent.conf"
+
+- name: "delete lines for contrail interface"
+  shell: "{{ item }}"
+  with_items:
+    - "sed -e '/auto {{ contrail_vhost_device }}/,$d' /etc/network/interfaces > /tmp/contrail-interfaces-top"
+    - "sed -n -e '/auto {{ contrail_vhost_device }}/,$p' /etc/network/interfaces > /tmp/contrail-interfaces-bottom"
+    - "sed -i -e '/auto {{ contrail_vhost_device }}/d' /tmp/contrail-interfaces-bottom"
+    - "sed -i -n -e '/auto .*/,$p' /tmp/contrail-interfaces-bottom"
+    - "cat /tmp/contrail-interfaces-top /tmp/contrail-interfaces-bottom > /etc/network/interfaces"
+
+- name: "delete lines for vrouter interface"
+  shell: "{{ item }}"
+  with_items:
+    - "sed -e '/auto vhost0/,$d' /etc/network/interfaces > /tmp/contrail-interfaces-top"
+    - "sed -n -e '/auto vhost0/,$p' /etc/network/interfaces > /tmp/contrail-interfaces-bottom"
+    - "sed -i -e '/auto vhost0/d' /tmp/contrail-interfaces-bottom"
+    - "sed -i -n -e '/auto .*/,$p' /tmp/contrail-interfaces-bottom"
+    - "cat /tmp/contrail-interfaces-top /tmp/contrail-interfaces-bottom > /etc/network/interfaces"
+
+#- name: get last ip address
+#  shell: expr substr `cat /etc/hostname` 5 1
+#  register: lastip
+
+- name: "configure interface"
+  lineinfile:
+    dest: "/etc/network/interfaces"
+    line: "{{ item }}"
+    state: "present"
+  with_items:
+    - "auto {{ contrail_vhost_device }}"
+    - "iface {{ contrail_vhost_device }} inet manual"
+    - "\tpre-up ifconfig {{ contrail_vhost_device }} up"
+    - "\tpost-down ifconfig {{ contrail_vhost_device }} down"
+    - "auto vhost0"
+    - "iface vhost0 inet static"
+    - "\tpre-up /opt/contrail/bin/if-vhost0"
+    - "\tnetwork_name application"
+    - "\taddress {{ contrail_vhost_address }}"
+    - "\tnetmask {{ contrail_vhost_netmask }}"
+
+##################################################################################
+
+- name: "copy vrouter script to compute"
+  template:
+    src: "../../templates/vrouter-functions.sh"
+    dest: "/opt/contrail/bin/vrouter-functions.sh"
+
+- name: "load vrouter driver"
+  command: su -s /bin/sh -c "insmod /var/lib/dkms/vrouter/2.21/build/vrouter.ko"
+  ignore_errors: true
+
+- name: "run vhost0 script"
+  command: su -s /bin/sh -c "/opt/contrail/bin/if-vhost0"
+  ignore_errors: true
+
+##################################################################################
+
+- name: "delete temporary files"
+  file:
+    dest: "{{ item }}"
+    state: "absent"
+  with_items:
+    - "/tmp/contrail-interfaces-top"
+    - "/tmp/contrail-interfaces-bottom"
+
+##################################################################################
+
+- name: "fix up contrail vrouter nodemgr config"
+  ini_file:
+    dest: "/etc/contrail/contrail-vrouter-nodemgr.conf"
+    section: "DISCOVERY"
+    option: "server"
+    value: "{{ contrail_haproxy_address }}"
+
+
+##################################################################################
+########################### restart vrouter services  ###########################
+
+- name: "restart supervisor service"
+  service:
+    name: "supervisor"
+    state: "restarted"
+
+- name: "restart vrouter nodemgr"
+  shell: ps aux | grep contrail-nodemgr | grep -v grep | awk '{print $2}' | xargs kill -9;
+
+- name: "restart vrouter agent"
+  service:
+    name: "contrail-vrouter-agent"
+    state: "restarted" 
+
+
+##################################################################################
+
+
+- name: "restart libvirt bin"
+  service:
+    name: "libvirt-bin"
+    state: "restarted"
+
+#- name: "set value of nova to nova config"
+#  template:
+#    src: "provision/nova.j2"
+#    dest: "/etc/nova/nova.conf"
+#  when: install_nova 
+
+#- name: "delete values from nova config"
+#  ini_file:
+#    dest: "/etc/nova/nova.conf"
+#    section: "{{ item.section }}"
+#    option: "{{ item.option }}"
+#  with_items:
+#    - { section: "DEFAULT", option: "quantum_auth_strategy" }
+#    - { section: "DEFAULT", option: "quantum_admin_auth_url" }
+#    - { section: "DEFAULT", option: "quantum_admin_tenant_name" }
+#    - { section: "DEFAULT", option: "quantum_admin_username" }
+#    - { section: "DEFAULT", option: "quantum_admin_password" }
+#    - { section: "DEFAULT", option: "quantum_url" }
+
+#- name: "set values of neutron to nova config"
+#  ini_file:
+#    dest: "/etc/nova/nova.conf"
+#    section: "{{ item.section }}"
+#    option: "{{ item.option }}"
+#    value: "{{ item.value }}"
+#    state: "present"
+#  with_items:
+#    - { section: "DEFAULT", option: "neutron_admin_auth_url", value: "http://{{ contrail_keystone_address }}:5000/v2.0" }
+#    - { section: "DEFAULT", option: "neutron_admin_username", value: "neutron" }
+#    - { section: "DEFAULT", option: "neutron_admin_password", value: "{{ contrail_admin_password }}" }
+#    - { section: "DEFAULT", option: "neutron_admin_tenant_name", value: "service" }
+#    - { section: "DEFAULT", option: "neutron_url", value: "http://{{ contrail_haproxy_address }}:9696/" }
+#    - { section: "DEFAULT", option: "neutron_url_timeout", value: "300" }
+#    - { section: "DEFAULT", option: "network_api_class", value: "nova.network.neutronv2.api.API" }
+#    - { section: "DEFAULT", option: "libvirt_vif_driver", value: "nova_contrail_vif.contrailvif.VRouterVIFDriver" }
+
+- name: "set values to nova config"
+  ini_file:
+    dest: "/etc/nova/nova.conf"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  with_items:
+    - { section: "DEFAULT", option: "network_api_class", value: "nova_contrail_vif.contrailvif.ContrailNetworkAPI" }
+
+
+
+#######################################################################
+######################  nova plugin workaround  #######################
+#######################################################################
+
+- name: "copy nova plugs on compute"
+  copy:
+    src: "../../templates/nova_contrail_vif.tar.gz"
+    dest: "/opt/nova_contrail_vif.tar.gz"
+
+- name: "unzip nova plugs"
+  command: su -s /bin/sh -c "tar xzf /opt/nova_contrail_vif.tar.gz -C /opt/"
+
+- name: "remove original nova plugs"
+  shell: rm -rf /usr/lib/python2.7/dist-packages/nova_contrail_vif/
+
+- name: "use new nova plugs"
+  shell: mv /opt/nova_contrail_vif/  /usr/lib/python2.7/dist-packages/nova_contrail_vif/
+
+#################################################
+
+- name: "restart nova compute"
+  service:
+    name: "nova-compute"
+    state: "restarted"
+
+- name: "add vrouter to contrail"
+  shell: "python /opt/contrail/utils/provision_vrouter.py --api_server_ip {{ contrail_haproxy_address }} --admin_user {{ contrail_admin_user }} --admin_password {{ contrail_admin_password }} --admin_tenant_name admin --openstack_ip {{ contrail_keystone_address }} --oper add --host_name {{ ansible_hostname }} --host_ip {{ contrail_address }}"
+
+#- name: "reboot Server"
+#  shell: "shutdown -r now"
+#  async: 0
+#  poll: 0
+#  ignore_errors: true
+#  notify: Wait for server to come back
+#
+#handlers:
+#- name: "Wait for server to come back"
+#  local_action:
+#    module: wait_for
+#      host={{ inventory_hostname }}
+#      port=22
+#      delay=30
+#      timeout=600

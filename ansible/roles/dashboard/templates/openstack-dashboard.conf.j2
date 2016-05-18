@@ -1,0 +1,15 @@
+{% set work_threads = (ansible_processor_vcpus + 1) // 2 %}
+
+<VirtualHost {{ internal_ip }}:80>
+    WSGIScriptAlias /horizon {{ horizon_dir }}/wsgi/django.wsgi
+    WSGIDaemonProcess horizon user=horizon group=horizon processes={{ work_threads }} threads={{ work_threads }}
+    WSGIProcessGroup horizon
+    Alias /static {{ horizon_dir }}/static/
+    Alias /horizon/static {{ horizon_dir }}/static/
+    <Directory {{ horizon_dir }}/wsgi>
+        Order allow,deny
+        Allow from all
+    </Directory>
+</VirtualHost>
+
+

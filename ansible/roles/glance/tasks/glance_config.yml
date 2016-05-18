@@ -1,0 +1,17 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- name: sync glance db
+  #glance_manage: action=dbsync
+  shell: su -s /bin/sh -c 'glance-manage db sync' glance
+  ignore_errors: True
+  notify:
+    - restart glance services
+
+- meta: flush_handlers

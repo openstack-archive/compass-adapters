@@ -1,30 +1,108 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
 ---
+- include_vars: "{{ ansible_os_family }}.yml"
+
+- name: disable auto start
+  copy:
+    content: "#!/bin/sh\nexit 101"
+    dest: "/usr/sbin/policy-rc.d"
+    mode: 0755
+  when: ansible_os_family == "Debian"
+
 - name: install dashboard packages
-  apt: name={{ item }} state=present force=yes
-  with_items:
-    - apache2
-    - memcached
-    - libapache2-mod-wsgi
-    - openstack-dashboard
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present"
+  with_items: packages | union(packages_noarch)
+
+- name: enable auto start
+  file:
+    path=/usr/sbin/policy-rc.d
+    state=absent
+  when: ansible_os_family == "Debian"
 
 - name: remove ubuntu theme
-  apt: name=openstack-dashboard-ubuntu-theme
-       state=absent
+  action: "{{ ansible_pkg_mgr }} name=openstack-dashboard-ubuntu-theme state=absent"
+  when: ansible_os_family == 'Debian'
+  notify:
+    - restart dashboard services
 
-## horizon configuration is already enabled in apache2/conf-enabled
-## by openstack-dashboard package deploy script.
-#- name: update dashboard conf
-#  template: src=openstack-dashboard.conf
-#            dest=/etc/apache2/sites-available/openstack-dashboard.conf
-#            backup=yes
+- name: remove default apache2 config
+  file:
+    path: '{{ item }}'
+    state: absent
+  when: ansible_os_family == 'Debian'
+  with_items:
+    - '{{ apache_config_dir }}/conf-available/openstack-dashboard.conf'
+    - '{{ apache_config_dir }}/conf-enabled/openstack-dashboard.conf'
+    - '{{ apache_config_dir }}/sites-available/000-default.conf'
+    - '{{ apache_config_dir }}/sites-enabled/000-default.conf'
+  notify:
+    - restart dashboard services
 
-- name: update horizon settings
-  template: src=local_settings.py
-            dest=/etc/openstack-dashboard/local_settings.py
-            backup=yes
+- name: update apache2 configs
+  template:
+    src: openstack-dashboard.conf.j2
+    dest: '{{ apache_config_dir }}/sites-available/openstack-dashboard.conf'
+  when: ansible_os_family == 'Debian'
+  notify:
+    - restart dashboard services
 
-- name: restart apache2
-  service: name=apache2 state=restarted
+- name: enable dashboard
+  file:
+    src: "/etc/apache2/sites-available/openstack-dashboard.conf"
+    dest: "/etc/apache2/sites-enabled/openstack-dashboard.conf"
+    state: "link"
+  when: ansible_os_family == 'Debian'
+  notify:
+    - restart dashboard services
 
-- name: restart memcached
-  service: name=memcached state=restarted
+- name: update ubuntu horizon settings
+  lineinfile:
+    dest: /etc/openstack-dashboard/local_settings.py
+    regexp: '{{ item.regexp }}'
+    line: '{{ item.line }}'
+  with_items:
+    - regexp: '^WEBROOT[ \t]*=.*'
+      line: 'WEBROOT = "/horizon"'
+    - regexp: '^COMPRESS_OFFLINE[ \t]*=.*'
+      line: 'COMPRESS_OFFLINE=True'
+    - regexp: '^ALLOWED_HOSTS[ \t]*=.*'
+      line: 'ALLOWED_HOSTS = ["*"]'
+    - regexp: '^OPENSTACK_HOST[ \t]*=.*'
+      line: 'OPENSTACK_HOST = "{{ internal_ip }}"'
+  when: ansible_os_family == 'Debian'
+  notify:
+    - restart dashboard services
+
+- name: precompile horizon css
+  shell: /usr/bin/python /usr/share/openstack-dashboard/manage.py compress --force
+  ignore_errors: True
+  when: ansible_os_family == 'Debian'
+  notify:
+    - restart dashboard services
+
+- name: update redhat version horizon settings
+  lineinfile:
+    dest: /etc/openstack-dashboard/local_settings
+    regexp: '{{ item.regexp }}'
+    line: '{{ item.line }}'
+  with_items:
+    - regexp: '^WEBROOT[ \t]*=.*'
+      line: 'WEBROOT = "/horizon"'
+    - regexp: '^COMPRESS_OFFLINE[ \t]*=.*'
+      line: 'COMPRESS_OFFLINE=False'
+    - regexp: '^ALLOWED_HOSTS[ \t]*=.*'
+      line: 'ALLOWED_HOSTS = ["*"]'
+    - regexp: '^OPENSTACK_HOST[ \t]*=.*'
+      line: 'OPENSTACK_HOST = "{{ internal_ip }}"'
+  when: ansible_os_family == 'RedHat'
+  notify:
+    - restart dashboard services
+
+- meta: flush_handlers

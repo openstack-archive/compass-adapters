@@ -1,0 +1,26 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: webui
+#  sudo: yes
+#  tasks:
+
+- name: "temporary disable supervisor webui"
+#  sudo: True
+  template:
+#        src: "templates/override.j2"
+    src: "../../templates/install/override.j2"
+    dest: "/etc/init/supervisor-webui.override"
+
+- name: "install contrail openstack webui package"
+#  sudo: True
+#      apt:
+#        name: "contrail-openstack-webui"
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present force=yes"
+  with_items: webui_package

@@ -1,0 +1,29 @@
+[DEFAULTS]
+listen_ip_addr = {{ contrail_haproxy_address }}
+listen_port = 8082
+ifmap_server_ip = {{ contrail_haproxy_address }}
+ifmap_server_port = 8443
+ifmap_username = api-server
+ifmap_password = api-server
+zk_server_ip = {% for cur_host in groups['opencontrail'] %}{{ ip_settings[cur_host]['br-prv']['ip'] }}:2181{% if not loop.last %}, {% endif %}{% endfor %}
+
+cassandra_server_list = {% for cur_host in groups['opencontrail'] %}{{ ip_settings[cur_host]['br-prv']['ip'] }}:9160{% if not loop.last %} {% endif %}{% endfor %}
+
+disc_server_ip = {{ contrail_haproxy_address }}
+disc_server_port = 5998
+rabbit_server = {{ contrail_haproxy_address }}
+rabbit_port = 5672
+rabbit_user = {{ RABBIT_USER }}
+rabbit_password = {{ RABBIT_PASS }}
+multi_tenancy = True
+list_optimization_enabled = True
+log_file = /var/log/contrail/contrail-api.log
+log_level = SYS_NOTICE
+log_local = 1
+auth = keystone
+
+[SECURITY]
+use_certs = False
+keyfile = /etc/contrail/ssl/private_keys/apiserver_key.pem
+certfile = /etc/contrail/ssl/certs/apiserver.pem
+ca_certs = /etc/contrail/ssl/certs/ca.pem

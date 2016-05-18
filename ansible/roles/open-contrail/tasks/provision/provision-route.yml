@@ -1,0 +1,50 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: all
+#  sudo: yes
+#  tasks:
+- name: "delete existing route file"
+#  sudo: True
+  file:
+    path: "/etc/network/if-up.d/routes"
+    state: absent
+  when: contrail_route
+
+- name: "create route file"
+#  sudo: True
+  file:
+    path: "/etc/network/if-up.d/routes"
+    owner: "root"
+    mode: 0755
+    state: touch 
+  when: contrail_route
+
+
+- name: "add template"
+#  sudo: True
+  lineinfile:
+    dest: "/etc/network/if-up.d/routes"
+    line: "{{ item }}"
+  with_items:
+    - "#!/bin/bash" 
+    - "[ \"$IFACE\" != {{ contrail_route[0].device }} ] && exit 0" 
+  when: contrail_route
+
+  
+- name: "add static route"
+#  sudo: True
+  lineinfile:
+    dest: "/etc/network/if-up.d/routes"
+    line: "ip route add {{ item.ip }} via {{ item.gw }} dev {{ item.device }}"
+    state: "present"
+  with_items:
+    - "{{ contrail_route }}"
+  when: contrail_route
+    

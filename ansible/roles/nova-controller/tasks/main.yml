@@ -1,37 +1,23 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
 ---
-- name: install nova related packages
-  apt: name={{ item }} state=present force=yes
-  with_items:
-    - nova-api
-    - nova-cert
-    - nova-conductor
-    - nova-consoleauth
-    - nova-novncproxy
-    - nova-scheduler
-    - python-novaclient
-    - python-oslo.rootwrap
+- include: nova_install.yml
+  tags:
+    - install
+    - nova_install
+    - nova
 
-- name: update nova conf
-  template: src=nova.conf
-            dest=/etc/nova/nova.conf
-            backup=yes
-  notify:
-    - restart nova-api
-    - restart nova-cert
-    - restart nova-consoleauth
-    - restart nova-scheduler
-    - restart nova-conductor
-    - restart nova-novncproxy
-    - remove nova-sqlite-db
-
-- name: nova db sync
-  command: su -s /bin/sh -c "nova-manage db sync" nova
-  notify:
-    - restart nova-api
-    - restart nova-cert
-    - restart nova-consoleauth
-    - restart nova-scheduler
-    - restart nova-conductor
-    - restart nova-novncproxy
+- include: nova_config.yml
+  when: inventory_hostname == groups['controller'][0]
+  tags:
+    - config
+    - nova_config
+    - nova
 
 - meta: flush_handlers

@@ -48,7 +48,7 @@ if [ "$rhn_keys_found" = "no" ]; then
         # Activate any VG we found
         lvm vgchange -ay $vg
     done
-    
+
     lvs=$(lvm lvs | tail -n +2 | awk '{ print "/dev/" $2 "/" $1 }')
     for lv in $lvs; do
         tmpdir=$(mktemp -d findkeys.XXXXXX)
@@ -67,7 +67,7 @@ if [ "$rhn_keys_found" = "no" ]; then
         umount /tmp/${tmpdir}
         rm -r /tmp/${tmpdir}
     done
-    
+
     # And clean up..
     for vg in $vgs; do
         lvm vgchange -an $vg

@@ -1,0 +1,33 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+
+- name: create osd lv and mount it on /var/local/osd
+  script: create_osd.sh
+
+- name: copy osd keyring
+  copy: src="/tmp/ceph.osd.keyring" dest="/var/lib/ceph/bootstrap-osd/ceph.keyring"
+
+- name: prepare osd disk
+  shell: ceph-disk prepare --fs-type xfs /var/local/osd
+
+- name: activate osd node
+  shell: ceph-disk activate /var/local/osd
+
+- name: enable ceph service
+  service: name=ceph enabled=yes
+
+- name: rebuild osd after reboot
+  lineinfile: dest=/etc/init/ceph-osd-all-starter.conf insertafter="^task" line="pre-start script\n  set -e\n  /opt/setup_storage/losetup.sh\n  sleep 3\n  mount /dev/storage-volumes/ceph0 /var/local/osd\nend script"
+  when: ansible_os_family == "Debian"
+
+- name: rebuild osd after reboot for centos
+  lineinfile: dest=/etc/init.d/ceph insertafter="^### END INIT INFO" line="\nsleep 1\nmount /dev/storage-volumes/ceph0 /var/local/osd"
+  when: ansible_os_family == "RedHat"
+

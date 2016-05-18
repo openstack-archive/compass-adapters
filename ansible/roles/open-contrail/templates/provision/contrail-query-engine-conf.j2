@@ -1,0 +1,18 @@
+[DEFAULT]
+hostip = {{ contrail_address }}
+
+
+#cassandra_server_list = {% for cur_host in groups['controller'] %}{{ ip_settings[cur_host]['mgmt']['ip'] }}:9160{% if not loop.last %} {% endif %}{% endfor %}
+
+
+cassandra_server_list = {% for cur_host in groups['opencontrail'] %}{{ ip_settings[cur_host]['br-prv']['ip'] }}:9160{% if not loop.last %} {% endif %}{% endfor %}
+
+collectors = {{ contrail_haproxy_address }}:8086
+http_server_port = 8091
+log_file = /var/log/contrail/contrail-query-engine.log
+log_level = SYS_NOTICE
+log_local = 1
+
+[REDIS]
+server = 127.0.0.1
+port = 6379

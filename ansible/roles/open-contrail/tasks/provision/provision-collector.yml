@@ -1,0 +1,106 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+#- hosts: collector
+#  sudo: yes
+#  tasks:
+
+- name: "enable supervisor analytics"
+  file:
+    path: "/etc/init/supervisor-analytics.override"
+    state: "absent"
+
+
+- name: "redis-setup"
+  include: -redis-setup.yml
+
+
+- name: "node-common"
+  include: -node-common.yml
+
+
+- name: "fix up contrail collector config"
+  template:
+    src: "../../templates/provision/contrail-collector-conf.j2"
+    dest: "/etc/contrail/contrail-collector.conf"
+
+
+- name: "fix up contrail query engine config"
+  template:
+    src: "../../templates/provision/contrail-query-engine-conf.j2"
+    dest: "/etc/contrail/contrail-query-engine.conf"
+
+
+- name: "fix up contrail analytics api config"
+  template:
+    src: "../../templates/provision/contrail-analytics-api-conf.j2"
+    dest: "/etc/contrail/contrail-analytics-api.conf"
+
+
+- name: "modify contrail analytics nodemgr config"
+  ini_file:
+    dest: "/etc/contrail/contrail-analytics-nodemgr.conf"
+    section: "DISCOVERY"
+    option: "server"
+    value: "{{ contrail_haproxy_address }}"
+
+
+- name: "fix up contrail keystone auth config"
+  template:
+    src: "../../templates/provision/contrail-keystone-auth-conf.j2"
+    dest: "/etc/contrail/contrail-keystone-auth.conf"
+    force: no
+
+
+- name: "delete contrail alarm gen supervisord config file"
+  file:
+    dest: "/etc/contrail/supervisord_analytics_files/contrail-alarm-gen.ini"
+    state: "absent"
+
+
+- name: "modify contrail snmp collector config file"
+  ini_file:
+    dest: "/etc/contrail/contrail-snmp-collector.conf"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  with_items:
+    - { section: "DEFAULTS", option: "zookeeper", value: "{{ contrail_address }}:2181" }
+    - { section: "DISCOVERY", option: "disc_server_ip", value: "{{ contrail_haproxy_address }}" }
+    - { section: "DISCOVERY", option: "disc_server_port", value: "5998" }
+
+
+- name: "modify contrail snmp collector ini file"
+  ini_file:
+    dest: "/etc/contrail/supervisord_analytics_files/contrail-snmp-collector.ini"
+    section: "program:contrail-snmp-collector"
+    option: "command"
+    value: "/usr/bin/contrail-snmp-collector --conf_file /etc/contrail/contrail-snmp-collector.conf --conf_file /etc/contrail/contrail-keystone-auth.conf"
+
+
+- name: "modify contrail topology config file"
+  ini_file:
+    dest: "/etc/contrail/contrail-topology.conf"
+    section: "DEFAULTS"
+    option: "zookeeper"
+    value: "{{ contrail_address }}"
+
+
+- name: "modify contrail topology ini file"
+  ini_file:
+    dest: "/etc/contrail/supervisord_analytics_files/contrail-topology.ini"
+    section: "program:contrail-topology"
+    option: "command"
+    value: "/usr/bin/contrail-topology --conf_file /etc/contrail/contrail-topology.conf"
+
+
+- name: "restart supervisor analytics"
+  service:
+    name: "supervisor-analytics"
+    state: "restarted"
