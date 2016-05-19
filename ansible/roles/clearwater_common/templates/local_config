@@ -1,0 +1,4 @@
+local_ip="{{ private_ip }}"
+public_ip="{{ public_ip }}"
+public_hostname="{{ hostname }}"
+etcd_cluster="{{ clearwater_private_ip_list }}"

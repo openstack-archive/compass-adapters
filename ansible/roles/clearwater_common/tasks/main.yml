@@ -1,0 +1,24 @@
+##############################################################################
+# Copyright (c) 2016 HUAWEI TECHNOLOGIES CO.,LTD and others.
+#
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Apache License, Version 2.0
+# which accompanies this distribution, and is available at
+# http://www.apache.org/licenses/LICENSE-2.0
+##############################################################################
+---
+- name: create clearwater apt source file
+  file: src=clearwater.list dest=/etc/apt/sources.list.d/clearwater.list
+        mode=0644
+
+- name: curl apt key
+  shell: curl -L http://repo.cw-ngv.com/repo_key | sudo apt-key add -
+
+- name: update apt
+  apt: update_cache=yes cache_valid_time=3600
+
+- name: create clearwater directory
+  file: path=/etc/clearwater state=directory mode=0755
+
+- name: create local_config file
+  template: src=local_config dest=/etc/clearwater/local_config mode=0644

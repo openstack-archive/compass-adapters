@@ -1,0 +1,38 @@
+---
+- hosts: ellis
+  sudo: True
+  roles:
+    - clarwater_common
+    - clearwater_ellis
+
+- hosts: bono
+  sudo: True
+  roles:
+    - clearwater_common
+    - clearwater_bono
+
+- hosts: sprout
+  sudo: True
+  roles:
+    - clearwater_common
+    - clearwater_sprout
+
+- hosts: homer
+  sudo: True
+  roles:
+    - clearwater_common
+    - clearwater_homer
+
+- hosts: homestead
+  remote_user: root
+  sudo: True
+  roles:
+    - clearwater_common
+    - clearwater_homestead
+
+- hosts: ralf
+  remote_user: root
+  sudo: True
+  roles:
+    - clearwater_common
+    - clearwater_ralf
