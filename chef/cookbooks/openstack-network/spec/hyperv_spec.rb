@@ -7,7 +7,7 @@ describe 'openstack-network::hyperv' do
     let(:node) { runner.node }
     let(:chef_run) do
       node.set['openstack']['compute']['network']['service_type'] = 'neutron'
-      node.set['openstack']['network']['core_plugin'] = 'neutron.plugins.hyperv.hyperv_neutron_plugin.HyperVNeutronPlugin'
+      node.set['openstack']['network']['core_plugin'] = 'hyperv.neutron.security_groups_driver.HyperVSecurityGroupsDriver'
       node.set['openstack']['network']['core_plugin_map'] = { 'hypervneutronplugin' => 'hyperv' }
       runner.converge(described_recipe)
     end
@@ -19,7 +19,7 @@ describe 'openstack-network::hyperv' do
 
       it 'uses default firewall_driver' do
         expect(chef_run).to render_file(file.name).with_content(
-          /^firewall_driver = neutron.plugins.hyperv.agent.security_groups_driver.HyperVSecurityGroupsDriver/)
+          /^firewall_driver = hyperv.neutron.security_groups_driver.HyperVSecurityGroupsDriver/)
       end
 
     end

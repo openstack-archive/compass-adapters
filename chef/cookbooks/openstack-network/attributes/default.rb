@@ -708,7 +708,7 @@ default['openstack']['network']['hyperv']['physical_network_vswitch_mappings'] =
 default['openstack']['network']['hyperv']['local_network_vswitch'] = 'private'
 
 # Firewall driver for realizing neutron security group function
-default['openstack']['network']['hyperv']['firewall_driver'] = 'neutron.plugins.hyperv.agent.security_groups_driver.HyperVSecurityGroupsDriver'
+default['openstack']['network']['hyperv']['firewall_driver'] = 'hyperv.neutron.security_groups_driver.HyperVSecurityGroupsDriver'
 
 # ============================= Metaplugin Plugin Configuration ============
 
