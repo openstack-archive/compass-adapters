@@ -40,7 +40,7 @@ if node["platform_family"] != 'suse'
     end
   end
 
-  #for python plugins or more complicated ones, use seperate recipe to deploy them
+  #for python plugins or more complicated ones, use separate recipe to deploy them
   if node["collectd"].attribute?("included_plugins") and not node["collectd"]["included_plugins"].nil?
     node["collectd"]["included_plugins"].each_pair do |plugin_key, options|
       include_recipe("collectd::#{plugin_key}")
