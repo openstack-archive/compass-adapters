@@ -77,7 +77,6 @@ paste.filter_factory = heat.api.aws.ec2token:EC2Token_filter_factory
 
 [filter:ssl]
 paste.filter_factory = heat.common.wsgi:filter_factory
-heat.filter_factory = heat.api.openstack:sslmiddleware_filter
 
 # Middleware to set auth_url header appropriately
 [filter:authurl]
