@@ -177,7 +177,7 @@
     dest: "/etc/neutron/plugins/opencontrail"
     state: "directory"
 
-- name: "fix up contrail plugin for nuetron"
+- name: "fix up contrail plugin for neutron"
   template:
     src: "../../templates/provision/neutron-contrail-plugin-ini.j2"
     dest: "/etc/neutron/plugins/opencontrail/ContrailPlugin.ini"
