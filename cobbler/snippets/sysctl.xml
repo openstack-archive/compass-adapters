@@ -27,7 +27,7 @@ kernel.core_uses_pid = 1
 # Controls the use of TCP syncookies
 net.ipv4.tcp_syncookies = 1
 
-# Controls the default maxmimum size of a mesage queue
+# Controls the default maxmimum size of a message queue
 kernel.msgmnb = 65536
 
 # Controls the maximum size of a message, in bytes
