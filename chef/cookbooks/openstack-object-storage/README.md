@@ -42,7 +42,7 @@ The swift-management-server role performs the following functions:
  * generally always has the swift-setup role too
  * there can only be _one_ swift-management-server
 
-There *must* be  node with the the swift-managment-server role to act
+There *must* be  node with the swift-managment-server role to act
 as the ring repository.
 
 In small environments, it is likely that all storage machines will
