@@ -241,7 +241,7 @@ $SNIPPET('suse_scriptwrapper.xml')
         ]]></source>
       </script>
       ## This plugin wrapper provides the flexibility to call pure shell
-      ## snippets which can be used directly on kickstart and with with
+      ## snippets which can be used directly on kickstart and with
       ## wrapper on SuSE.
 #set global $wrappedscript = 'restore_boot_device'
 $SNIPPET('suse_scriptwrapper.xml')
