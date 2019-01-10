@@ -156,7 +156,7 @@ Cinder attributes
 * `openstack['block-storage']['gpfs']['gpfs_images_dir']` - Path to directory in GPFS filesystem where Glance images are located (string value)
 * `openstack['block-storage']['gpfs']['gpfs_images_share_mode']` - Type of image copy to use, either "copy_on_write" or "copy" (string value)
 * `openstack['block-storage']['gpfs']['gpfs_sparse_volumes']` - Create volumes as sparse or fully allocated files (boolean value, default true)
-* `openstack['block-storage']['gpfs']['gpfs_max_clone_depth']` - Maximum clone indirections allowed when creating volume file snapshots clones; zero indicates unlimited clone depth (integer, defalut 0)
+* `openstack['block-storage']['gpfs']['gpfs_max_clone_depth']` - Maximum clone indirections allowed when creating volume file snapshots clones; zero indicates unlimited clone depth (integer, default 0)
 * `openstack['block-storage']['gpfs']['gpfs_storage_pool']` - GPFS storage pool that volumes are assigned to (string value)
 
 ### IBMNAS (SONAS/Storwize V7000 Unified) attributes ###
