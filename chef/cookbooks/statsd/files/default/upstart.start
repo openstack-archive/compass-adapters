@@ -1,3 +1,0 @@
-#!/bin/sh
-# Called by Upstart, /etc/init/statsd.conf
-node /usr/share/statsd/stats.js /etc/statsd/localConfig.js 2>&1 >> /tmp/statsd.log

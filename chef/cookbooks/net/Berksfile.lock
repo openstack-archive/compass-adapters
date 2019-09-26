@@ -1,1 +1,0 @@
-cookbook 'parted', :path => '/home/jdewey/git/cookbook-parted'

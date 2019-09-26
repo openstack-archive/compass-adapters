@@ -1,4 +1,3 @@
-compass-adapters
-================
+# This repo has moved to OpenDev
 
-Compass adapter related code and data (chef, cobbler, etc)
+It can now be found at [https://opendev.org/x/compass-adapters](https://opendev.org/x/compass-adapters)

@@ -1,9 +1,0 @@
-{
-  "name": "ceph-os-radosgw",
-  "description": "Ceph RADOS Gateway compatiable with OpenStack Icehouse",
-  "run_list": [
-    "recipe[ceph::repo]",
-    "recipe[ceph::radosgw]",
-    "recipe[ceph::openstack_config_radosgw]"
-  ]
-}
